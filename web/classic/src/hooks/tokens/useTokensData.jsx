@@ -454,7 +454,7 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
       if (res?.data?.success) {
         const count = res.data.data || 0;
         showSuccess(t('已更新 {{count}} 个令牌！', { count }));
-        await refresh();
+        await loadTokens(activePage);
       } else {
         showError(res?.data?.message || t('批量编辑失败'));
       }
