@@ -89,6 +89,23 @@ export async function batchDeleteApiKeys(
   return res.data
 }
 
+// Batch update multiple API keys
+export async function batchUpdateApiKeys(
+  data: {
+    ids: number[]
+    expired_time?: number
+    remain_quota?: number
+    unlimited_quota?: boolean
+    model_limits?: string
+    allow_ips?: string
+    group?: string
+    cross_group_retry?: boolean
+  }
+): Promise<ApiResponse<number>> {
+  const res = await api.put('/api/token/batch', data)
+  return res.data
+}
+
 // Update API key status (enable/disable)
 export async function updateApiKeyStatus(
   id: number,

@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useCallback } from 'react'
 import { type Table } from '@tanstack/react-table'
-import { Copy, Trash2, Loader2 } from 'lucide-react'
+import { Copy, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
@@ -31,6 +31,7 @@ import {
 import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-table'
 import { type ApiKey } from '../types'
 import { ApiKeysMultiDeleteDialog } from './api-keys-multi-delete-dialog'
+import { ApiKeysBatchEditDialog } from './api-keys-batch-edit-dialog'
 import { useApiKeys } from './api-keys-provider'
 
 type DataTableBulkActionsProps<TData> = {
@@ -43,6 +44,7 @@ export function DataTableBulkActions<TData>({
   const { t } = useTranslation()
   const { resolveRealKeysBatch } = useApiKeys()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showBatchEdit, setShowBatchEdit] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
   const selectedRows = table.getFilteredSelectedRowModel().rows
 
@@ -109,6 +111,25 @@ export function DataTableBulkActions<TData>({
           <TooltipTrigger
             render={
               <Button
+                variant='outline'
+                size='icon'
+                className='size-8'
+                onClick={() => setShowBatchEdit(true)}
+                aria-label={t('Edit selected API keys')}
+              />
+            }
+          >
+            <Pencil className='size-4' />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{t('Edit selected API keys')}</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
                 variant='destructive'
                 size='icon'
                 onClick={() => setShowDeleteConfirm(true)}
@@ -129,6 +150,12 @@ export function DataTableBulkActions<TData>({
       <ApiKeysMultiDeleteDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
+        table={table}
+      />
+
+      <ApiKeysBatchEditDialog
+        open={showBatchEdit}
+        onOpenChange={setShowBatchEdit}
         table={table}
       />
     </>

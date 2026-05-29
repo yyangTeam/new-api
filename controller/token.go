@@ -316,6 +316,17 @@ type TokenBatch struct {
 	Ids []int `json:"ids"`
 }
 
+type TokenBatchUpdate struct {
+	Ids             []int    `json:"ids"`
+	ExpiredTime     *int64   `json:"expired_time"`
+	RemainQuota     *int     `json:"remain_quota"`
+	UnlimitedQuota  *bool    `json:"unlimited_quota"`
+	ModelLimits     *string  `json:"model_limits"`
+	AllowIps        *string  `json:"allow_ips"`
+	Group           *string  `json:"group"`
+	CrossGroupRetry *bool    `json:"cross_group_retry"`
+}
+
 func DeleteTokenBatch(c *gin.Context) {
 	tokenBatch := TokenBatch{}
 	if err := c.ShouldBindJSON(&tokenBatch); err != nil || len(tokenBatch.Ids) == 0 {
@@ -356,4 +367,69 @@ func GetTokenKeysBatch(c *gin.Context) {
 		keysMap[t.Id] = t.GetFullKey()
 	}
 	common.ApiSuccess(c, gin.H{"keys": keysMap})
+}
+
+func UpdateTokenBatch(c *gin.Context) {
+	req := TokenBatchUpdate{}
+	if err := c.ShouldBindJSON(&req); err != nil || len(req.Ids) == 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if len(req.Ids) > 100 {
+		common.ApiErrorI18n(c, i18n.MsgBatchTooMany, map[string]any{"Max": 100})
+		return
+	}
+
+	if req.RemainQuota != nil && req.UnlimitedQuota != nil && !*req.UnlimitedQuota {
+		if *req.RemainQuota < 0 {
+			common.ApiErrorI18n(c, i18n.MsgTokenQuotaNegative)
+			return
+		}
+		maxQuotaValue := int(1000000000 * common.QuotaPerUnit)
+		if *req.RemainQuota > maxQuotaValue {
+			common.ApiErrorI18n(c, i18n.MsgTokenQuotaExceedMax, map[string]any{"Max": maxQuotaValue})
+			return
+		}
+	}
+
+	updateFields := make(map[string]interface{})
+	if req.ExpiredTime != nil {
+		updateFields["expired_time"] = *req.ExpiredTime
+	}
+	if req.RemainQuota != nil {
+		updateFields["remain_quota"] = *req.RemainQuota
+	}
+	if req.UnlimitedQuota != nil {
+		updateFields["unlimited_quota"] = *req.UnlimitedQuota
+	}
+	if req.ModelLimits != nil {
+		updateFields["model_limits"] = *req.ModelLimits
+		updateFields["model_limits_enabled"] = len(strings.TrimSpace(*req.ModelLimits)) > 0
+	}
+	if req.AllowIps != nil {
+		updateFields["allow_ips"] = *req.AllowIps
+	}
+	if req.Group != nil {
+		updateFields["group"] = *req.Group
+	}
+	if req.CrossGroupRetry != nil {
+		updateFields["cross_group_retry"] = *req.CrossGroupRetry
+	}
+
+	if len(updateFields) == 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	userId := c.GetInt("id")
+	count, err := model.BatchUpdateTokens(req.Ids, userId, updateFields)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    count,
+	})
 }

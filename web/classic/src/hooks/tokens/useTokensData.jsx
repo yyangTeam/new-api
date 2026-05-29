@@ -441,6 +441,30 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
     }
   };
 
+  // Batch edit tokens
+  const batchEditTokens = async (fields) => {
+    if (selectedKeys.length === 0) {
+      showError(t('请至少选择一个令牌！'));
+      return;
+    }
+    setLoading(true);
+    try {
+      const ids = selectedKeys.map((token) => token.id);
+      const res = await API.put('/api/token/batch', { ids, ...fields });
+      if (res?.data?.success) {
+        const count = res.data.data || 0;
+        showSuccess(t('已更新 {{count}} 个令牌！', { count }));
+        await refresh();
+      } else {
+        showError(res?.data?.message || t('批量编辑失败'));
+      }
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Initialize data
   useEffect(() => {
     loadTokens(1)
@@ -513,6 +537,7 @@ export const useTokensData = (openFluentNotification, openCCSwitchModal) => {
     rowSelection,
     handleRow,
     batchDeleteTokens,
+    batchEditTokens,
     batchCopyTokens,
     syncPageData,
 

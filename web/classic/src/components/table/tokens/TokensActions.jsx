@@ -22,6 +22,7 @@ import { Button, Space } from '@douyinfe/semi-ui';
 import { showError } from '../../../helpers';
 import CopyTokensModal from './modals/CopyTokensModal';
 import DeleteTokensModal from './modals/DeleteTokensModal';
+import BatchEditTokenModal from './modals/BatchEditTokenModal';
 
 const TokensActions = ({
   selectedKeys,
@@ -29,11 +30,13 @@ const TokensActions = ({
   setShowEdit,
   batchCopyTokens,
   batchDeleteTokens,
+  batchEditTokens,
   t,
 }) => {
   // Modal states
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showBatchEditModal, setShowBatchEditModal] = useState(false);
 
   // Handle copy selected tokens with options
   const handleCopySelectedTokens = () => {
@@ -57,6 +60,20 @@ const TokensActions = ({
   const handleConfirmDelete = () => {
     batchDeleteTokens();
     setShowDeleteModal(false);
+  };
+
+  // Handle batch edit
+  const handleBatchEditTokens = () => {
+    if (selectedKeys.length === 0) {
+      showError(t('请至少选择一个令牌！'));
+      return;
+    }
+    setShowBatchEditModal(true);
+  };
+
+  const handleConfirmBatchEdit = (fields) => {
+    batchEditTokens(fields);
+    setShowBatchEditModal(false);
   };
 
   return (
@@ -86,6 +103,15 @@ const TokensActions = ({
         </Button>
 
         <Button
+          type='secondary'
+          className='flex-1 md:flex-initial'
+          onClick={handleBatchEditTokens}
+          size='small'
+        >
+          {t('批量编辑')}
+        </Button>
+
+        <Button
           type='danger'
           className='w-full md:w-auto'
           onClick={handleDeleteSelectedTokens}
@@ -108,6 +134,13 @@ const TokensActions = ({
         onConfirm={handleConfirmDelete}
         selectedKeys={selectedKeys}
         t={t}
+      />
+
+      <BatchEditTokenModal
+        visible={showBatchEditModal}
+        onCancel={() => setShowBatchEditModal(false)}
+        onConfirm={handleConfirmBatchEdit}
+        selectedKeys={selectedKeys}
       />
     </>
   );

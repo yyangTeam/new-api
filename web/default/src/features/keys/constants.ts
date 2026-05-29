@@ -84,6 +84,7 @@ export const ERROR_MESSAGES = {
   UPDATE_FAILED: 'Failed to update API key',
   DELETE_FAILED: 'Failed to delete API key',
   BATCH_DELETE_FAILED: 'Failed to delete API keys',
+  BATCH_UPDATE_FAILED: 'Failed to batch update API keys',
   STATUS_UPDATE_FAILED: 'Failed to update API key status',
 } as const
 
@@ -97,4 +98,5 @@ export const SUCCESS_MESSAGES = {
   API_KEY_DELETED: 'API Key deleted successfully',
   API_KEY_ENABLED: 'API Key enabled successfully',
   API_KEY_DISABLED: 'API Key disabled successfully',
+  API_KEYS_BATCH_UPDATED: 'Successfully updated {{count}} API key(s)',
 } as const

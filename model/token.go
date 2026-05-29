@@ -473,6 +473,46 @@ func BatchDeleteTokens(ids []int, userId int) (int, error) {
 	return len(tokens), nil
 }
 
+func BatchUpdateTokens(ids []int, userId int, fields map[string]interface{}) (int, error) {
+	if len(ids) == 0 {
+		return 0, errors.New("ids cannot be empty")
+	}
+	if len(fields) == 0 {
+		return 0, errors.New("no fields to update")
+	}
+
+	tx := DB.Begin()
+
+	var tokens []Token
+	if err := tx.Where("user_id = ? AND id IN (?)", userId, ids).Find(&tokens).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	if len(tokens) == 0 {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	if err := tx.Model(&Token{}).Where("user_id = ? AND id IN (?)", userId, ids).Updates(fields).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return 0, err
+	}
+
+	if common.RedisEnabled {
+		gopool.Go(func() {
+			for _, t := range tokens {
+				_ = cacheDeleteToken(t.Key)
+			}
+		})
+	}
+
+	return len(tokens), nil
+}
+
 func GetTokenKeysByIds(ids []int, userId int) ([]Token, error) {
 	var tokens []Token
 	err := DB.Select("id", commonKeyCol).
