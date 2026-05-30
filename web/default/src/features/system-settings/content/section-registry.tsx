@@ -23,6 +23,7 @@ import { ApiInfoSection } from './api-info-section'
 import { ChatSettingsSection } from './chat-settings-section'
 import { DashboardSection } from './dashboard-section'
 import { DrawingSettingsSection } from './drawing-settings-section'
+import { ImageGenSection } from './image-gen-section'
 import { FAQSection } from './faq-section'
 import { UptimeKumaSection } from './uptime-kuma-section'
 
@@ -114,6 +115,13 @@ const CONTENT_SECTIONS = [
           MjActionCheckSuccessEnabled: settings.MjActionCheckSuccessEnabled,
         }}
       />
+    ),
+  },
+  {
+    id: 'image-gen',
+    titleKey: 'Image Generation',
+    build: (settings: ContentSettings) => (
+      <ImageGenSection defaultValue={settings.ImageGenerationUrl} />
     ),
   },
 ] as const
