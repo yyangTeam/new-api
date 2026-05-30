@@ -22,6 +22,7 @@ import {
   CreditCard,
   FileText,
   FlaskConical,
+  Image,
   Key,
   LayoutDashboard,
   ListTodo,
@@ -35,6 +36,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { type SidebarData } from '@/components/layout/types'
+import { useStatus } from '@/hooks/use-status'
 
 /**
  * Root navigation groups for the application sidebar.
@@ -44,6 +46,8 @@ import { type SidebarData } from '@/components/layout/types'
  */
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
+  const { status } = useStatus()
+  const imageGenUrl = status?.image_generation_url
 
   return {
     navGroups: [
@@ -61,6 +65,15 @@ export function useSidebarData(): SidebarData {
             icon: MessageSquare,
             type: 'chat-presets',
           },
+          ...(imageGenUrl
+            ? [
+                {
+                  title: t('Image Generation'),
+                  url: '/image-gen',
+                  icon: Image,
+                },
+              ]
+            : []),
         ],
       },
       {
