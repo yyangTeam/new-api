@@ -506,6 +506,286 @@ func TestUpdateTokenMasksKeyInResponse(t *testing.T) {
 	}
 }
 
+func boolPtr(b bool) *bool    { return &b }
+func intPtr(i int) *int       { return &i }
+func int64Ptr(i int64) *int64 { return &i }
+func strPtr(s string) *string { return &s }
+
+func TestUpdateTokenBatchRejectsEmptyIds(t *testing.T) {
+	setupTokenControllerTestDB(t)
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", map[string]any{
+		"ids":   []int{},
+		"group": "vip",
+	}, 1)
+	UpdateTokenBatch(ctx)
+
+	resp := decodeAPIResponse(t, recorder)
+	if resp.Success {
+		t.Fatalf("expected failure for empty ids")
+	}
+}
+
+func TestUpdateTokenBatchRejectsTooManyIds(t *testing.T) {
+	setupTokenControllerTestDB(t)
+
+	ids := make([]int, 101)
+	for i := range ids {
+		ids[i] = i + 1
+	}
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", map[string]any{
+		"ids":   ids,
+		"group": "vip",
+	}, 1)
+	UpdateTokenBatch(ctx)
+
+	resp := decodeAPIResponse(t, recorder)
+	if resp.Success {
+		t.Fatalf("expected failure when ids > 100")
+	}
+}
+
+func TestUpdateTokenBatchRejectsNoUpdateFields(t *testing.T) {
+	db := setupTokenControllerTestDB(t)
+	token := seedToken(t, db, 1, "no-fields-token", "nofield1234567890")
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", map[string]any{
+		"ids": []int{token.Id},
+	}, 1)
+	UpdateTokenBatch(ctx)
+
+	resp := decodeAPIResponse(t, recorder)
+	if resp.Success {
+		t.Fatalf("expected failure when no update fields provided")
+	}
+}
+
+func TestUpdateTokenBatchRejectsNegativeQuota(t *testing.T) {
+	db := setupTokenControllerTestDB(t)
+	token := seedToken(t, db, 1, "neg-quota-token", "negquota123456789")
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", map[string]any{
+		"ids":              []int{token.Id},
+		"remain_quota":     -1,
+		"unlimited_quota":  false,
+	}, 1)
+	UpdateTokenBatch(ctx)
+
+	resp := decodeAPIResponse(t, recorder)
+	if resp.Success {
+		t.Fatalf("expected failure for negative quota")
+	}
+}
+
+func TestUpdateTokenBatchUpdatesGroup(t *testing.T) {
+	db := setupTokenControllerTestDB(t)
+	t1 := seedToken(t, db, 1, "grp-token-1", "grptoken1aaaaaaaa")
+	t2 := seedToken(t, db, 1, "grp-token-2", "grptoken2bbbbbbbb")
+	seedToken(t, db, 2, "other-user-token", "otherusercccccccc") // belongs to user 2
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", map[string]any{
+		"ids":   []int{t1.Id, t2.Id},
+		"group": "premium",
+	}, 1)
+	UpdateTokenBatch(ctx)
+
+	resp := decodeAPIResponse(t, recorder)
+	if !resp.Success {
+		t.Fatalf("expected success, got message: %s", resp.Message)
+	}
+
+	var count int
+	if err := common.Unmarshal(resp.Data, &count); err != nil {
+		t.Fatalf("failed to decode count: %v", err)
+	}
+	if count != 2 {
+		t.Fatalf("expected 2 updated tokens, got %d", count)
+	}
+
+	var updated []model.Token
+	if err := db.Where("id IN (?)", []int{t1.Id, t2.Id}).Find(&updated).Error; err != nil {
+		t.Fatalf("failed to fetch updated tokens: %v", err)
+	}
+	for _, tok := range updated {
+		if tok.Group != "premium" {
+			t.Fatalf("expected group 'premium', got %q for token %d", tok.Group, tok.Id)
+		}
+	}
+}
+
+func TestUpdateTokenBatchIgnoresOtherUsersTokens(t *testing.T) {
+	db := setupTokenControllerTestDB(t)
+	mine := seedToken(t, db, 1, "my-token", "mytoken123456789a")
+	theirs := seedToken(t, db, 2, "their-token", "theirtoken1234567")
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", map[string]any{
+		"ids":   []int{mine.Id, theirs.Id},
+		"group": "hacked",
+	}, 1)
+	UpdateTokenBatch(ctx)
+
+	resp := decodeAPIResponse(t, recorder)
+	if !resp.Success {
+		t.Fatalf("expected success, got message: %s", resp.Message)
+	}
+
+	var theirsAfter model.Token
+	if err := db.First(&theirsAfter, theirs.Id).Error; err != nil {
+		t.Fatalf("failed to fetch other user's token: %v", err)
+	}
+	if theirsAfter.Group == "hacked" {
+		t.Fatalf("batch edit must not update another user's token")
+	}
+}
+
+func TestUpdateTokenBatchUpdatesExpiredTime(t *testing.T) {
+	db := setupTokenControllerTestDB(t)
+	tok := seedToken(t, db, 1, "exp-token", "exptoken123456789")
+
+	const newExpiry int64 = 9999999999
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", map[string]any{
+		"ids":          []int{tok.Id},
+		"expired_time": newExpiry,
+	}, 1)
+	UpdateTokenBatch(ctx)
+
+	if !decodeAPIResponse(t, recorder).Success {
+		t.Fatalf("expected success updating expired_time")
+	}
+
+	var updated model.Token
+	if err := db.First(&updated, tok.Id).Error; err != nil {
+		t.Fatalf("failed to fetch token: %v", err)
+	}
+	if updated.ExpiredTime != newExpiry {
+		t.Fatalf("expected expired_time %d, got %d", newExpiry, updated.ExpiredTime)
+	}
+}
+
+func TestUpdateTokenBatchUpdatesModelLimitsAndEnablesFlag(t *testing.T) {
+	db := setupTokenControllerTestDB(t)
+	tok := seedToken(t, db, 1, "ml-token", "mltoken1234567890")
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", map[string]any{
+		"ids":          []int{tok.Id},
+		"model_limits": "gpt-4,claude-3",
+	}, 1)
+	UpdateTokenBatch(ctx)
+
+	if !decodeAPIResponse(t, recorder).Success {
+		t.Fatalf("expected success updating model_limits")
+	}
+
+	var updated model.Token
+	if err := db.First(&updated, tok.Id).Error; err != nil {
+		t.Fatalf("failed to fetch token: %v", err)
+	}
+	if updated.ModelLimits != "gpt-4,claude-3" {
+		t.Fatalf("expected model_limits 'gpt-4,claude-3', got %q", updated.ModelLimits)
+	}
+	if !updated.ModelLimitsEnabled {
+		t.Fatalf("expected model_limits_enabled to be true when model_limits is non-empty")
+	}
+}
+
+func TestUpdateTokenBatchDisablesModelLimitsFlagWhenEmpty(t *testing.T) {
+	db := setupTokenControllerTestDB(t)
+	tok := seedToken(t, db, 1, "ml-clear-token", "mlcleartoken12345")
+	db.Model(tok).Updates(map[string]interface{}{"model_limits": "gpt-4", "model_limits_enabled": true})
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", map[string]any{
+		"ids":          []int{tok.Id},
+		"model_limits": "",
+	}, 1)
+	UpdateTokenBatch(ctx)
+
+	if !decodeAPIResponse(t, recorder).Success {
+		t.Fatalf("expected success clearing model_limits")
+	}
+
+	var updated model.Token
+	if err := db.First(&updated, tok.Id).Error; err != nil {
+		t.Fatalf("failed to fetch token: %v", err)
+	}
+	if updated.ModelLimitsEnabled {
+		t.Fatalf("expected model_limits_enabled to be false when model_limits is empty")
+	}
+}
+
+func TestUpdateTokenBatchUpdatesUnlimitedQuotaAndRemainQuota(t *testing.T) {
+	db := setupTokenControllerTestDB(t)
+	tok := seedToken(t, db, 1, "quota-token", "quotatoken1234567")
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", map[string]any{
+		"ids":             []int{tok.Id},
+		"unlimited_quota": false,
+		"remain_quota":    500,
+	}, 1)
+	UpdateTokenBatch(ctx)
+
+	if !decodeAPIResponse(t, recorder).Success {
+		t.Fatalf("expected success updating quota")
+	}
+
+	var updated model.Token
+	if err := db.First(&updated, tok.Id).Error; err != nil {
+		t.Fatalf("failed to fetch token: %v", err)
+	}
+	if updated.UnlimitedQuota {
+		t.Fatalf("expected unlimited_quota to be false")
+	}
+	if updated.RemainQuota != 500 {
+		t.Fatalf("expected remain_quota 500, got %d", updated.RemainQuota)
+	}
+}
+
+func TestUpdateTokenBatchUpdatesCrossGroupRetry(t *testing.T) {
+	db := setupTokenControllerTestDB(t)
+	tok := seedToken(t, db, 1, "cgr-token", "cgrtoken123456789")
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", map[string]any{
+		"ids":               []int{tok.Id},
+		"cross_group_retry": true,
+	}, 1)
+	UpdateTokenBatch(ctx)
+
+	if !decodeAPIResponse(t, recorder).Success {
+		t.Fatalf("expected success updating cross_group_retry")
+	}
+
+	var updated model.Token
+	if err := db.First(&updated, tok.Id).Error; err != nil {
+		t.Fatalf("failed to fetch token: %v", err)
+	}
+	if !updated.CrossGroupRetry {
+		t.Fatalf("expected cross_group_retry to be true")
+	}
+}
+
+func TestUpdateTokenBatchReturnsZeroWhenNoMatchingTokens(t *testing.T) {
+	db := setupTokenControllerTestDB(t)
+	seedToken(t, db, 2, "other-user-token", "otheruserXXXXXXXX")
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", map[string]any{
+		"ids":   []int{99999},
+		"group": "vip",
+	}, 1)
+	UpdateTokenBatch(ctx)
+
+	resp := decodeAPIResponse(t, recorder)
+	if !resp.Success {
+		t.Fatalf("expected success (0 updated), got message: %s", resp.Message)
+	}
+
+	var count int
+	if err := common.Unmarshal(resp.Data, &count); err != nil {
+		t.Fatalf("failed to decode count: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("expected 0 updated tokens, got %d", count)
+	}
+}
+
 func TestGetTokenKeyRequiresOwnershipAndReturnsFullKey(t *testing.T) {
 	db := setupTokenControllerTestDB(t)
 	token := seedToken(t, db, 1, "owned-token", "owner1234token5678")
