@@ -156,6 +156,8 @@ func InitOptionMap() {
 	common.OptionMap["DataExportInterval"] = strconv.Itoa(common.DataExportInterval)
 	common.OptionMap["DataExportDefaultTime"] = common.DataExportDefaultTime
 	common.OptionMap["DefaultCollapseSidebar"] = strconv.FormatBool(common.DefaultCollapseSidebar)
+	common.OptionMap["ImageGenerationUrl"] = common.ImageGenerationUrl
+	common.OptionMap["ImageGenerationOpenMode"] = common.ImageGenerationOpenMode
 	common.OptionMap["MjNotifyEnabled"] = strconv.FormatBool(setting.MjNotifyEnabled)
 	common.OptionMap["MjAccountFilterEnabled"] = strconv.FormatBool(setting.MjAccountFilterEnabled)
 	common.OptionMap["MjModeClearEnabled"] = strconv.FormatBool(setting.MjModeClearEnabled)
@@ -380,6 +382,10 @@ func updateOptionMap(key string, value string) (err error) {
 		system_setting.WorkerUrl = value
 	case "WorkerValidKey":
 		system_setting.WorkerValidKey = value
+	case "ImageGenerationUrl":
+		common.ImageGenerationUrl = value
+	case "ImageGenerationOpenMode":
+		common.ImageGenerationOpenMode = value
 	case "PayAddress":
 		operation_setting.PayAddress = value
 	case "Chats":

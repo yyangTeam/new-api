@@ -69,6 +69,8 @@ var DataExportEnabled = true
 var DataExportInterval = 5         // unit: minute
 var DataExportDefaultTime = "hour" // unit: minute
 var DefaultCollapseSidebar = false // default value of collapse sidebar
+var ImageGenerationUrl = ""
+var ImageGenerationOpenMode = "embed" // "embed" or "new_tab"
 
 // Any options with "Secret", "Token" in its key won't be return by GetOptions
 

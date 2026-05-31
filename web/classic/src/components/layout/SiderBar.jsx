@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getLucideIcon } from '../../helpers/render';
@@ -26,6 +26,7 @@ import { useSidebarCollapsed } from '../../hooks/common/useSidebarCollapsed';
 import { useSidebar } from '../../hooks/common/useSidebar';
 import { useMinimumLoadingTime } from '../../hooks/common/useMinimumLoadingTime';
 import { isAdmin, isRoot, showError } from '../../helpers';
+import { StatusContext } from '../../context/Status';
 import SkeletonWrapper from './components/SkeletonWrapper';
 
 import { Nav, Divider, Button } from '@douyinfe/semi-ui';
@@ -49,10 +50,12 @@ const routerMap = {
   deployment: '/console/deployment',
   playground: '/console/playground',
   personal: '/console/personal',
+  image_gen: '/console/image-gen',
 };
 
 const SiderBar = ({ onNavigate = () => {} }) => {
   const { t } = useTranslation();
+  const [statusState] = useContext(StatusContext);
   const [collapsed, toggleCollapsed] = useSidebarCollapsed();
   const {
     isModuleVisible,
@@ -201,6 +204,7 @@ const SiderBar = ({ onNavigate = () => {} }) => {
   }, [isAdmin(), isRoot(), t, isModuleVisible]);
 
   const chatMenuItems = useMemo(() => {
+    const imageGenUrl = statusState?.status?.image_generation_url;
     const items = [
       {
         text: t('操练场'),
@@ -212,6 +216,15 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         itemKey: 'chat',
         items: chatItems,
       },
+      ...(imageGenUrl
+        ? [
+            {
+              text: t('生图'),
+              itemKey: 'image_gen',
+              to: '/image-gen',
+            },
+          ]
+        : []),
     ];
 
     // 根据配置过滤项目
@@ -221,7 +234,7 @@ const SiderBar = ({ onNavigate = () => {} }) => {
     });
 
     return filteredItems;
-  }, [chatItems, t, isModuleVisible]);
+  }, [chatItems, t, isModuleVisible, statusState?.status?.image_generation_url, statusState?.status?.image_generation_open_mode]);
 
   // 更新路由映射，添加聊天路由
   const updateRouterMapWithChats = (chats) => {
@@ -414,6 +427,24 @@ const SiderBar = ({ onNavigate = () => {} }) => {
           hoverStyle='sidebar-nav-item:hover'
           selectedStyle='sidebar-nav-item-selected'
           renderWrapper={({ itemElement, props }) => {
+            const imageGenUrl = statusState?.status?.image_generation_url;
+            const imageGenOpenMode = statusState?.status?.image_generation_open_mode ?? 'embed';
+
+            // new_tab 模式下生图菜单项直接外链打开
+            if (props.itemKey === 'image_gen' && imageGenUrl && imageGenOpenMode === 'new_tab') {
+              return (
+                <a
+                  style={{ textDecoration: 'none' }}
+                  href={imageGenUrl}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  onClick={onNavigate}
+                >
+                  {itemElement}
+                </a>
+              );
+            }
+
             const to =
               routerMapState[props.itemKey] || routerMap[props.itemKey];
 

@@ -134,6 +134,8 @@ export type ContentSettings = {
   MjForwardUrlEnabled: boolean
   MjModeClearEnabled: boolean
   MjActionCheckSuccessEnabled: boolean
+  ImageGenerationUrl: string
+  ImageGenerationOpenMode: string
 }
 
 export type ModelSettings = {
