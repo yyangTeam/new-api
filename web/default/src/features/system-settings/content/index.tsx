@@ -43,6 +43,8 @@ const defaultContentSettings: ContentSettings = {
   MjForwardUrlEnabled: false,
   MjModeClearEnabled: false,
   MjActionCheckSuccessEnabled: false,
+  ImageGenerationUrl: '',
+  ImageGenerationOpenMode: 'embed',
 }
 
 function resolveContentSettings(
@@ -53,6 +55,14 @@ function resolveContentSettings(
 
   const optionMap = new Map(raw.map((item) => [item.key, item.value]))
   const next = { ...settings }
+
+  // Populate all keys that exist in both the defaults and the API response
+  for (const key of Object.keys(next) as (keyof ContentSettings)[]) {
+    if (optionMap.has(key as string)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(next as any)[key] = optionMap.get(key as string)
+    }
+  }
 
   const legacyMap = [
     { current: 'console_setting.announcements', legacy: 'Announcements' },
