@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Button, Form, RadioGroup, Radio, Spin, Typography } from '@douyinfe/semi-ui';
 import { API, compareObjects, showError, showSuccess, showWarning } from '../../../helpers';
 import { useTranslation } from 'react-i18next';
@@ -28,25 +28,13 @@ export default function SettingsImageGen(props) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState({
-    ImageGenerationUrl: '',
-    ImageGenerationOpenMode: 'embed',
+    ImageGenerationUrl: props.options?.ImageGenerationUrl || '',
+    ImageGenerationOpenMode: props.options?.ImageGenerationOpenMode || 'embed',
   });
-  const refForm = useRef();
-  const [inputsRow, setInputsRow] = useState(inputs);
-
-  useEffect(() => {
-    if (props.options) {
-      const next = {
-        ImageGenerationUrl: props.options.ImageGenerationUrl || '',
-        ImageGenerationOpenMode: props.options.ImageGenerationOpenMode || 'embed',
-      };
-      setInputs(next);
-      setInputsRow(next);
-      if (refForm.current) {
-        refForm.current.setValues(next);
-      }
-    }
-  }, [props.options]);
+  const inputsRow = {
+    ImageGenerationUrl: props.options?.ImageGenerationUrl || '',
+    ImageGenerationOpenMode: props.options?.ImageGenerationOpenMode || 'embed',
+  };
 
   async function onSubmit() {
     const updateArray = compareObjects(inputs, inputsRow);
@@ -68,8 +56,7 @@ export default function SettingsImageGen(props) {
   return (
     <Spin spinning={loading}>
       <Form
-        ref={refForm}
-        values={inputs}
+        initValues={inputs}
         onValueChange={(values) => setInputs({ ...inputs, ...values })}
       >
         <Form.Input

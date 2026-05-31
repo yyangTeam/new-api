@@ -25,6 +25,7 @@ import { API, showError } from '../../helpers';
 const ImageGenSetting = () => {
   const [inputs, setInputs] = useState({ ImageGenerationUrl: '', ImageGenerationOpenMode: 'embed' });
   const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const getOptions = async () => {
     const res = await API.get('/api/option/');
@@ -37,6 +38,7 @@ const ImageGenSetting = () => {
         }
       });
       setInputs((prev) => ({ ...prev, ...newInputs }));
+      setLoaded(true);
     } else {
       showError(message);
     }
@@ -60,7 +62,7 @@ const ImageGenSetting = () => {
   return (
     <Spin spinning={loading} size='large'>
       <Card style={{ marginTop: '10px' }}>
-        <SettingsImageGen options={inputs} refresh={onRefresh} />
+        <SettingsImageGen key={loaded ? 'loaded' : 'loading'} options={inputs} refresh={onRefresh} />
       </Card>
     </Spin>
   );
