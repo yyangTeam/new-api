@@ -42,6 +42,9 @@ export default function SettingsImageGen(props) {
       };
       setInputs(next);
       setInputsRow(next);
+      if (refForm.current) {
+        refForm.current.setValues(next);
+      }
     }
   }, [props.options]);
 
