@@ -50,10 +50,10 @@ const ImageGen = () => {
   }
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
+    <div style={{ width: '100%', height: 'calc(100vh - 64px)', marginTop: '64px' }}>
       <iframe
         src={url}
-        style={{ width: '100%', height: '100%', border: 'none' }}
+        style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
         sandbox='allow-scripts allow-same-origin allow-forms allow-popups'
         title='Image Generation'
       />
