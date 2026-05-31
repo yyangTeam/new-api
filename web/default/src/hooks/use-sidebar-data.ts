@@ -48,6 +48,7 @@ export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
   const { status } = useStatus()
   const imageGenUrl = status?.image_generation_url
+  const imageGenOpenMode = status?.image_generation_open_mode ?? 'embed'
 
   return {
     navGroups: [
@@ -67,11 +68,18 @@ export function useSidebarData(): SidebarData {
           },
           ...(imageGenUrl
             ? [
-                {
-                  title: t('Image Generation'),
-                  url: '/image-gen',
-                  icon: Image,
-                },
+                imageGenOpenMode === 'new_tab'
+                  ? {
+                      title: t('Image Generation'),
+                      url: '/image-gen' as const,
+                      externalUrl: imageGenUrl,
+                      icon: Image,
+                    }
+                  : {
+                      title: t('Image Generation'),
+                      url: '/image-gen' as const,
+                      icon: Image,
+                    },
               ]
             : []),
         ],

@@ -234,7 +234,7 @@ const SiderBar = ({ onNavigate = () => {} }) => {
     });
 
     return filteredItems;
-  }, [chatItems, t, isModuleVisible, statusState?.status?.image_generation_url]);
+  }, [chatItems, t, isModuleVisible, statusState?.status?.image_generation_url, statusState?.status?.image_generation_open_mode]);
 
   // 更新路由映射，添加聊天路由
   const updateRouterMapWithChats = (chats) => {
@@ -427,6 +427,24 @@ const SiderBar = ({ onNavigate = () => {} }) => {
           hoverStyle='sidebar-nav-item:hover'
           selectedStyle='sidebar-nav-item-selected'
           renderWrapper={({ itemElement, props }) => {
+            const imageGenUrl = statusState?.status?.image_generation_url;
+            const imageGenOpenMode = statusState?.status?.image_generation_open_mode ?? 'embed';
+
+            // new_tab 模式下生图菜单项直接外链打开
+            if (props.itemKey === 'image_gen' && imageGenUrl && imageGenOpenMode === 'new_tab') {
+              return (
+                <a
+                  style={{ textDecoration: 'none' }}
+                  href={imageGenUrl}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  onClick={onNavigate}
+                >
+                  {itemElement}
+                </a>
+              );
+            }
+
             const to =
               routerMapState[props.itemKey] || routerMap[props.itemKey];
 
