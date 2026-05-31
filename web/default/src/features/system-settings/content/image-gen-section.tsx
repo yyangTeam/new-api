@@ -31,6 +31,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   SettingsForm,
 } from '../components/settings-form-layout'
@@ -40,32 +41,43 @@ import { useUpdateOption } from '../hooks/use-update-option'
 
 const imageGenSchema = z.object({
   ImageGenerationUrl: z.string(),
+  ImageGenerationOpenMode: z.enum(['embed', 'new_tab']),
 })
 
 type ImageGenFormValues = z.infer<typeof imageGenSchema>
 
 type ImageGenSectionProps = {
   defaultValue: string
+  defaultOpenMode: string
 }
 
-export function ImageGenSection({ defaultValue }: ImageGenSectionProps) {
+export function ImageGenSection({ defaultValue, defaultOpenMode }: ImageGenSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
   const form = useForm<ImageGenFormValues>({
     resolver: zodResolver(imageGenSchema),
-    defaultValues: { ImageGenerationUrl: defaultValue },
+    defaultValues: {
+      ImageGenerationUrl: defaultValue,
+      ImageGenerationOpenMode: (defaultOpenMode === 'new_tab' ? 'new_tab' : 'embed'),
+    },
   })
 
   useEffect(() => {
-    form.reset({ ImageGenerationUrl: defaultValue })
-  }, [defaultValue, form])
+    form.reset({
+      ImageGenerationUrl: defaultValue,
+      ImageGenerationOpenMode: defaultOpenMode === 'new_tab' ? 'new_tab' : 'embed',
+    })
+  }, [defaultValue, defaultOpenMode, form])
 
   const onSubmit = async (values: ImageGenFormValues) => {
-    if (values.ImageGenerationUrl === defaultValue) return
-    await updateOption.mutateAsync({
-      key: 'ImageGenerationUrl',
-      value: values.ImageGenerationUrl,
-    })
+    const promises: Promise<unknown>[] = []
+    if (values.ImageGenerationUrl !== defaultValue) {
+      promises.push(updateOption.mutateAsync({ key: 'ImageGenerationUrl', value: values.ImageGenerationUrl }))
+    }
+    if (values.ImageGenerationOpenMode !== (defaultOpenMode === 'new_tab' ? 'new_tab' : 'embed')) {
+      promises.push(updateOption.mutateAsync({ key: 'ImageGenerationOpenMode', value: values.ImageGenerationOpenMode }))
+    }
+    await Promise.all(promises)
   }
 
   return (
@@ -82,7 +94,7 @@ export function ImageGenSection({ defaultValue }: ImageGenSectionProps) {
             name='ImageGenerationUrl'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('Embed URL')}</FormLabel>
+                <FormLabel>{t('URL')}</FormLabel>
                 <FormControl>
                   <Input
                     placeholder='https://your-image-gen-site.com'
@@ -94,6 +106,36 @@ export function ImageGenSection({ defaultValue }: ImageGenSectionProps) {
                     'The URL to embed in the Image Generation page. Leave empty to hide the menu item.'
                   )}
                 </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name='ImageGenerationOpenMode'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Open Mode')}</FormLabel>
+                <FormControl>
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    className='flex gap-6'
+                  >
+                    <FormItem className='flex items-center gap-2 space-y-0'>
+                      <FormControl>
+                        <RadioGroupItem value='embed' />
+                      </FormControl>
+                      <FormLabel className='font-normal'>{t('Embed (iframe)')}</FormLabel>
+                    </FormItem>
+                    <FormItem className='flex items-center gap-2 space-y-0'>
+                      <FormControl>
+                        <RadioGroupItem value='new_tab' />
+                      </FormControl>
+                      <FormLabel className='font-normal'>{t('Open in new tab')}</FormLabel>
+                    </FormItem>
+                  </RadioGroup>
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

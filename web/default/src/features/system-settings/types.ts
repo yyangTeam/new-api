@@ -135,6 +135,7 @@ export type ContentSettings = {
   MjModeClearEnabled: boolean
   MjActionCheckSuccessEnabled: boolean
   ImageGenerationUrl: string
+  ImageGenerationOpenMode: string
 }
 
 export type ModelSettings = {

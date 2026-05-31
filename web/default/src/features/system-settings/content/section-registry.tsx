@@ -121,7 +121,7 @@ const CONTENT_SECTIONS = [
     id: 'image-gen',
     titleKey: 'Image Generation',
     build: (settings: ContentSettings) => (
-      <ImageGenSection defaultValue={settings.ImageGenerationUrl} />
+      <ImageGenSection defaultValue={settings.ImageGenerationUrl} defaultOpenMode={settings.ImageGenerationOpenMode} />
     ),
   },
 ] as const

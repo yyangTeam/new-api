@@ -23,7 +23,7 @@ import SettingsImageGen from '../../pages/Setting/ImageGen/SettingsImageGen';
 import { API, showError } from '../../helpers';
 
 const ImageGenSetting = () => {
-  const [inputs, setInputs] = useState({ ImageGenerationUrl: '' });
+  const [inputs, setInputs] = useState({ ImageGenerationUrl: '', ImageGenerationOpenMode: 'embed' });
   const [loading, setLoading] = useState(false);
 
   const getOptions = async () => {
@@ -32,7 +32,7 @@ const ImageGenSetting = () => {
     if (success) {
       let newInputs = {};
       data.forEach((item) => {
-        if (item.key === 'ImageGenerationUrl') {
+        if (item.key === 'ImageGenerationUrl' || item.key === 'ImageGenerationOpenMode') {
           newInputs[item.key] = item.value;
         }
       });

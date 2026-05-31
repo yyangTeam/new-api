@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Form, Spin, Typography } from '@douyinfe/semi-ui';
+import { Button, Form, RadioGroup, Radio, Spin, Typography } from '@douyinfe/semi-ui';
 import { API, compareObjects, showError, showSuccess, showWarning } from '../../../helpers';
 import { useTranslation } from 'react-i18next';
 
@@ -27,14 +27,21 @@ const { Text } = Typography;
 export default function SettingsImageGen(props) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
-  const [inputs, setInputs] = useState({ ImageGenerationUrl: '' });
+  const [inputs, setInputs] = useState({
+    ImageGenerationUrl: '',
+    ImageGenerationOpenMode: 'embed',
+  });
   const refForm = useRef();
   const [inputsRow, setInputsRow] = useState(inputs);
 
   useEffect(() => {
     if (props.options) {
-      setInputs({ ImageGenerationUrl: props.options.ImageGenerationUrl || '' });
-      setInputsRow({ ImageGenerationUrl: props.options.ImageGenerationUrl || '' });
+      const next = {
+        ImageGenerationUrl: props.options.ImageGenerationUrl || '',
+        ImageGenerationOpenMode: props.options.ImageGenerationOpenMode || 'embed',
+      };
+      setInputs(next);
+      setInputsRow(next);
     }
   }, [props.options]);
 
@@ -64,14 +71,24 @@ export default function SettingsImageGen(props) {
       >
         <Form.Input
           field='ImageGenerationUrl'
-          label={t('生图嵌入 URL')}
+          label={t('生图 URL')}
           placeholder={t('留空则隐藏生图菜单项')}
           extraText={
             <Text type='tertiary' size='small'>
-              {t('管理员设置后，用户侧边栏 Chat 分组下将出现「生图」菜单项，内容为嵌入该 URL 的全屏 iframe。留空则不显示。')}
+              {t('留空则不显示生图菜单项')}
             </Text>
           }
         />
+        <Form.Slot label={t('打开方式')}>
+          <RadioGroup
+            value={inputs.ImageGenerationOpenMode}
+            onChange={(e) => setInputs({ ...inputs, ImageGenerationOpenMode: e.target.value })}
+            direction='horizontal'
+          >
+            <Radio value='embed'>{t('嵌入（iframe）')}</Radio>
+            <Radio value='new_tab'>{t('新标签页打开')}</Radio>
+          </RadioGroup>
+        </Form.Slot>
         <Button theme='solid' onClick={onSubmit}>
           {t('保存生图设置')}
         </Button>
