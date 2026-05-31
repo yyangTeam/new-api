@@ -34,6 +34,7 @@ import {
   CreditCard,
   Server,
   Activity,
+  Image,
 } from 'lucide-react';
 
 import SystemSetting from '../../components/settings/SystemSetting';
@@ -49,6 +50,7 @@ import DrawingSetting from '../../components/settings/DrawingSetting';
 import PaymentSetting from '../../components/settings/PaymentSetting';
 import ModelDeploymentSetting from '../../components/settings/ModelDeploymentSetting';
 import PerformanceSetting from '../../components/settings/PerformanceSetting';
+import ImageGenSetting from '../../components/settings/ImageGenSetting';
 
 const Setting = () => {
   const { t } = useTranslation();
@@ -97,6 +99,16 @@ const Setting = () => {
       ),
       content: <DrawingSetting />,
       itemKey: 'drawing',
+    });
+    panes.push({
+      tab: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <Image size={18} />
+          {t('生图设置')}
+        </span>
+      ),
+      content: <ImageGenSetting />,
+      itemKey: 'image-gen',
     });
     panes.push({
       tab: (
