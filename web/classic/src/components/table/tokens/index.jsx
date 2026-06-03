@@ -355,6 +355,7 @@ function TokensPage() {
 
     // Actions state
     selectedKeys,
+    setSelectedKeys,
     setEditingToken,
     setShowEdit,
     batchCopyTokens,
@@ -407,6 +408,8 @@ function TokensPage() {
               selectedKeys={selectedKeys}
               setEditingToken={setEditingToken}
               setShowEdit={setShowEdit}
+              setSelectedKeys={setSelectedKeys}
+              refresh={refresh}
               batchCopyTokens={batchCopyTokens}
               batchDeleteTokens={batchDeleteTokens}
               batchEditTokens={batchEditTokens}
