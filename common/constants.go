@@ -230,6 +230,13 @@ var (
 	SearchRateLimitDuration int64 = 60
 )
 
+var (
+	ChinaIPLimitEnabled         = true
+	ChinaIPLimitTrustGeoHeaders = true
+	ChinaIPLimitCIDRs           []string
+	ChinaIPLimitCIDRFile        string
+)
+
 var RateLimitKeyExpirationDuration = 20 * time.Minute
 
 const (

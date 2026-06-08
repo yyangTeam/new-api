@@ -125,7 +125,47 @@ func InitEnv() {
 	SearchRateLimitEnable = GetEnvOrDefaultBool("SEARCH_RATE_LIMIT_ENABLE", true)
 	SearchRateLimitNum = GetEnvOrDefault("SEARCH_RATE_LIMIT", 10)
 	SearchRateLimitDuration = int64(GetEnvOrDefault("SEARCH_RATE_LIMIT_DURATION", 60))
+	ChinaIPLimitEnabled = GetEnvOrDefaultBool("CHINA_IP_LIMIT_ENABLED", true)
+	ChinaIPLimitTrustGeoHeaders = GetEnvOrDefaultBool("CHINA_IP_LIMIT_TRUST_GEO_HEADERS", true)
+	ChinaIPLimitCIDRFile = GetEnvOrDefaultString("CHINA_IP_LIMIT_CIDR_FILE", "")
+	ChinaIPLimitCIDRs = parseChinaIPLimitCIDRs(
+		GetEnvOrDefaultString("CHINA_IP_LIMIT_CIDRS", ""),
+		ChinaIPLimitCIDRFile,
+	)
 	initConstantEnv()
+}
+
+func parseChinaIPLimitCIDRs(inlineCIDRs string, cidrFile string) []string {
+	cidrs := splitChinaIPLimitCIDRText(inlineCIDRs)
+	if cidrFile == "" {
+		return cidrs
+	}
+
+	fileBytes, err := os.ReadFile(cidrFile)
+	if err != nil {
+		SysError(fmt.Sprintf("failed to read CHINA_IP_LIMIT_CIDR_FILE %s: %s", cidrFile, err.Error()))
+		return cidrs
+	}
+	return append(cidrs, splitChinaIPLimitCIDRText(string(fileBytes))...)
+}
+
+func splitChinaIPLimitCIDRText(text string) []string {
+	var items []string
+	for _, line := range strings.Split(text, "\n") {
+		if commentIndex := strings.Index(line, "#"); commentIndex >= 0 {
+			line = line[:commentIndex]
+		}
+		parts := strings.FieldsFunc(line, func(r rune) bool {
+			return r == ',' || r == ';' || r == '\r' || r == '\t' || r == ' '
+		})
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				items = append(items, part)
+			}
+		}
+	}
+	return items
 }
 
 func initConstantEnv() {
