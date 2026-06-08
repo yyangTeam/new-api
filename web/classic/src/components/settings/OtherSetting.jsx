@@ -303,7 +303,14 @@ const OtherSetting = () => {
           }
           showSuccess(t('已切换到新版前端，正在刷新页面'));
           setTimeout(() => {
-            window.location.reload();
+            const { protocol, hostname, port } = window.location;
+            const isLocalDevHost =
+              hostname === 'localhost' || hostname === '127.0.0.1';
+            if (isLocalDevHost && port === '5174') {
+              window.location.href = `${protocol}//${hostname}:5173/`;
+              return;
+            }
+            window.location.href = '/';
           }, 600);
         } catch (error) {
           console.error('切换新版前端失败', error);
