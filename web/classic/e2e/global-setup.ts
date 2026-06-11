@@ -1,16 +1,60 @@
 import { chromium } from "@playwright/test";
+import { existsSync, mkdirSync } from "fs";
+import path from "path";
+
+const localBrowserExecutable =
+  process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ||
+  (existsSync("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe")
+    ? "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+    : existsSync("C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe")
+      ? "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+      : undefined);
+
+const authStatePath =
+  process.env.PW_CLASSIC_AUTH_STATE ||
+  path.resolve(process.cwd(), "e2e/.auth/pw-auth-state-classic.json");
 
 export default async function globalSetup() {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    executablePath: localBrowserExecutable,
+  });
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
 
-  // Step 1: Login via API
-  const resp = await ctx.request.post("http://localhost:3000/api/user/login", {
-    data: { username: "pw_test_user", password: "PwTest@2026" },
-  });
-  if (!resp.ok()) throw new Error(`Login failed: ${resp.status()} ${await resp.text()}`);
-  const loginBody = await resp.json();
+  const password = process.env.PW_CLASSIC_PASSWORD || "PwTest@2026";
+  const username = process.env.PW_CLASSIC_USER || "pw_test_user";
+
+  const login = async () => {
+    const resp = await ctx.request.post("http://localhost:3000/api/user/login", {
+      data: { username, password },
+    });
+    if (!resp.ok()) {
+      throw new Error(`Login failed: ${resp.status()} ${await resp.text()}`);
+    }
+    return resp.json();
+  };
+
+  // Step 1: Ensure a loginable test user exists, then login via API.
+  let loginBody = await login();
+  if (!loginBody.success || !loginBody.data) {
+    const registerResp = await ctx.request.post(
+      "http://localhost:3000/api/user/register",
+      {
+        data: { username, password },
+      },
+    );
+    if (!registerResp.ok()) {
+      throw new Error(
+        `Register failed: ${registerResp.status()} ${await registerResp.text()}`,
+      );
+    }
+    const registerBody = await registerResp.json();
+    if (!registerBody.success) {
+      throw new Error(`Register unsuccessful: ${JSON.stringify(registerBody)}`);
+    }
+    loginBody = await login();
+  }
   if (!loginBody.success || !loginBody.data) {
     throw new Error(`Login unsuccessful: ${JSON.stringify(loginBody)}`);
   }
@@ -30,6 +74,7 @@ export default async function globalSetup() {
   }, userObj);
 
   // Step 4: Save storageState (cookies + localStorage for http://localhost:5174)
-  await ctx.storageState({ path: "/tmp/pw-auth-state-classic.json" });
+  mkdirSync(path.dirname(authStatePath), { recursive: true });
+  await ctx.storageState({ path: authStatePath });
   await browser.close();
 }

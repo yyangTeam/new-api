@@ -78,6 +78,24 @@ function normalizeValue(value: unknown): string {
   return typeof value === 'string' ? value : String(value)
 }
 
+function redirectToFrontendTheme(frontend: 'default' | 'classic') {
+  const { protocol, hostname, port } = window.location
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    if (frontend === 'classic' && port === '5173') {
+      window.location.href = `${protocol}//${hostname}:5174/`
+      return
+    }
+
+    if (frontend === 'default' && port === '5174') {
+      window.location.href = `${protocol}//${hostname}:5173/`
+      return
+    }
+  }
+
+  window.location.href = '/'
+}
+
 export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
@@ -126,6 +144,8 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
       >,
       defaultValues: normalizedDefaults,
       onSubmit: async (_data, changedFields) => {
+        const nextFrontend = changedFields['theme.frontend']
+
         for (const [key, value] of Object.entries(changedFields)) {
           let v = normalizeValue(value)
           if (key === 'ServerAddress') {
@@ -135,6 +155,10 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
             key,
             value: v,
           })
+        }
+
+        if (nextFrontend === 'default' || nextFrontend === 'classic') {
+          setTimeout(() => redirectToFrontendTheme(nextFrontend), 600)
         }
       },
     })

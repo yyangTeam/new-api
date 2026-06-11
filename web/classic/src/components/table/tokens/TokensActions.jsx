@@ -23,11 +23,14 @@ import { showError } from '../../../helpers';
 import CopyTokensModal from './modals/CopyTokensModal';
 import DeleteTokensModal from './modals/DeleteTokensModal';
 import BatchEditTokenModal from './modals/BatchEditTokenModal';
+import BatchAddTokenModal from './modals/BatchAddTokenModal';
 
 const TokensActions = ({
   selectedKeys,
   setEditingToken,
   setShowEdit,
+  setSelectedKeys,
+  refresh,
   batchCopyTokens,
   batchDeleteTokens,
   batchEditTokens,
@@ -37,6 +40,7 @@ const TokensActions = ({
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showBatchEditModal, setShowBatchEditModal] = useState(false);
+  const [showBatchAddModal, setShowBatchAddModal] = useState(false);
 
   // Handle copy selected tokens with options
   const handleCopySelectedTokens = () => {
@@ -76,6 +80,11 @@ const TokensActions = ({
     setShowBatchEditModal(false);
   };
 
+  const handleBatchAddRefresh = async () => {
+    await refresh();
+    setSelectedKeys([]);
+  };
+
   return (
     <>
       <div className='flex flex-wrap gap-2 w-full md:w-auto order-2 md:order-1'>
@@ -91,6 +100,16 @@ const TokensActions = ({
           size='small'
         >
           {t('添加令牌')}
+        </Button>
+
+        <Button
+          type='primary'
+          theme='light'
+          className='flex-1 md:flex-initial'
+          onClick={() => setShowBatchAddModal(true)}
+          size='small'
+        >
+          {t('Batch Add Tokens')}
         </Button>
 
         <Button
@@ -141,6 +160,12 @@ const TokensActions = ({
         onCancel={() => setShowBatchEditModal(false)}
         onConfirm={handleConfirmBatchEdit}
         selectedKeys={selectedKeys}
+      />
+
+      <BatchAddTokenModal
+        visible={showBatchAddModal}
+        onCancel={() => setShowBatchAddModal(false)}
+        refresh={handleBatchAddRefresh}
       />
     </>
   );

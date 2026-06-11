@@ -23,7 +23,7 @@ async function openBatchEditModal(page: Page) {
   await page.waitForTimeout(600);
 }
 
-test.use({ storageState: "/tmp/pw-auth-state-classic.json" });
+test.use({ storageState: "e2e/.auth/pw-auth-state-classic.json" });
 
 test.describe("Token batch edit (classic frontend)", () => {
   test.beforeEach(async ({ page }) => {
