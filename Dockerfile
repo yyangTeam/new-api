@@ -1,4 +1,7 @@
-FROM oven/bun:1.3.14 AS builder
+FROM node:20-slim AS bun-base
+RUN npm install -g bun@1.3.14
+
+FROM bun-base AS builder
 
 WORKDIR /build/web
 COPY web/package.json web/bun.lock ./
@@ -9,7 +12,7 @@ COPY ./web/default ./default
 COPY ./VERSION /build/VERSION
 RUN cd default && DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$(cat /build/VERSION) bun run build
 
-FROM oven/bun:1.3.14 AS builder-classic
+FROM bun-base AS builder-classic
 
 WORKDIR /build/web
 COPY web/package.json web/bun.lock ./
