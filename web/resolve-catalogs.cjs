@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const rootPkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+const rootPkgPath = path.join(__dirname, 'package.json');
+const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, 'utf8'));
 const catalog = rootPkg.catalog || {};
 
 const workspaces = rootPkg.workspaces || [];
@@ -24,3 +25,10 @@ for (const ws of workspaces) {
     console.log(`Resolved catalog references in ${ws}/package.json`);
   }
 }
+
+// Remove workspaces and catalog fields from root package.json so npm
+// treats each subdirectory as an independent project.
+delete rootPkg.workspaces;
+delete rootPkg.catalog;
+fs.writeFileSync(rootPkgPath, JSON.stringify(rootPkg, null, 2) + '\n');
+console.log('Removed workspaces/catalog from root package.json for npm compatibility');
