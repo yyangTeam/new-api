@@ -40,7 +40,7 @@ jobs:
           CI: ""
         run: |
           cd web
-          bun install --ignore-scripts
+          bun install --frozen-lockfile --ignore-scripts
           cd default
           DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$VERSION bun run build
 
