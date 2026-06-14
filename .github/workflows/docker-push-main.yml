@@ -36,20 +36,23 @@ jobs:
       - name: Resolve catalog references
         run: node web/resolve-catalogs.cjs
 
-      - name: Install dependencies
-        run: cd web && npm install --legacy-peer-deps
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
-
       - name: Build Frontend (default)
         env:
           CI: ""
-        run: cd web/default && npx rsbuild build
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+        run: |
+          cd web/default
+          npm install
+          npx rsbuild build
 
       - name: Build Frontend (classic)
         env:
           CI: ""
-        run: cd web/classic && npx rsbuild build
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+        run: |
+          cd web/classic
+          npm install
+          npx rsbuild build
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
