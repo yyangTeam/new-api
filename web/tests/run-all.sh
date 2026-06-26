@@ -77,6 +77,14 @@ run_suite "API 接口契约测试"    "tests/api/api-contract-test.mjs"
 run_suite "安全测试"            "tests/security/security-test.mjs"
 run_suite "E2E 页面与流程测试"  "tests/e2e/page-flow-test.mjs"
 
+# UI interaction workflow tests
+run_suite "令牌管理 UI 工作流"  "tests/ui/token-workflow-test.mjs"
+run_suite "兑换码管理 UI 工作流" "tests/ui/redemption-workflow-test.mjs"
+run_suite "用户管理 UI 工作流"  "tests/ui/user-workflow-test.mjs"
+run_suite "个人设置 UI 测试"    "tests/ui/personal-settings-test.mjs"
+run_suite "跨页面业务流程"      "tests/ui/cross-page-flow-test.mjs"
+run_suite "表单验证与错误处理"  "tests/ui/form-validation-test.mjs"
+
 # Also run existing tests if present
 if [ -f "e2e-test.mjs" ]; then
   run_suite "基础 E2E 测试"     "e2e-test.mjs"

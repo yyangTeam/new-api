@@ -11,9 +11,15 @@
 | API 接口契约测试 | `tests/api/api-contract-test.mjs` | 75 | 全部 API 端点的请求/响应契约验证 |
 | 安全测试 | `tests/security/security-test.mjs` | 34 | 认证、权限、输入验证、注入防护 |
 | E2E 页面流程测试 | `tests/e2e/page-flow-test.mjs` | 43 | 全部前端页面导航和 UI 交互 |
+| 令牌管理 UI 工作流 | `tests/ui/token-workflow-test.mjs` | 22 | 令牌创建/编辑/删除/批量/搜索全 UI 流程 |
+| 兑换码管理 UI 工作流 | `tests/ui/redemption-workflow-test.mjs` | 13 | 兑换码创建/编辑/删除全 UI 流程 |
+| 用户管理 UI 工作流 | `tests/ui/user-workflow-test.mjs` | 13 | 用户创建/编辑/删除/搜索全 UI 流程 |
+| 个人设置 UI 测试 | `tests/ui/personal-settings-test.mjs` | 18 | 个人设置页面结构、安全、通知、签到 |
+| 跨页面业务流程 | `tests/ui/cross-page-flow-test.mjs` | 26 | 令牌→密钥→API、兑换码→充值、设置修改、新用户登录 |
+| 表单验证与错误处理 | `tests/ui/form-validation-test.mjs` | 24 | 表单边界验证、Toast 反馈、对话框交互 |
 | Dev 功能测试 | `dev-feature-test.mjs` | 48 | 批量令牌操作、生图设置、主题 |
 | 基础 E2E 测试 | `e2e-test.mjs` | 12 | 基本页面加载和登录流程 |
-| **合计** | | **212** | |
+| **合计** | | **328** | |
 
 ## 快速开始
 
@@ -137,8 +143,15 @@ web/tests/
 │   └── api-contract-test.mjs   # API 接口契约测试
 ├── e2e/
 │   └── page-flow-test.mjs      # E2E 页面流程测试
-└── security/
-    └── security-test.mjs        # 安全测试
+├── security/
+│   └── security-test.mjs        # 安全测试
+└── ui/
+    ├── token-workflow-test.mjs      # 令牌管理 UI 工作流
+    ├── redemption-workflow-test.mjs # 兑换码管理 UI 工作流
+    ├── user-workflow-test.mjs       # 用户管理 UI 工作流
+    ├── personal-settings-test.mjs   # 个人设置 UI 测试
+    ├── cross-page-flow-test.mjs     # 跨页面业务流程
+    └── form-validation-test.mjs     # 表单验证与错误处理
 
 web/
 ├── e2e-test.mjs            # 基础 E2E 测试
