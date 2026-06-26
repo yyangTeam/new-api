@@ -10,6 +10,13 @@ const semiUiDir = path.resolve(
   path.dirname(require.resolve('@douyinfe/semi-ui')),
   '../..',
 )
+const dateFnsDir = path.dirname(require.resolve('date-fns/package.json'))
+const dateFnsTzDir = path.dirname(require.resolve('date-fns-tz/package.json'))
+const vchartDir = path.dirname(require.resolve('@visactor/vchart/package.json'))
+const reactVchartDir = path.dirname(require.resolve('@visactor/react-vchart/package.json'))
+const vrenderCoreDir = path.resolve(vchartDir, 'node_modules/@visactor/vrender-core')
+const vrenderKitsDir = path.resolve(vchartDir, 'node_modules/@visactor/vrender-kits')
+const vrenderComponentsDir = path.resolve(vchartDir, 'node_modules/@visactor/vrender-components')
 
 export default defineConfig(({ envMode }) => {
   const env = loadEnv({ mode: envMode, prefixes: ['VITE_'] })
@@ -47,6 +54,13 @@ export default defineConfig(({ envMode }) => {
           semiUiDir,
           'dist/css/semi.css',
         ),
+        'date-fns': dateFnsDir,
+        'date-fns-tz': dateFnsTzDir,
+        '@visactor/vchart': vchartDir,
+        '@visactor/react-vchart': reactVchartDir,
+        '@visactor/vrender-core': vrenderCoreDir,
+        '@visactor/vrender-kits': vrenderKitsDir,
+        '@visactor/vrender-components': vrenderComponentsDir,
       },
     },
     html: {
