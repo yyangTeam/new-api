@@ -78,12 +78,14 @@ import type { LogCleanupTask } from '../types'
 
 const logSettingsSchema = z.object({
   LogConsumeEnabled: z.boolean(),
+  ModelMappedDisplayMode: z.coerce.number().min(0).max(2),
 })
 
 type LogSettingsFormValues = z.infer<typeof logSettingsSchema>
 
 type LogSettingsSectionProps = {
   defaultEnabled: boolean
+  defaultModelMappedDisplayMode: number
 }
 
 type ServerLogInfo = {
@@ -139,6 +141,7 @@ function isActiveLogCleanupTask(task: LogCleanupTask | null) {
 
 export function LogSettingsSection({
   defaultEnabled,
+  defaultModelMappedDisplayMode,
 }: LogSettingsSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
@@ -146,6 +149,7 @@ export function LogSettingsSection({
     resolver: zodResolver(logSettingsSchema),
     defaultValues: {
       LogConsumeEnabled: defaultEnabled,
+      ModelMappedDisplayMode: defaultModelMappedDisplayMode,
     },
   })
 
@@ -174,8 +178,11 @@ export function LogSettingsSection({
   }, [])
 
   useEffect(() => {
-    form.reset({ LogConsumeEnabled: defaultEnabled })
-  }, [defaultEnabled, form])
+    form.reset({
+      LogConsumeEnabled: defaultEnabled,
+      ModelMappedDisplayMode: defaultModelMappedDisplayMode,
+    })
+  }, [defaultEnabled, defaultModelMappedDisplayMode, form])
 
   useEffect(() => {
     fetchServerLogInfo()
@@ -257,11 +264,18 @@ export function LogSettingsSection({
   }, [logCleanupActive, logCleanupTaskId, t])
 
   const onSubmit = async (values: LogSettingsFormValues) => {
-    if (values.LogConsumeEnabled === defaultEnabled) return
-    await updateOption.mutateAsync({
-      key: 'LogConsumeEnabled',
-      value: values.LogConsumeEnabled,
-    })
+    if (values.LogConsumeEnabled !== defaultEnabled) {
+      await updateOption.mutateAsync({
+        key: 'LogConsumeEnabled',
+        value: values.LogConsumeEnabled,
+      })
+    }
+    if (values.ModelMappedDisplayMode !== defaultModelMappedDisplayMode) {
+      await updateOption.mutateAsync({
+        key: 'ModelMappedDisplayMode',
+        value: values.ModelMappedDisplayMode,
+      })
+    }
   }
 
   const handleRequestCleanLogs = () => {
@@ -362,6 +376,48 @@ export function LogSettingsSection({
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
+                <FormMessage />
+              </SettingsSwitchItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='ModelMappedDisplayMode'
+            render={({ field }) => (
+              <SettingsSwitchItem>
+                <SettingsSwitchContent>
+                  <FormLabel>{t('Model Redirect Display')}</FormLabel>
+                  <FormDescription>
+                    {t(
+                      'Control who can see model redirection details in usage logs.'
+                    )}
+                  </FormDescription>
+                </SettingsSwitchContent>
+                <Select
+                  items={[
+                    { value: '0', label: t('Hidden') },
+                    { value: '1', label: t('Admin Only') },
+                    { value: '2', label: t('Everyone') },
+                  ]}
+                  value={String(field.value)}
+                  onValueChange={(v) =>
+                    v !== null && field.onChange(Number(v))
+                  }
+                >
+                  <FormControl>
+                    <SelectTrigger className='w-[140px]'>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent alignItemWithTrigger={false}>
+                    <SelectGroup>
+                      <SelectItem value='0'>{t('Hidden')}</SelectItem>
+                      <SelectItem value='1'>{t('Admin Only')}</SelectItem>
+                      <SelectItem value='2'>{t('Everyone')}</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </SettingsSwitchItem>
             )}
