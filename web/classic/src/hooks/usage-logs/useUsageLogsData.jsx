@@ -42,9 +42,13 @@ import {
 import { ITEMS_PER_PAGE } from '../../constants';
 import { useTableCompactMode } from '../common/useTableCompactMode';
 import ParamOverrideEntry from '../../components/table/usage-logs/components/ParamOverrideEntry';
+import { useContext } from 'react';
+import { StatusContext } from '../../context/Status';
 
 export const useLogsData = () => {
   const { t } = useTranslation();
+  const [statusState] = useContext(StatusContext);
+  const modelMappedDisplayMode = statusState?.status?.model_mapped_display_mode ?? 0;
 
   // Define column keys for selection
   const COLUMN_KEYS = {
@@ -448,7 +452,11 @@ export const useLogsData = () => {
         }
       }
       if (logs[i].type === 2) {
+        let showMapping =
+          modelMappedDisplayMode === 2 ||
+          (modelMappedDisplayMode === 1 && isAdminUser);
         let modelMapped =
+          showMapping &&
           other?.is_model_mapped &&
           other?.upstream_model_name &&
           other?.upstream_model_name !== '';
@@ -845,6 +853,7 @@ export const useLogsData = () => {
     logType,
     stat,
     isAdminUser,
+    modelMappedDisplayMode,
 
     // Form state
     formApi,

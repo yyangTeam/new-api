@@ -217,6 +217,8 @@ var (
 	ImageDownloadPermission = RoleGuestUser
 )
 
+var ModelMappedDisplayMode = 0 // 0=hidden, 1=admin-only, 2=everyone
+
 // All duration's unit is seconds
 // Shouldn't larger then RateLimitKeyExpirationDuration
 var (

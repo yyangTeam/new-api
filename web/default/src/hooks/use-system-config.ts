@@ -46,6 +46,7 @@ interface StatusApiResponse {
     usd_exchange_rate?: number
     custom_currency_symbol?: string
     custom_currency_exchange_rate?: number
+    model_mapped_display_mode?: number
   }
 }
 
@@ -97,6 +98,7 @@ export function mapStatusDataToConfig(
     footerHtml: data.footer_html,
     demoSiteEnabled: data.demo_site_enabled,
     displayTokenStatEnabled: data.display_token_stat_enabled,
+    modelMappedDisplayMode: data.model_mapped_display_mode ?? 0,
     currency,
   }
 }
