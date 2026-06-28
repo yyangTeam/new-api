@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import {
   Button,
   Col,
@@ -37,11 +37,13 @@ import {
   showSuccess,
   showWarning,
 } from '../../../helpers';
+import { StatusContext } from '../../../context/Status';
 
 const { Text } = Typography;
 
 export default function SettingsLog(props) {
   const { t } = useTranslation();
+  const [, statusDispatch] = useContext(StatusContext);
   const [loading, setLoading] = useState(false);
   const [loadingCleanHistoryLog, setLoadingCleanHistoryLog] = useState(false);
   const [inputs, setInputs] = useState({
@@ -81,6 +83,11 @@ export default function SettingsLog(props) {
         }
         showSuccess(t('保存成功'));
         props.refresh();
+        API.get('/api/status').then((statusRes) => {
+          if (statusRes.data.success) {
+            statusDispatch({ type: 'set', payload: statusRes.data.data });
+          }
+        });
       })
       .catch(() => {
         showError(t('保存失败，请重试'));
