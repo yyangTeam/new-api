@@ -46,6 +46,7 @@ export default function SettingsLog(props) {
   const [loadingCleanHistoryLog, setLoadingCleanHistoryLog] = useState(false);
   const [inputs, setInputs] = useState({
     LogConsumeEnabled: false,
+    ModelMappedDisplayMode: '0',
     historyTimestamp: dayjs().subtract(1, 'month').toDate(),
   });
   const refForm = useRef();
@@ -215,6 +216,23 @@ export default function SettingsLog(props) {
                     });
                   }}
                 />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.Select
+                  field={'ModelMappedDisplayMode'}
+                  label={t('模型重定向显示')}
+                  extraText={t('控制谁可以在使用日志中查看模型重定向详情')}
+                  onChange={(value) => {
+                    setInputs({
+                      ...inputs,
+                      ModelMappedDisplayMode: value,
+                    });
+                  }}
+                >
+                  <Form.Select.Option value='0'>{t('隐藏')}</Form.Select.Option>
+                  <Form.Select.Option value='1'>{t('仅管理员')}</Form.Select.Option>
+                  <Form.Select.Option value='2'>{t('所有人')}</Form.Select.Option>
+                </Form.Select>
               </Col>
               <Col xs={24} sm={12} md={8} lg={8} xl={8}>
                 <Spin spinning={loadingCleanHistoryLog}>
