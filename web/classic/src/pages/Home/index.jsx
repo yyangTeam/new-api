@@ -17,84 +17,73 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Button, Card, Tag, Typography } from '@douyinfe/semi-ui';
 import {
-  Button,
-  Typography,
-  Input,
-  ScrollList,
-  ScrollItem,
-} from '@douyinfe/semi-ui';
-import { API, showError, copy, showSuccess } from '../../helpers';
-import { useIsMobile } from '../../hooks/common/useIsMobile';
-import { API_ENDPOINTS } from '../../constants/common.constant';
-import { StatusContext } from '../../context/Status';
-import { useActualTheme } from '../../context/Theme';
+  Copy as CopyIcon,
+  CreditCard,
+  Gift,
+  LayoutDashboard,
+  MessageCircle,
+  Rocket,
+  Server,
+  ShieldCheck,
+  Sparkles,
+  Zap,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { marked } from 'marked';
 import { useTranslation } from 'react-i18next';
 import {
-  IconGithubLogo,
-  IconPlay,
-  IconFile,
-  IconCopy,
-} from '@douyinfe/semi-icons';
-import { Link } from 'react-router-dom';
+  API,
+  copy,
+  getLogo,
+  getSystemName,
+  showError,
+  showSuccess,
+} from '../../helpers';
+import { useIsMobile } from '../../hooks/common/useIsMobile';
+import { useActualTheme } from '../../context/Theme';
 import NoticeModal from '../../components/layout/NoticeModal';
-import {
-  Moonshot,
-  OpenAI,
-  XAI,
-  Zhipu,
-  Volcengine,
-  Cohere,
-  Claude,
-  Gemini,
-  Suno,
-  Minimax,
-  Wenxin,
-  Spark,
-  Qingyan,
-  DeepSeek,
-  Qwen,
-  Midjourney,
-  Grok,
-  AzureAI,
-  Hunyuan,
-  Xinference,
-} from '@lobehub/icons';
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
+
+const BASE_URL = 'https://reverse-api.xyz';
+const RECHARGE_URL = 'https://pay.ldxp.cn/shop/OMVWLM92';
+const QQ_GROUP_URL = 'https://qm.qq.com/q/qFApKRd1dK';
+const PROVIDERS = ['GPT', 'CLAUDE'];
+const SUPPORTED_MODELS = [
+  'gpt-5.4',
+  'gpt5.5',
+  'sonnet-4.6',
+  'opus-4.6',
+  'opus-4.7',
+  'opus-4.8',
+];
 
 const Home = () => {
   const { t, i18n } = useTranslation();
-  const [statusState] = useContext(StatusContext);
   const actualTheme = useActualTheme();
+  const isMobile = useIsMobile();
   const [homePageContentLoaded, setHomePageContentLoaded] = useState(false);
   const [homePageContent, setHomePageContent] = useState('');
   const [noticeVisible, setNoticeVisible] = useState(false);
-  const isMobile = useIsMobile();
-  const isDemoSiteMode = statusState?.status?.demo_site_enabled || false;
-  const docsLink = statusState?.status?.docs_link || '';
-  const serverAddress =
-    statusState?.status?.server_address || `${window.location.origin}`;
-  const endpointItems = API_ENDPOINTS.map((e) => ({ value: e }));
-  const [endpointIndex, setEndpointIndex] = useState(0);
-  const isChinese = i18n.language.startsWith('zh');
+  const logo = getLogo();
+  const systemName = getSystemName();
 
   const displayHomePageContent = async () => {
     setHomePageContent(localStorage.getItem('home_page_content') || '');
     const res = await API.get('/api/home_page_content');
     const { success, message, data } = res.data;
     if (success) {
-      let content = data;
-      if (!data.startsWith('https://')) {
-        content = marked.parse(data);
-      }
+      const rawContent = data || '';
+      const content = rawContent.startsWith('https://')
+        ? rawContent
+        : marked.parse(rawContent);
       setHomePageContent(content);
       localStorage.setItem('home_page_content', content);
 
-      // 如果内容是 URL，则发送主题模式
-      if (data.startsWith('https://')) {
+      if (rawContent.startsWith('https://')) {
         const iframe = document.querySelector('iframe');
         if (iframe) {
           iframe.onload = () => {
@@ -105,15 +94,15 @@ const Home = () => {
       }
     } else {
       showError(message);
-      setHomePageContent('加载首页内容失败...');
+      setHomePageContent(t('Failed to load home page content'));
     }
     setHomePageContentLoaded(true);
   };
 
   const handleCopyBaseURL = async () => {
-    const ok = await copy(serverAddress);
+    const ok = await copy(BASE_URL);
     if (ok) {
-      showSuccess(t('已复制到剪切板'));
+      showSuccess(t('Copied to clipboard'));
     }
   };
 
@@ -129,7 +118,7 @@ const Home = () => {
             setNoticeVisible(true);
           }
         } catch (error) {
-          console.error('获取公告失败:', error);
+          console.error('Failed to load notice:', error);
         }
       }
     };
@@ -141,13 +130,6 @@ const Home = () => {
     displayHomePageContent().then();
   }, []);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setEndpointIndex((prev) => (prev + 1) % endpointItems.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [endpointItems.length]);
-
   return (
     <div className='classic-page-fill classic-home-page w-full overflow-x-hidden'>
       <NoticeModal
@@ -156,183 +138,149 @@ const Home = () => {
         isMobile={isMobile}
       />
       {homePageContentLoaded && homePageContent === '' ? (
-        <div className='classic-home-default w-full overflow-x-hidden'>
-          {/* Banner 部分 */}
-          <div className='classic-home-hero w-full border-b border-semi-color-border relative overflow-x-hidden'>
-            {/* 背景模糊晕染球 */}
-            <div className='blur-ball blur-ball-indigo' />
-            <div className='blur-ball blur-ball-teal' />
-            <div className='flex items-center justify-center px-4 pt-24 pb-8'>
-              {/* 居中内容区 */}
-              <div className='flex flex-col items-center justify-center text-center max-w-4xl mx-auto'>
-                <div className='flex flex-col items-center justify-center mb-6 md:mb-8'>
-                  <h1
-                    className={`text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-semi-color-text-0 leading-tight ${isChinese ? 'tracking-wide md:tracking-wider' : ''}`}
+        <div className='classic-home-default classic-reverse-home w-full'>
+          <div className='classic-reverse-grid' aria-hidden />
+          <img
+            src={logo}
+            alt=''
+            aria-hidden
+            className='classic-reverse-watermark'
+          />
+
+          <section className='classic-reverse-shell'>
+            <div className='classic-reverse-hero'>
+              <Tag color='blue' shape='circle' className='!px-4 !py-1'>
+                {t('GPT and CLAUDE ready')}
+              </Tag>
+              <img
+                src={logo}
+                alt={systemName || 'Reverse API'}
+                className='classic-reverse-logo'
+              />
+              <div className='flex flex-col items-center gap-3'>
+                <Title heading={1} className='!m-0 classic-reverse-title'>
+                  Reverse API
+                </Title>
+                <Title heading={3} className='!m-0 !text-semi-color-primary'>
+                  {t('Stable. Fast.')}
+                </Title>
+                <Text className='classic-reverse-subtitle'>
+                  {t('A clean relay endpoint for GPT and CLAUDE model access.')}
+                </Text>
+              </div>
+
+              <div className='classic-reverse-actions'>
+                <Link to='/console' className='classic-reverse-action-link'>
+                  <Button
+                    theme='solid'
+                    type='primary'
+                    icon={<LayoutDashboard size={16} />}
+                    className='classic-reverse-action'
                   >
-                    <>
-                      {t('统一的')}
-                      <br />
-                      <span className='shine-text'>{t('大模型接口网关')}</span>
-                    </>
-                  </h1>
-                  <p className='text-base md:text-lg lg:text-xl text-semi-color-text-1 mt-4 md:mt-6 max-w-xl'>
-                    {t('多模型统一接入，只需将基址替换为：')}
-                  </p>
-                  {/* BASE URL 与端点选择 */}
-                  <div className='flex flex-col md:flex-row items-center justify-center gap-4 w-full mt-4 md:mt-6 max-w-md'>
-                    <Input
-                      readonly
-                      value={serverAddress}
-                      className='flex-1 !rounded-full'
-                      size={isMobile ? 'default' : 'large'}
-                      suffix={
-                        <div className='flex items-center gap-2'>
-                          <ScrollList
-                            bodyHeight={32}
-                            style={{ border: 'unset', boxShadow: 'unset' }}
-                          >
-                            <ScrollItem
-                              mode='wheel'
-                              cycled={true}
-                              list={endpointItems}
-                              selectedIndex={endpointIndex}
-                              onSelect={({ index }) => setEndpointIndex(index)}
-                            />
-                          </ScrollList>
-                          <Button
-                            type='primary'
-                            onClick={handleCopyBaseURL}
-                            icon={<IconCopy />}
-                            className='!rounded-full'
-                          />
-                        </div>
-                      }
-                    />
-                  </div>
-                </div>
-
-                {/* 操作按钮 */}
-                <div className='flex flex-row gap-4 justify-center items-center'>
-                  <Link to='/console'>
-                    <Button
-                      theme='solid'
-                      type='primary'
-                      size={isMobile ? 'default' : 'large'}
-                      className='!rounded-3xl px-8 py-2'
-                      icon={<IconPlay />}
-                    >
-                      {t('获取密钥')}
-                    </Button>
-                  </Link>
-                  {isDemoSiteMode && statusState?.status?.version ? (
-                    <Button
-                      size={isMobile ? 'default' : 'large'}
-                      className='flex items-center !rounded-3xl px-6 py-2'
-                      icon={<IconGithubLogo />}
-                      onClick={() =>
-                        window.open(
-                          'https://github.com/QuantumNous/new-api',
-                          '_blank',
-                        )
-                      }
-                    >
-                      {statusState.status.version}
-                    </Button>
-                  ) : (
-                    docsLink && (
-                      <Button
-                        size={isMobile ? 'default' : 'large'}
-                        className='flex items-center !rounded-3xl px-6 py-2'
-                        icon={<IconFile />}
-                        onClick={() => window.open(docsLink, '_blank')}
-                      >
-                        {t('文档')}
-                      </Button>
-                    )
-                  )}
-                </div>
-
-                {/* 框架兼容性图标 */}
-                <div className='mt-12 md:mt-16 lg:mt-20 w-full'>
-                  <div className='flex items-center mb-6 md:mb-8 justify-center'>
-                    <Text
-                      type='tertiary'
-                      className='text-lg md:text-xl lg:text-2xl font-light'
-                    >
-                      {t('支持众多的大模型供应商')}
-                    </Text>
-                  </div>
-                  <div className='flex flex-wrap items-center justify-center gap-3 sm:gap-4 md:gap-6 lg:gap-8 max-w-5xl mx-auto px-4'>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Moonshot size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <OpenAI size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <XAI size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Zhipu.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Volcengine.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Cohere.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Claude.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Gemini.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Suno size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Minimax.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Wenxin.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Spark.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Qingyan.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <DeepSeek.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Qwen.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Midjourney size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Grok size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <AzureAI.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Hunyuan.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Xinference.Color size={40} />
-                    </div>
-                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center'>
-                      <Typography.Text className='!text-lg sm:!text-xl md:!text-2xl lg:!text-3xl font-bold'>
-                        30+
-                      </Typography.Text>
-                    </div>
-                  </div>
-                </div>
+                    {t('Enter console')}
+                  </Button>
+                </Link>
+                <Button
+                  theme='outline'
+                  type='tertiary'
+                  icon={<CreditCard size={16} />}
+                  className='classic-reverse-action'
+                  onClick={() => window.open(RECHARGE_URL, '_blank')}
+                >
+                  {t('Online recharge')}
+                </Button>
+                <Link
+                  to='/console/topup#redeem-cdk'
+                  className='classic-reverse-action-link'
+                >
+                  <Button
+                    theme='outline'
+                    type='tertiary'
+                    icon={<Gift size={16} />}
+                    className='classic-reverse-action'
+                  >
+                    {t('Redeem CDK')}
+                  </Button>
+                </Link>
+                <Button
+                  theme='outline'
+                  type='tertiary'
+                  icon={<MessageCircle size={16} />}
+                  className='classic-reverse-action'
+                  onClick={() => window.open(QQ_GROUP_URL, '_blank')}
+                >
+                  {t('Join after-sales QQ group')}
+                </Button>
               </div>
             </div>
-          </div>
+
+            <div className='classic-reverse-info-grid'>
+              <Card className='classic-reverse-card'>
+                <div className='classic-reverse-card-title'>
+                  <Server size={18} />
+                  <span>BASE_URL</span>
+                </div>
+                <Text type='secondary'>
+                  {t(
+                    'Use this endpoint as the base URL in compatible clients.',
+                  )}
+                </Text>
+                <div className='classic-reverse-base-url'>
+                  <code>{BASE_URL}</code>
+                  <Button
+                    size='small'
+                    theme='outline'
+                    type='tertiary'
+                    icon={<CopyIcon size={14} />}
+                    onClick={handleCopyBaseURL}
+                  >
+                    {t('Copy')}
+                  </Button>
+                </div>
+              </Card>
+
+              <Card className='classic-reverse-card'>
+                <div className='classic-reverse-card-title'>
+                  <Sparkles size={18} />
+                  <span>{t('Supported models')}</span>
+                </div>
+                <Text type='secondary'>
+                  {t(
+                    'Start from the console, recharge online, redeem CDK, or join after-sales support from one place.',
+                  )}
+                </Text>
+                <div className='classic-reverse-models'>
+                  {SUPPORTED_MODELS.map((model) => (
+                    <Tag key={model} color='white' className='font-mono'>
+                      {model}
+                    </Tag>
+                  ))}
+                </div>
+                <div className='classic-reverse-feature-grid'>
+                  <div className='classic-reverse-feature'>
+                    <ShieldCheck size={16} />
+                    <span>{t('Stable routing')}</span>
+                  </div>
+                  <div className='classic-reverse-feature'>
+                    <Zap size={16} />
+                    <span>{t('High-speed responses')}</span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            <div className='classic-reverse-provider-grid'>
+              {PROVIDERS.map((provider) => (
+                <Card key={provider} className='classic-reverse-provider-card'>
+                  <div className='classic-reverse-provider-name'>
+                    <span>{provider}</span>
+                    <Rocket size={18} />
+                  </div>
+                  <Text type='secondary'>{t('Support vendors')}</Text>
+                </Card>
+              ))}
+            </div>
+          </section>
         </div>
       ) : (
         <div className='classic-page-fill overflow-x-hidden w-full'>
@@ -340,6 +288,7 @@ const Home = () => {
             <iframe
               src={homePageContent}
               className='w-full h-full border-none'
+              title={t('Custom Home Page')}
             />
           ) : (
             <div

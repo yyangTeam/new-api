@@ -4213,6 +4213,23 @@
     "并确认自行承担部署": "confirm that I bear legal responsibility arising from deployment",
     "运营和收费行为产生的法律责任": "operation and charging behavior",
     "，": ", ",
-    "、": ", "
+    "、": ", ",
+    "A clean relay endpoint for GPT and CLAUDE model access.": "Điểm chuyển tiếp gọn gàng để truy cập các mô hình GPT và CLAUDE.",
+    "Copy": "Sao chép",
+    "Copied to clipboard": "Đã sao chép vào clipboard",
+    "Custom Home Page": "Trang chủ tùy chỉnh",
+    "Enter console": "Vào bảng điều khiển",
+    "Failed to load home page content": "Không thể tải nội dung trang chủ",
+    "GPT and CLAUDE ready": "Sẵn sàng cho GPT và CLAUDE",
+    "High-speed responses": "Phản hồi tốc độ cao",
+    "Join after-sales QQ group": "Tham gia nhóm QQ hỗ trợ",
+    "Online recharge": "Nạp tiền trực tuyến",
+    "Redeem CDK": "Đổi CDK",
+    "Stable routing": "Định tuyến ổn định",
+    "Stable. Fast.": "Ổn định. Nhanh.",
+    "Start from the console, recharge online, redeem CDK, or join after-sales support from one place.": "Truy cập bảng điều khiển, nạp tiền, đổi CDK hoặc tham gia hỗ trợ từ một nơi.",
+    "Support vendors": "Nhà cung cấp được hỗ trợ",
+    "Supported models": "Mô hình được hỗ trợ",
+    "Use this endpoint as the base URL in compatible clients.": "Dùng endpoint này làm BASE_URL trong các client tương thích."
   }
 }

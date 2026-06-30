@@ -3648,6 +3648,23 @@
     "并确认自行承担部署": "confirm that I bear legal responsibility arising from deployment",
     "运营和收费行为产生的法律责任": "operation and charging behavior",
     "，": ", ",
-    "、": ", "
+    "、": ", ",
+    "A clean relay endpoint for GPT and CLAUDE model access.": "GPT と CLAUDE モデルへアクセスするためのシンプルな中継エンドポイントです。",
+    "Copy": "コピー",
+    "Copied to clipboard": "クリップボードにコピーしました",
+    "Custom Home Page": "カスタムホームページ",
+    "Enter console": "コンソールへ移動",
+    "Failed to load home page content": "ホームページ内容の読み込みに失敗しました",
+    "GPT and CLAUDE ready": "GPT と CLAUDE に対応",
+    "High-speed responses": "高速レスポンス",
+    "Join after-sales QQ group": "サポート QQ グループに参加",
+    "Online recharge": "オンラインチャージ",
+    "Redeem CDK": "CDK を交換",
+    "Stable routing": "安定したルーティング",
+    "Stable. Fast.": "安定・高速",
+    "Start from the console, recharge online, redeem CDK, or join after-sales support from one place.": "コンソール、オンラインチャージ、CDK 交換、サポート参加へ一か所から移動できます。",
+    "Support vendors": "対応モデルベンダー",
+    "Supported models": "対応モデル",
+    "Use this endpoint as the base URL in compatible clients.": "互換クライアントでこのエンドポイントを BASE_URL として設定してください。"
   }
 }

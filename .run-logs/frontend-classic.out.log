@@ -1,0 +1,52 @@
+Rsbuild v2.0.9
+
+  ➜  Network:  http://198.18.0.1:5174/
+  ➜  Network:  http://172.26.192.1:5174/
+  ➜  Network:  http://192.168.1.16:5174/
+  ➜  Local:    http://localhost:5174/
+  ➜  Network:  http://172.29.64.1:5174/
+
+start   build started...
+ready   built in 2.34 s
+start   building components\settings\OtherSetting.jsx
+ready   built in 0.19 s
+start   building pages\Home\index.jsx
+ready   built in 0.13 s
+start   building pages\Dashboard\index.jsx
+ready   built in 0.42 s
+start   building src
+ready   built in 0.20 s
+start   building table\tokens\TokensActions.jsx
+ready   built in 0.21 s
+start   building table\tokens\index.jsx
+ready   built in 0.18 s
+start   building src
+ready   built in 0.17 s
+start   building src
+ready   built in 0.23 s
+start   building tokens\modals\BatchAddTokenModal.jsx
+ready   built in 0.13 s
+start   building table\tokens\TokensActions.jsx
+ready   built in 0.20 s
+start   building i18n\locales\en.json
+ready   built in 0.23 s
+start   building i18n\locales\zh-CN.json and 5 more
+ready   built in 0.17 s
+start   building tokens\modals\BatchAddTokenModal.jsx
+ready   built in 0.22 s
+start   building tokens\modals\BatchAddTokenModal.jsx
+ready   built in 0.22 s
+start   building i18n\locales\en.json
+ready   built in 0.18 s
+start   building i18n\locales\zh-CN.json and 2 more
+ready   built in 0.12 s
+start   building i18n\locales\ru.json and 2 more
+ready   built in 0.11 s
+start   building tokens\modals\BatchAddTokenModal.jsx
+ready   built in 0.21 s
+start   building i18n\locales\zh-CN.json and 3 more
+ready   built in 0.12 s
+start   building i18n\locales\ru.json and 2 more
+ready   built in 0.10 s
+start   building tokens\modals\BatchAddTokenModal.jsx
+ready   built in 0.23 s

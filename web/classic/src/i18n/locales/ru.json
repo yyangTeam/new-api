@@ -3699,6 +3699,23 @@
     "并确认自行承担部署": "confirm that I bear legal responsibility arising from deployment",
     "运营和收费行为产生的法律责任": "operation and charging behavior",
     "，": ", ",
-    "、": ", "
+    "、": ", ",
+    "A clean relay endpoint for GPT and CLAUDE model access.": "Понятная relay-точка доступа к моделям GPT и CLAUDE.",
+    "Copy": "Копировать",
+    "Copied to clipboard": "Скопировано в буфер обмена",
+    "Custom Home Page": "Пользовательская главная страница",
+    "Enter console": "Открыть консоль",
+    "Failed to load home page content": "Не удалось загрузить содержимое главной страницы",
+    "GPT and CLAUDE ready": "GPT и CLAUDE готовы",
+    "High-speed responses": "Быстрые ответы",
+    "Join after-sales QQ group": "Вступить в QQ-группу поддержки",
+    "Online recharge": "Онлайн-пополнение",
+    "Redeem CDK": "Активировать CDK",
+    "Stable routing": "Стабильная маршрутизация",
+    "Stable. Fast.": "Стабильно. Быстро.",
+    "Start from the console, recharge online, redeem CDK, or join after-sales support from one place.": "Консоль, онлайн-пополнение, активация CDK и поддержка доступны из одного места.",
+    "Support vendors": "Поддерживаемые поставщики",
+    "Supported models": "Поддерживаемые модели",
+    "Use this endpoint as the base URL in compatible clients.": "Используйте этот endpoint как BASE_URL в совместимых клиентах."
   }
 }

@@ -1,0 +1,48 @@
+Rsbuild v2.0.9
+
+  ➜  [2mNetwork:  [22m[36mhttp://192.168.176.1:5174/[39m
+  ➜  [2mNetwork:  [22m[36mhttp://192.168.1.16:5174/[39m
+  ➜  [2mLocal:    [22m[36mhttp://localhost:5174/[39m
+  ➜  [2mNetwork:  [22m[36mhttp://172.19.144.1:5174/[39m
+
+[1m[36mstart  [39m[22m build started...
+[1m[32mready  [39m[22m built in [1m14.5[22m s
+[1m[36mstart  [39m[22m building [2mremoved D:/project/new-api/web/classic/index.html[22m
+[1m[32mready  [39m[22m built in [1m0.50[22m s
+[1m[36mstart  [39m[22m building [2mpages\Home\index.jsx[22m
+[1m[32mready  [39m[22m built in [1m0.14[22m s
+[1m[36mstart  [39m[22m building [2mpages\Dashboard\index.jsx[22m
+[1m[32mready  [39m[22m built in [1m4.80[22m s
+[1m[36mstart  [39m[22m building [2msrc[22m
+[1m[36mstart  [39m[22m building [2mpages\Home\index.jsx[22m
+[1m[32mready  [39m[22m built in [1m0.23[22m s
+[1m[36mstart  [39m[22m building [2msrc\index.css[22m
+[1m[32mready  [39m[22m built in [1m0.66[22m s
+[1m[36mstart  [39m[22m building [2msrc[22m
+[1m[32mready  [39m[22m built in [1m0.19[22m s
+[1m[36mstart  [39m[22m building [2mcomponents\topup\RechargeCard.jsx[22m
+[1m[32mready  [39m[22m built in [1m0.23[22m s
+[1m[36mstart  [39m[22m building [2mi18n\locales\en.json[22m
+[1m[32mready  [39m[22m built in [1m0.20[22m s
+[1m[36mstart  [39m[22m building [2mi18n\locales\zh-CN.json and 3 more[22m
+[1m[32mready  [39m[22m built in [1m0.12[22m s
+[1m[36mstart  [39m[22m building [2mpages\Home\index.jsx[22m
+[1m[32mready  [39m[22m built in [1m0.16[22m s
+[1m[36mstart  [39m[22m building [2mi18n\locales\en.json[22m
+[1m[32mready  [39m[22m built in [1m0.23[22m s
+[1m[36mstart  [39m[22m building [2mi18n\locales\zh-CN.json and 5 more[22m
+[1m[32mready  [39m[22m built in [1m0.14[22m s
+[1m[36mstart  [39m[22m building [2msrc\index.css[22m
+[1m[32mready  [39m[22m built in [1m0.70[22m s
+[1m[36mstart  [39m[22m building [2msrc\index.css[22m
+[1m[32mready  [39m[22m built in [1m0.64[22m s
+[1m[36mstart  [39m[22m building [2msrc\index.css[22m
+[1m[32mready  [39m[22m built in [1m0.64[22m s
+[1m[36mstart  [39m[22m building [2mcomponents\layout\PageLayout.jsx[22m
+[1m[32mready  [39m[22m built in [1m0.29[22m s
+[1m[36mstart  [39m[22m building [2msrc\index.css[22m
+[1m[32mready  [39m[22m built in [1m0.63[22m s
+[1m[36mstart  [39m[22m building [2mcomponents\layout\Footer.jsx[22m
+[1m[32mready  [39m[22m built in [1m0.28[22m s
+[1m[36mstart  [39m[22m building [2msrc\index.css[22m
+[1m[32mready  [39m[22m built in [1m0.61[22m s

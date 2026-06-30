@@ -230,6 +230,9 @@ const PageLayout = () => {
           </Content>
           {!shouldHideFooter && (
             <Layout.Footer
+              className={
+                location.pathname === '/' ? 'classic-home-footer' : undefined
+              }
               style={{
                 flex: '0 0 auto',
                 width: '100%',

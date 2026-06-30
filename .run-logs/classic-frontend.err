@@ -1,0 +1,18 @@
+$ rsbuild dev --host "0.0.0.0" --port "5174"
+[1m[31merror  [39m[22m [1m[31mBuild error: [39m[22m
+File: [36m./src/App.jsx:1:1[39m
+  [31m×[0m Module not found: Can't resolve './pages/Home' in 'D:\project\new-api\web\classic\src'
+    ╭─[52:41]
+ [2m50[0m │ import Setup from './pages/Setup';
+ [2m51[0m │ import SetupCheck from './components/layout/SetupCheck';
+ [2m52[0m │ const Home = /*#__PURE__*/ lazy(_c = ()=>import('./pages/Home'));
+    · [35;1m                                         ──────────────────────[0m
+ [2m53[0m │ _c1 = Home;
+ [2m54[0m │ const Dashboard = /*#__PURE__*/ lazy(_c2 = ()=>import('./pages/Dashboard'));
+    ╰────
+[0m[2mImport traces (entry → error):
+  ./src/index.jsx
+  ./src/components/layout/PageLayout.jsx
+  ./src/App.jsx [1m[31m×[39m[22m[22m
+
+[1m[31merror  [39m[22m build failed in [1m0.45[22m s

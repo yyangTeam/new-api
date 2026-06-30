@@ -1,0 +1,631 @@
+[SYS] 2026/06/03 - 21:42:10 | initializing token encoders 
+[SYS] 2026/06/03 - 21:42:10 | token encoders initialized 
+[SYS] 2026/06/03 - 21:42:10 | SQL_DSN not set, using SQLite as database 
+[SYS] 2026/06/03 - 21:42:10 | database migration started 
+[SYS] 2026/06/03 - 21:42:10 | system is already initialized at: 2026-06-03 20:30:14 +0800 CST 
+[SYS] 2026/06/03 - 21:42:10 | REDIS_CONN_STRING not set, Redis is not enabled 
+[SYS] 2026/06/03 - 21:42:10 | i18n initialized with languages: zh-CN, zh-TW, en 
+[SYS] 2026/06/03 - 21:42:10 | Loaded 0 custom OAuth providers 
+[SYS] 2026/06/03 - 21:42:10 | New API v0.0.0 started 
+[SYS] 2026/06/03 - 21:42:10 | 正在更新数据看板数据... 
+[INFO] 2026/06/03 - 21:42:10 | SYSTEM | codex credential auto-refresh task started: tick=10m0s threshold=24h0m0s 
+[INFO] 2026/06/03 - 21:42:10 | SYSTEM | subscription quota reset task started: tick=1m0s 
+[SYS] 2026/06/03 - 21:42:10 | upstream model update task started: interval=30m0s 
+[SYS] 2026/06/03 - 21:42:10 | 保存数据看板数据成功，共保存0条数据 
+
+  [32mNew API v0.0.0[0m  ready in 156 ms
+
+  ➜  [1mLocal:[0m   http://localhost:3000/
+  ➜  [1mNetwork:[0m http://172.26.192.1:3000/
+  ➜  [1mNetwork:[0m http://192.168.1.16:3000/
+  ➜  [1mNetwork:[0m http://172.29.64.1:3000/
+
+[SYS] 2026/06/03 - 21:42:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:42:25 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 21:42:29 | api | 20260603134229868380300Vkp1W6sCYtbaWebf | 200 |            0s |             ::1 |     GET /api/status
+[SYS] 2026/06/03 - 21:42:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:42:40 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 21:42:44 | api | 20260603134244113786500Vkp1W6sCSa2fPIQK | 401 |            0s |             ::1 |    POST /api/token/batch/create
+[GIN] 2026/06/03 - 21:42:49 | api | 20260603134249421439100Vkp1W6sCYn7NLnzw | 401 |       1.012ms |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 21:42:49 | api | 20260603134249421439100Vkp1W6sC1FpCcSEy | 401 |       1.012ms |             ::1 |     GET /api/user/models
+[GIN] 2026/06/03 - 21:42:49 | api | 20260603134249421439100Vkp1W6sCdeBwRbIn | 401 |       1.012ms |             ::1 |     GET /api/user/self/groups
+[GIN] 2026/06/03 - 21:42:49 | api | 20260603134249424043700Vkp1W6sCTwLuAI0V | 401 |            0s |             ::1 |     GET /api/token/?p=1&size=10
+[GIN] 2026/06/03 - 21:42:49 | api | 20260603134249424043700Vkp1W6sCMEhyxHG2 | 200 |            0s |             ::1 |     GET /api/status
+[GIN] 2026/06/03 - 21:42:49 | api | 20260603134249470298100Vkp1W6sCa9YNy5E0 | 401 |      1.0122ms |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 21:42:49 | api | 20260603134249622163300Vkp1W6sCmBAL1TZx | 200 |            0s |             ::1 |     GET /api/status
+
+2026/06/03 21:42:55 [31;1mD:/project/new-api/model/twofa.go:45 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `two_fas` WHERE user_id = 1 AND `two_fas`.`deleted_at` IS NULL ORDER BY `two_fas`.`id` LIMIT 1
+[GIN] 2026/06/03 - 21:42:55 | api | 20260603134255155237200Vkp1W6sClbRz661F | 200 |     42.5481ms |             ::1 |    POST /api/user/login?turnstile=
+[GIN] 2026/06/03 - 21:42:55 | api | 20260603134255220072600Vkp1W6sCLcLeaZPV | 200 |            0s |             ::1 |     GET /api/user/self
+[SYS] 2026/06/03 - 21:42:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:42:55 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 21:42:55 | api | 20260603134255535741800Vkp1W6sChHIEikFs | 200 |            0s |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 21:42:55 | api | 20260603134255536834900Vkp1W6sCxxx4Wpo5 | 200 |       246.2µs |             ::1 |     GET /api/data/?username=&start_timestamp=1780407775&end_timestamp=1780497775&default_time=hour
+[GIN] 2026/06/03 - 21:42:55 | api | 20260603134255641405700Vkp1W6sC5QCWSSwF | 200 |       643.2µs |             ::1 |     GET /api/data/users?start_timestamp=1780407775&end_timestamp=1780497775
+[GIN] 2026/06/03 - 21:42:55 | api | 20260603134255688832300Vkp1W6sCZniYzZ0c | 200 |            0s |             ::1 |     GET /api/uptime/status
+[GIN] 2026/06/03 - 21:42:59 | api | 20260603134259229003200Vkp1W6sCjZSZFUOX | 200 |       507.1µs |             ::1 |     GET /api/user/models
+[GIN] 2026/06/03 - 21:42:59 | api | 20260603134259229003200Vkp1W6sC0Ss0mj90 | 200 |       507.1µs |             ::1 |     GET /api/user/self/groups
+[GIN] 2026/06/03 - 21:42:59 | api | 20260603134259229003200Vkp1W6sCabgedsOK | 200 |       507.1µs |             ::1 |     GET /api/token/?p=1&size=10
+[GIN] 2026/06/03 - 21:43:00 | api | 20260603134300564614000Vkp1W6sCZDJ8vqEY | 200 |            0s |             ::1 |     GET /api/user/self/groups
+[GIN] 2026/06/03 - 21:43:00 | api | 20260603134300564614000Vkp1W6sC97bcqv1U | 200 |       516.3µs |             ::1 |     GET /api/user/models
+[SYS] 2026/06/03 - 21:43:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:43:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:43:10 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 21:43:20 | api | 20260603134320978227800Vkp1W6sCngt7uC6J | 200 |      7.5825ms |             ::1 |    POST /api/token/batch/create
+[GIN] 2026/06/03 - 21:43:20 | api | 20260603134320989550900Vkp1W6sCcUbX4FCf | 200 |      1.0229ms |             ::1 |     GET /api/token/?p=1&size=10
+[SYS] 2026/06/03 - 21:43:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:43:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:43:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:43:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:43:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:43:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:44:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:44:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:44:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:44:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:44:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:44:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:44:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:44:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:44:55 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 21:45:03 | api | 20260603134503901195300Vkp1W6sC9J1bvA3l | 200 |         543µs |             ::1 |     GET /api/user/models
+[GIN] 2026/06/03 - 21:45:03 | api | 20260603134503901195300Vkp1W6sChO6V4b03 | 200 |         543µs |             ::1 |     GET /api/user/self/groups
+[SYS] 2026/06/03 - 21:45:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:45:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:45:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:45:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:45:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:45:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:45:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:45:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:45:55 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 21:46:06 | api | 20260603134606436347500Vkp1W6sC5MftBHvO | 200 |            0s |             ::1 |     GET /api/status
+[SYS] 2026/06/03 - 21:46:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:46:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:46:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:46:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:46:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:46:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:46:40 | 任务进度轮询完成 
+
+2026/06/03 21:46:55 [31;1mD:/project/new-api/model/user.go:603 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE (username = "pw_test_user" OR email = "pw_test_user") AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1
+[GIN] 2026/06/03 - 21:46:55 | api | 20260603134654989141700Vkp1W6sCw4hFsI2v | 200 |     13.2828ms |             ::1 |    POST /api/user/login
+[SYS] 2026/06/03 - 21:46:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:46:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:47:10 | 正在更新数据看板数据... 
+[SYS] 2026/06/03 - 21:47:10 | 保存数据看板数据成功，共保存0条数据 
+[SYS] 2026/06/03 - 21:47:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:47:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:47:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:47:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:47:25 | 任务进度轮询完成 
+
+2026/06/03 21:47:40 [31;1mD:/project/new-api/model/user.go:603 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE (username = "root" OR email = "root") AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1
+[GIN] 2026/06/03 - 21:47:40 | api | 20260603134740344465300Vkp1W6sCoemDoAlD | 200 |     13.3958ms |             ::1 |    POST /api/user/login
+[SYS] 2026/06/03 - 21:47:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:47:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:47:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:47:55 | 任务进度轮询完成 
+
+2026/06/03 21:48:02 [31;1mD:/project/new-api/model/user.go:172 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE username = "pw_test_user" ORDER BY `users`.`id` LIMIT 1
+[GIN] 2026/06/03 - 21:48:02 | api | 20260603134802345883100Vkp1W6sCEEUrpZWH | 200 |            0s |             ::1 |     GET /api/status
+[SYS] 2026/06/03 - 21:48:02 | 为新用户 pw_test_user (角色: 1) 初始化边栏配置 
+[GIN] 2026/06/03 - 21:48:02 | api | 20260603134802314363600Vkp1W6sCKi0lBjwq | 200 |     59.1239ms |             ::1 |    POST /api/user/register
+[SYS] 2026/06/03 - 21:48:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:48:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:48:10 | 任务进度轮询完成 
+
+2026/06/03 21:48:23 [31;1mD:/project/new-api/model/twofa.go:45 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `two_fas` WHERE user_id = 2 AND `two_fas`.`deleted_at` IS NULL ORDER BY `two_fas`.`id` LIMIT 1
+[GIN] 2026/06/03 - 21:48:23 | api | 20260603134823906389500Vkp1W6sCNv57hx6d | 200 |     56.1391ms |             ::1 |    POST /api/user/login
+[SYS] 2026/06/03 - 21:48:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:48:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:48:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:48:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:48:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:48:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:49:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:49:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:49:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:49:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:49:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:49:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:49:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:49:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:49:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:50:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:50:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:50:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:50:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:50:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:50:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:50:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:50:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:50:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:51:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:51:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:51:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:51:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:51:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:51:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:51:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:51:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:51:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:52:10 | 正在更新数据看板数据... 
+[SYS] 2026/06/03 - 21:52:10 | 保存数据看板数据成功，共保存0条数据 
+[SYS] 2026/06/03 - 21:52:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:52:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:52:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:52:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:52:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:52:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:52:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:52:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:52:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:53:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:53:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:53:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:53:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:53:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:53:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:53:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:53:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:53:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:54:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:54:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:54:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:54:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:54:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:54:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:54:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:54:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:54:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:55:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:55:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:55:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:55:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:55:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:55:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:55:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:55:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:55:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:56:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:56:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:56:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:56:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:56:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:56:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:56:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:56:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:56:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:57:10 | 正在更新数据看板数据... 
+[SYS] 2026/06/03 - 21:57:10 | 保存数据看板数据成功，共保存0条数据 
+[SYS] 2026/06/03 - 21:57:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:57:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:57:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:57:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:57:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:57:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:57:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:57:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:57:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:58:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:58:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:58:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:58:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:58:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:58:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:58:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:58:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:58:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:59:10 | syncing options from database 
+[SYS] 2026/06/03 - 21:59:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:59:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:59:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:59:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:59:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:59:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 21:59:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 21:59:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:00:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:00:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:00:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:00:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:00:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:00:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:00:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:00:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:00:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:01:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:01:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:01:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:01:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:01:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:01:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:01:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:01:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:01:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:02:10 | 正在更新数据看板数据... 
+[SYS] 2026/06/03 - 22:02:10 | 保存数据看板数据成功，共保存0条数据 
+[SYS] 2026/06/03 - 22:02:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:02:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:02:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:02:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:02:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:02:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:02:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:02:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:02:55 | 任务进度轮询完成 
+
+2026/06/03 22:02:56 [31;1mD:/project/new-api/model/user.go:603 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE (username = "pwtestmpy4z5ep" OR email = "pwtestmpy4z5ep") AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:02:56 | api | 20260603140256940897600Vkp1W6sCgrw92Nsv | 200 |      2.1605ms |             ::1 |    POST /api/user/login
+
+2026/06/03 22:02:56 [31;1mD:/project/new-api/model/user.go:172 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE username = "pwtestmpy4z5ep" ORDER BY `users`.`id` LIMIT 1
+[SYS] 2026/06/03 - 22:02:56 | 为新用户 pwtestmpy4z5ep (角色: 1) 初始化边栏配置 
+[GIN] 2026/06/03 - 22:02:56 | api | 20260603140256951110500Vkp1W6sCnGzwZ1ZG | 200 |     47.7513ms |             ::1 |    POST /api/user/register
+
+2026/06/03 22:02:57 [31;1mD:/project/new-api/model/twofa.go:45 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `two_fas` WHERE user_id = 3 AND `two_fas`.`deleted_at` IS NULL ORDER BY `two_fas`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:02:57 | api | 202606031402572015900Vkp1W6sCn62HencC | 200 |     43.9986ms |             ::1 |    POST /api/user/login
+[GIN] 2026/06/03 - 22:02:58 | api | 20260603140258107099000Vkp1W6sC4KWbEGDf | 200 |            0s |             ::1 |     GET /api/status
+[GIN] 2026/06/03 - 22:02:58 | api | 20260603140258390553400Vkp1W6sC4TczxPcT | 200 |            0s |             ::1 |     GET /api/notice
+[GIN] 2026/06/03 - 22:02:58 | api | 20260603140258390553400Vkp1W6sCDZXKM5Rj | 200 |            0s |             ::1 |     GET /api/home_page_content
+[SYS] 2026/06/03 - 22:03:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:03:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:03:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:03:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:03:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:03:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:03:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:03:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:03:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:04:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:04:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:04:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:04:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:04:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:04:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:04:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:04:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:04:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:05:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:05:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:05:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:05:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:05:25 | 任务进度轮询完成 
+
+2026/06/03 22:05:39 [31;1mD:/project/new-api/model/user.go:603 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE (username = "pwtestmpy52mlg" OR email = "pwtestmpy52mlg") AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:05:39 | api | 20260603140539181733300Vkp1W6sC6W2aEzgP | 200 |      1.6392ms |             ::1 |    POST /api/user/login
+
+2026/06/03 22:05:39 [31;1mD:/project/new-api/model/user.go:172 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE username = "pwtestmpy52mlg" ORDER BY `users`.`id` LIMIT 1
+[SYS] 2026/06/03 - 22:05:39 | 为新用户 pwtestmpy52mlg (角色: 1) 初始化边栏配置 
+[GIN] 2026/06/03 - 22:05:39 | api | 20260603140539188955200Vkp1W6sC5fv6djnw | 200 |     47.2123ms |             ::1 |    POST /api/user/register
+
+2026/06/03 22:05:39 [31;1mD:/project/new-api/model/twofa.go:45 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `two_fas` WHERE user_id = 4 AND `two_fas`.`deleted_at` IS NULL ORDER BY `two_fas`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:05:39 | api | 20260603140539240040200Vkp1W6sCsuWXdDhA | 200 |     43.7546ms |             ::1 |    POST /api/user/login
+[GIN] 2026/06/03 - 22:05:40 | api | 20260603140540359125500Vkp1W6sCS7vta2SE | 200 |            0s |             ::1 |     GET /api/status
+[SYS] 2026/06/03 - 22:05:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:05:40 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 22:05:40 | api | 20260603140540645477000Vkp1W6sCUDspgrIq | 200 |            0s |             ::1 |     GET /api/notice
+[GIN] 2026/06/03 - 22:05:40 | api | 20260603140540645477000Vkp1W6sCgs4rbor4 | 200 |            0s |             ::1 |     GET /api/home_page_content
+[SYS] 2026/06/03 - 22:05:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:05:55 | 任务进度轮询完成 
+
+2026/06/03 22:05:58 [31;1mD:/project/new-api/model/user.go:603 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE (username = "pwtestmpy531lc" OR email = "pwtestmpy531lc") AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:05:58 | api | 20260603140558617330900Vkp1W6sCrrp5Am7m | 200 |      1.6595ms |             ::1 |    POST /api/user/login
+
+2026/06/03 22:05:58 [31;1mD:/project/new-api/model/user.go:172 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE username = "pwtestmpy531lc" ORDER BY `users`.`id` LIMIT 1
+[SYS] 2026/06/03 - 22:05:58 | 为新用户 pwtestmpy531lc (角色: 1) 初始化边栏配置 
+[GIN] 2026/06/03 - 22:05:58 | api | 20260603140558625932800Vkp1W6sCr6jn904b | 200 |     47.4023ms |             ::1 |    POST /api/user/register
+
+2026/06/03 22:05:58 [31;1mD:/project/new-api/model/twofa.go:45 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `two_fas` WHERE user_id = 5 AND `two_fas`.`deleted_at` IS NULL ORDER BY `two_fas`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:05:58 | api | 20260603140558676335700Vkp1W6sCWLh4nNH9 | 200 |     43.0093ms |             ::1 |    POST /api/user/login
+[GIN] 2026/06/03 - 22:05:59 | api | 20260603140559787411800Vkp1W6sCqWj2dqck | 200 |            0s |             ::1 |     GET /api/status
+[GIN] 2026/06/03 - 22:06:00 | api | 2026060314060073090700Vkp1W6sCWrjT2wI0 | 200 |            0s |             ::1 |     GET /api/notice
+[GIN] 2026/06/03 - 22:06:00 | api | 2026060314060073607400Vkp1W6sCJdXY3Jnz | 200 |            0s |             ::1 |     GET /api/home_page_content
+[GIN] 2026/06/03 - 22:06:02 | api | 20260603140602555470700Vkp1W6sCMjZhxx78 | 200 |         508µs |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:06:04 | api | 20260603140604738295200Vkp1W6sCqwTD7jFp | 200 |       506.6µs |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:06:07 | api | 202606031406076822200Vkp1W6sCHm6wIBIh | 200 |       510.5µs |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:06:09 | api | 20260603140609203213200Vkp1W6sC0JTWV9wQ | 200 |      1.0003ms |             ::1 |     GET /api/user/self
+[SYS] 2026/06/03 - 22:06:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:06:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:06:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:06:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:06:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:06:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:06:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:06:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:06:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:07:10 | 正在更新数据看板数据... 
+[SYS] 2026/06/03 - 22:07:10 | 保存数据看板数据成功，共保存0条数据 
+[SYS] 2026/06/03 - 22:07:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:07:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:07:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:07:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:07:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:07:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:07:40 | 任务进度轮询完成 
+
+2026/06/03 22:07:47 [31;1mD:/project/new-api/model/user.go:603 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE (username = "pwtestmpy55dzm" OR email = "pwtestmpy55dzm") AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:07:47 | api | 20260603140747994743500Vkp1W6sCFFPUPYey | 200 |      2.1493ms |             ::1 |    POST /api/user/login
+
+2026/06/03 22:07:48 [31;1mD:/project/new-api/model/user.go:172 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE username = "pwtestmpy55dzm" ORDER BY `users`.`id` LIMIT 1
+[SYS] 2026/06/03 - 22:07:48 | 为新用户 pwtestmpy55dzm (角色: 1) 初始化边栏配置 
+[GIN] 2026/06/03 - 22:07:48 | api | 202606031407484054800Vkp1W6sCyzHMYIgK | 200 |     49.3069ms |             ::1 |    POST /api/user/register
+
+2026/06/03 22:07:48 [31;1mD:/project/new-api/model/twofa.go:45 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `two_fas` WHERE user_id = 6 AND `two_fas`.`deleted_at` IS NULL ORDER BY `two_fas`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:07:48 | api | 2026060314074856065500Vkp1W6sCmUQzi79o | 200 |     43.5772ms |             ::1 |    POST /api/user/login
+[GIN] 2026/06/03 - 22:07:49 | api | 20260603140749189730300Vkp1W6sC761QVX7p | 200 |       677.9µs |             ::1 |     GET /api/status
+[GIN] 2026/06/03 - 22:07:49 | api | 20260603140749474758800Vkp1W6sCYXaDWSPi | 200 |            0s |             ::1 |     GET /api/home_page_content
+[GIN] 2026/06/03 - 22:07:49 | api | 20260603140749474758800Vkp1W6sCcF6SKllv | 200 |            0s |             ::1 |     GET /api/notice
+[GIN] 2026/06/03 - 22:07:51 | api | 20260603140751920533800Vkp1W6sCI8sFWGZw | 200 |         506µs |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:07:54 | api | 20260603140754157931200Vkp1W6sCSW6YJlro | 200 |       508.6µs |             ::1 |     GET /api/user/self
+[SYS] 2026/06/03 - 22:07:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:07:55 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 22:07:55 | api | 20260603140755775909500Vkp1W6sCyIveg5TT | 200 |       596.7µs |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:07:57 | api | 20260603140757682614400Vkp1W6sCBh9tu33X | 200 |       505.7µs |             ::1 |     GET /api/user/self
+[SYS] 2026/06/03 - 22:08:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:08:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:08:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:08:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:08:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:08:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:08:40 | 任务进度轮询完成 
+
+2026/06/03 22:08:42 [31;1mD:/project/new-api/model/user.go:603 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE (username = "pwtestmpy56kar" OR email = "pwtestmpy56kar") AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:08:42 | api | 20260603140842829657800Vkp1W6sCYS2jvoJ5 | 200 |       999.3µs |             ::1 |    POST /api/user/login
+
+2026/06/03 22:08:42 [31;1mD:/project/new-api/model/user.go:172 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `users` WHERE username = "pwtestmpy56kar" ORDER BY `users`.`id` LIMIT 1
+[SYS] 2026/06/03 - 22:08:42 | 为新用户 pwtestmpy56kar (角色: 1) 初始化边栏配置 
+[GIN] 2026/06/03 - 22:08:42 | api | 20260603140842838620200Vkp1W6sCwe1VpZB9 | 200 |     47.7911ms |             ::1 |    POST /api/user/register
+
+2026/06/03 22:08:42 [31;1mD:/project/new-api/model/twofa.go:45 [35;1mrecord not found
+[0m[33m[1.001ms] [34;1m[rows:0][0m SELECT * FROM `two_fas` WHERE user_id = 7 AND `two_fas`.`deleted_at` IS NULL ORDER BY `two_fas`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:08:42 | api | 20260603140842889410500Vkp1W6sC315m56AK | 200 |     45.0016ms |             ::1 |    POST /api/user/login
+[GIN] 2026/06/03 - 22:08:43 | api | 20260603140843994708800Vkp1W6sCCiDDVOxf | 200 |            0s |             ::1 |     GET /api/status
+[GIN] 2026/06/03 - 22:08:44 | api | 20260603140844283880100Vkp1W6sC0rCcQlpL | 200 |            0s |             ::1 |     GET /api/notice
+[GIN] 2026/06/03 - 22:08:44 | api | 20260603140844283880100Vkp1W6sCFkBDJccD | 200 |            0s |             ::1 |     GET /api/home_page_content
+[GIN] 2026/06/03 - 22:08:46 | api | 20260603140846811141900Vkp1W6sClJe3y4iX | 200 |       506.4µs |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:08:54 | api | 2026060314085461289100Vkp1W6sC1Xod64AJ | 200 |      1.0409ms |             ::1 |     GET /api/user/self
+[SYS] 2026/06/03 - 22:08:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:08:55 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 22:08:55 | api | 20260603140855675455100Vkp1W6sCa9xYwyJ0 | 200 |      1.0863ms |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:08:57 | api | 20260603140857603588400Vkp1W6sCNJu5OPB7 | 200 |       564.2µs |             ::1 |     GET /api/user/self
+[SYS] 2026/06/03 - 22:09:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:09:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:09:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:09:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:09:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:09:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:09:40 | 任务进度轮询完成 
+
+2026/06/03 22:09:54 [31;1mD:/project/new-api/model/twofa.go:45 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `two_fas` WHERE user_id = 2 AND `two_fas`.`deleted_at` IS NULL ORDER BY `two_fas`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:09:54 | api | 20260603140954742709100Vkp1W6sCHUR3MKXe | 200 |     43.4719ms |             ::1 |    POST /api/user/login
+[SYS] 2026/06/03 - 22:09:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:09:55 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 22:09:55 | api | 20260603140955866552800Vkp1W6sCueLoNABL | 200 |            0s |             ::1 |     GET /api/status
+[GIN] 2026/06/03 - 22:09:56 | api | 20260603140956151340600Vkp1W6sCLV5PYYLL | 200 |            0s |             ::1 |     GET /api/notice
+[GIN] 2026/06/03 - 22:09:56 | api | 20260603140956151340600Vkp1W6sC5Iymo1h0 | 200 |            0s |             ::1 |     GET /api/home_page_content
+[GIN] 2026/06/03 - 22:09:58 | api | 20260603140958574560100Vkp1W6sCKumpqRnU | 200 |      1.5546ms |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:10:00 | api | 20260603141000153969800Vkp1W6sCjDYFxbgF | 200 |       510.6µs |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:10:01 | api | 20260603141001674061100Vkp1W6sCKerzqESL | 200 |       531.9µs |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:10:03 | api | 20260603141003574902800Vkp1W6sCMu6MgTp5 | 200 |       561.8µs |             ::1 |     GET /api/user/self
+[SYS] 2026/06/03 - 22:10:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:10:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:10:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:10:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:10:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:10:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:10:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:10:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:10:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:11:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:11:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:11:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:11:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:11:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:11:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:11:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:11:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:11:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:12:10 | 正在更新数据看板数据... 
+[SYS] 2026/06/03 - 22:12:10 | 保存数据看板数据成功，共保存0条数据 
+[SYS] 2026/06/03 - 22:12:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:12:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:12:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:12:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:12:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:12:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:12:40 | 任务进度轮询完成 
+
+2026/06/03 22:12:52 [31;1mD:/project/new-api/model/twofa.go:45 [35;1mrecord not found
+[0m[33m[0.999ms] [34;1m[rows:0][0m SELECT * FROM `two_fas` WHERE user_id = 2 AND `two_fas`.`deleted_at` IS NULL ORDER BY `two_fas`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:12:52 | api | 20260603141252176719000Vkp1W6sClvrbi9XP | 200 |     44.9096ms |             ::1 |    POST /api/user/login
+[GIN] 2026/06/03 - 22:12:53 | api | 20260603141253405726000Vkp1W6sC6lzBGGai | 200 |            0s |             ::1 |     GET /api/status
+[GIN] 2026/06/03 - 22:12:55 | api | 20260603141255548934600Vkp1W6sCHFuPhCUQ | 200 |      2.1329ms |             ::1 |     GET /api/user/self
+[SYS] 2026/06/03 - 22:12:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:12:55 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 22:12:57 | api | 20260603141257266994900Vkp1W6sCZUHCfnlY | 200 |      1.0008ms |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:12:58 | api | 20260603141258832491000Vkp1W6sCbwtM1sy8 | 200 |       507.7µs |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:13:00 | api | 20260603141300775048100Vkp1W6sCJQ2biqwY | 200 |       516.2µs |             ::1 |     GET /api/user/self
+[SYS] 2026/06/03 - 22:13:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:13:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:13:10 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 22:13:25 | api | 20260603141325507022100Vkp1W6sCDhjEP6vn | 200 |            0s |             ::1 |     GET /api/status
+[SYS] 2026/06/03 - 22:13:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:13:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:13:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:13:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:13:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:13:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:14:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:14:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:14:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:14:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:14:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:14:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:14:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:14:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:14:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:15:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:15:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:15:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:15:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:15:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:15:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:15:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:15:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:15:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:16:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:16:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:16:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:16:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:16:25 | 任务进度轮询完成 
+
+2026/06/03 22:16:29 [31;1mD:/project/new-api/model/twofa.go:45 [35;1mrecord not found
+[0m[33m[0.000ms] [34;1m[rows:0][0m SELECT * FROM `two_fas` WHERE user_id = 2 AND `two_fas`.`deleted_at` IS NULL ORDER BY `two_fas`.`id` LIMIT 1
+[GIN] 2026/06/03 - 22:16:29 | api | 20260603141629246327900Vkp1W6sCsWD4HWoI | 200 |     44.7204ms |             ::1 |    POST /api/user/login
+[GIN] 2026/06/03 - 22:16:30 | api | 20260603141630391558400Vkp1W6sCUGECxxzs | 200 |            0s |             ::1 |     GET /api/status
+[GIN] 2026/06/03 - 22:16:30 | api | 20260603141630674223900Vkp1W6sCT8yrQPmN | 200 |            0s |             ::1 |     GET /api/notice
+[GIN] 2026/06/03 - 22:16:30 | api | 20260603141630674223900Vkp1W6sCWHkckj0s | 200 |        63.2µs |             ::1 |     GET /api/home_page_content
+[GIN] 2026/06/03 - 22:16:33 | api | 20260603141633175522700Vkp1W6sCzyDclY06 | 200 |       506.9µs |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:16:34 | api | 20260603141634766418800Vkp1W6sCEgSvyrId | 200 |       506.9µs |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:16:36 | api | 20260603141636316692000Vkp1W6sCwyxwmWdP | 200 |       508.3µs |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:16:38 | api | 20260603141638294565000Vkp1W6sCGYIGtlDk | 200 |         580µs |             ::1 |     GET /api/user/self
+[SYS] 2026/06/03 - 22:16:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:16:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:16:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:16:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:17:10 | 正在更新数据看板数据... 
+[SYS] 2026/06/03 - 22:17:10 | 保存数据看板数据成功，共保存0条数据 
+[SYS] 2026/06/03 - 22:17:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:17:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:17:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:17:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:17:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:17:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:17:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:17:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:17:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:18:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:18:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:18:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:18:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:18:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:18:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:18:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:18:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:18:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:19:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:19:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:19:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:19:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:19:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:19:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:19:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:19:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:19:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:20:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:20:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:20:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:20:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:20:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:20:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:20:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:20:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:20:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:21:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:21:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:21:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:21:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:21:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:21:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:21:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:21:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:21:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:22:10 | 正在更新数据看板数据... 
+[SYS] 2026/06/03 - 22:22:10 | 保存数据看板数据成功，共保存0条数据 
+[SYS] 2026/06/03 - 22:22:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:22:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:22:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:22:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:22:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:22:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:22:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:22:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:22:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:23:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:23:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:23:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:23:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:23:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:23:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:23:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:23:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:23:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:24:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:24:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:24:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:24:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:24:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:24:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:24:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:24:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:24:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:25:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:25:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:25:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:25:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:25:25 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 22:25:33 | api | 20260603142533770465900Vkp1W6sCfP8zA3EG | 200 |      1.0238ms |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:25:33 | api | 20260603142533770465900Vkp1W6sCOVKQbYvB | 200 |      2.0583ms |             ::1 |     GET /api/user/models
+[GIN] 2026/06/03 - 22:25:33 | api | 20260603142533770970000Vkp1W6sC1nXEIDDp | 200 |      1.5542ms |             ::1 |     GET /api/user/self/groups
+[GIN] 2026/06/03 - 22:25:33 | api | 20260603142533772524200Vkp1W6sC7AYx9jOx | 200 |         516µs |             ::1 |     GET /api/token/?p=1&size=10
+[GIN] 2026/06/03 - 22:25:33 | api | 20260603142533772524200Vkp1W6sCqjJHCAKc | 200 |         516µs |             ::1 |     GET /api/status
+[GIN] 2026/06/03 - 22:25:33 | api | 20260603142533821130500Vkp1W6sCoC8pDL4V | 200 |            0s |             ::1 |     GET /api/user/self
+[GIN] 2026/06/03 - 22:25:36 | api | 20260603142536551556300Vkp1W6sCcI3oEABl | 200 |            0s |             ::1 |     GET /api/user/self/groups
+[GIN] 2026/06/03 - 22:25:36 | api | 20260603142536551556300Vkp1W6sCpzx3z5xA | 200 |       517.3µs |             ::1 |     GET /api/user/models
+[SYS] 2026/06/03 - 22:25:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:25:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:25:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:25:55 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 22:25:59 | api | 20260603142559164441800Vkp1W6sCJQJVt8rF | 200 |      11.702ms |             ::1 |    POST /api/token/batch/create
+[GIN] 2026/06/03 - 22:25:59 | api | 20260603142559180162000Vkp1W6sC6BsLpS72 | 200 |       508.8µs |             ::1 |     GET /api/token/?p=1&size=10
+[GIN] 2026/06/03 - 22:26:08 | api | 20260603142608610314700Vkp1W6sCOoI3kwgN | 200 |            0s |             ::1 |     GET /api/user/self/groups
+[GIN] 2026/06/03 - 22:26:08 | api | 20260603142608609348200Vkp1W6sCUukoFHPt | 200 |        1.49ms |             ::1 |     GET /api/user/models
+[SYS] 2026/06/03 - 22:26:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:26:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:26:10 | 任务进度轮询完成 
+[GIN] 2026/06/03 - 22:26:13 | api | 20260603142613841185300Vkp1W6sCRulc1tZy | 200 |      3.7991ms |             ::1 |     PUT /api/token/batch
+[GIN] 2026/06/03 - 22:26:13 | api | 20260603142613882645400Vkp1W6sCMSWYhrWB | 200 |       505.6µs |             ::1 |     GET /api/token/?p=1&size=10
+[SYS] 2026/06/03 - 22:26:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:26:25 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:26:40 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:26:40 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:26:55 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:26:55 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:27:10 | 正在更新数据看板数据... 
+[SYS] 2026/06/03 - 22:27:10 | 保存数据看板数据成功，共保存0条数据 
+[SYS] 2026/06/03 - 22:27:10 | syncing options from database 
+[SYS] 2026/06/03 - 22:27:10 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:27:10 | 任务进度轮询完成 
+[SYS] 2026/06/03 - 22:27:25 | 任务进度轮询开始 
+[SYS] 2026/06/03 - 22:27:25 | 任务进度轮询完成 

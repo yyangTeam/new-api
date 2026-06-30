@@ -3672,6 +3672,23 @@
     "并确认自行承担部署": "並確認自行承擔部署",
     "运营和收费行为产生的法律责任": "營運和收費行為產生的法律責任",
     "，": "，",
-    "、": "、"
+    "、": "、",
+    "A clean relay endpoint for GPT and CLAUDE model access.": "面向 GPT 與 CLAUDE 模型存取的清爽中轉入口。",
+    "Copy": "複製",
+    "Copied to clipboard": "已複製到剪貼簿",
+    "Custom Home Page": "自訂首頁",
+    "Enter console": "進入控制台",
+    "Failed to load home page content": "載入首頁內容失敗",
+    "GPT and CLAUDE ready": "GPT 與 CLAUDE 就緒",
+    "High-speed responses": "高速回應",
+    "Join after-sales QQ group": "一鍵加入售後 QQ 群",
+    "Online recharge": "線上儲值",
+    "Redeem CDK": "前往兌換 CDK",
+    "Stable routing": "穩定路由",
+    "Stable. Fast.": "穩定、高速",
+    "Start from the console, recharge online, redeem CDK, or join after-sales support from one place.": "控制台、線上儲值、CDK 兌換與售後支援，一處直達。",
+    "Support vendors": "支援模型廠商",
+    "Supported models": "支援模型",
+    "Use this endpoint as the base URL in compatible clients.": "在相容用戶端中將此位址設定為 BASE_URL。"
   }
 }

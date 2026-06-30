@@ -580,6 +580,7 @@ const RechargeCard = ({
       {/* 兑换码充值 */}
       {enableRedemption ? (
         <Card
+          id='redeem-cdk'
           className='!rounded-xl w-full'
           title={
             <Text type='tertiary' strong>

@@ -1,0 +1,22 @@
+Rsbuild v2.0.9
+
+  ➜  Network:  http://198.18.0.1:5173/
+  ➜  Network:  http://172.26.192.1:5173/
+  ➜  Network:  http://192.168.1.16:5173/
+  ➜  Local:    http://localhost:5173/
+  ➜  Network:  http://172.29.64.1:5173/
+
+start   build started...
+ready   built in 6.23 s
+start   build started...
+ready   built in 0.20 s
+start   build started...
+ready   built in 0.16 s
+start   building components\models\log-stat-cards.tsx
+ready   built in 0.14 s
+start   building components\models\performance-overview.tsx and 2 more
+ready   built in 0.15 s
+start   build started...
+ready   built in 0.15 s
+start   building system-settings\general\system-info-section.tsx
+ready   built in 0.38 s
