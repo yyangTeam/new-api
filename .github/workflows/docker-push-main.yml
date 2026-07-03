@@ -3,7 +3,7 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - dev
+      - '**'
   workflow_dispatch:
 
 env:
@@ -21,12 +21,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Determine Version
         run: |
-          VERSION=$(git describe --tags --always)
+          VERSION=$(bash scripts/version.sh)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "$VERSION" > VERSION
+
+      - name: Determine Docker Tags
+        id: tags
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          BRANCH_SLUG=$(echo "$BRANCH" | sed 's|/|-|g')
+          SHA=$(echo "$GITHUB_SHA" | cut -c1-7)
+          TAGS="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${BRANCH_SLUG}-${VERSION}"
+          TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${BRANCH_SLUG}"
+          if [ "$BRANCH" = "dev" ]; then
+            TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+            TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+          fi
+          TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${SHA}"
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -40,6 +57,7 @@ jobs:
         env:
           CI: ""
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          VITE_REACT_APP_VERSION: ${{ env.VERSION }}
         run: |
           cd web/default
           npm install
@@ -49,6 +67,7 @@ jobs:
         env:
           CI: ""
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          VITE_REACT_APP_VERSION: ${{ env.VERSION }}
         run: |
           cd web/classic
           npm install
@@ -70,9 +89,7 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
