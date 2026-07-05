@@ -236,6 +236,12 @@ export type ModelSettings = {
   'monitor_setting.auto_test_channel_enabled': boolean
   'monitor_setting.auto_test_channel_minutes': number
   'monitor_setting.channel_test_mode': 'scheduled_all' | 'passive_recovery'
+  'monitor_setting.channel_error_notify_enabled': boolean
+  'monitor_setting.channel_consecutive_error_threshold': number
+  'monitor_setting.channel_error_rate_enabled': boolean
+  'monitor_setting.channel_error_rate_threshold': number
+  'monitor_setting.channel_error_rate_window_minutes': number
+  'monitor_setting.channel_error_rate_min_requests': number
   'channel_affinity_setting.enabled': boolean
   'channel_affinity_setting.switch_on_success': boolean
   'channel_affinity_setting.keep_on_channel_disabled': boolean

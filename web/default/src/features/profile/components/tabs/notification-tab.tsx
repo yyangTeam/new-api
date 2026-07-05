@@ -16,8 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, useEffect, useCallback } from 'react'
-import { Bell, Loader2, Mail, Server, Webhook } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Bell, Bot, Loader2, Mail, MessageSquare, Server, Webhook } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ROLE } from '@/lib/roles'
@@ -26,11 +26,19 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { PasswordInput } from '@/components/password-input'
 import { updateUserSettings } from '../../api'
 import {
   DEFAULT_QUOTA_WARNING_THRESHOLD,
   NOTIFICATION_METHODS,
+  ADMIN_NOTIFICATION_METHODS,
 } from '../../constants'
 import { parseUserSettings } from '../../lib'
 import type { UserProfile, UserSettings, NotifyType } from '../../types'
@@ -40,15 +48,16 @@ const NOTIFICATION_ICONS: Record<NotifyType, typeof Mail> = {
   webhook: Webhook,
   bark: Bell,
   gotify: Server,
+  feishu: MessageSquare,
+  qqbot: Bot,
 }
 
-const NOTIFICATION_VALUES = new Set<NotifyType>(
-  NOTIFICATION_METHODS.map((method) => method.value)
-)
+const ALL_METHODS = [...NOTIFICATION_METHODS, ...ADMIN_NOTIFICATION_METHODS]
+
+const ALL_VALUES = new Set<NotifyType>(ALL_METHODS.map((m) => m.value))
 
 function normalizeNotifyType(value: unknown): NotifyType {
-  return typeof value === 'string' &&
-    NOTIFICATION_VALUES.has(value as NotifyType)
+  return typeof value === 'string' && ALL_VALUES.has(value as NotifyType)
     ? (value as NotifyType)
     : 'email'
 }
@@ -76,6 +85,12 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
     gotify_url: '',
     gotify_token: '',
     gotify_priority: 5,
+    feishu_webhook_url: '',
+    feishu_webhook_secret: '',
+    qqbot_url: '',
+    qqbot_access_token: '',
+    qqbot_target_type: 'private',
+    qqbot_target_id: '',
     accept_unset_model_ratio_model: false,
     record_ip_log: false,
     upstream_model_update_notify_enabled: false,
@@ -103,6 +118,12 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
         gotify_url: parsed.gotify_url ?? '',
         gotify_token: parsed.gotify_token ?? '',
         gotify_priority: parsed.gotify_priority ?? 5,
+        feishu_webhook_url: parsed.feishu_webhook_url ?? '',
+        feishu_webhook_secret: parsed.feishu_webhook_secret ?? '',
+        qqbot_url: parsed.qqbot_url ?? '',
+        qqbot_access_token: parsed.qqbot_access_token ?? '',
+        qqbot_target_type: parsed.qqbot_target_type || 'private',
+        qqbot_target_id: parsed.qqbot_target_id ?? '',
         accept_unset_model_ratio_model:
           parsed.accept_unset_model_ratio_model || false,
         record_ip_log: parsed.record_ip_log || false,
@@ -132,6 +153,11 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
 
   const notifyType = normalizeNotifyType(settings.notify_type)
 
+  const visibleMethods = useMemo(() => {
+    if (isAdmin) return ALL_METHODS
+    return [...NOTIFICATION_METHODS]
+  }, [isAdmin])
+
   return (
     <div className='space-y-4 sm:space-y-6'>
       {/* Notification Type */}
@@ -148,9 +174,9 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
           variant='outline'
           size='lg'
           spacing={2}
-          className='grid w-full grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3'
+          className='grid w-full grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3'
         >
-          {NOTIFICATION_METHODS.map((method) => {
+          {visibleMethods.map((method) => {
             const Icon = NOTIFICATION_ICONS[method.value]
             return (
               <ToggleGroupItem
@@ -314,6 +340,104 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
                 {t('Gotify Documentation')}
               </a>
             </p>
+          </div>
+        </>
+      )}
+
+      {/* Feishu Settings */}
+      {notifyType === 'feishu' && (
+        <>
+          <div className='space-y-1.5'>
+            <Label htmlFor='feishuUrl'>{t('Feishu Webhook URL')}</Label>
+            <Input
+              id='feishuUrl'
+              type='url'
+              className='h-9'
+              value={settings.feishu_webhook_url}
+              onChange={(e) => updateField('feishu_webhook_url', e.target.value)}
+              placeholder='https://open.feishu.cn/open-apis/bot/v2/hook/...'
+            />
+          </div>
+          <div className='space-y-1.5'>
+            <Label htmlFor='feishuSecret'>{t('Feishu Webhook Secret')}</Label>
+            <PasswordInput
+              id='feishuSecret'
+              value={settings.feishu_webhook_secret}
+              onChange={(e) =>
+                updateField('feishu_webhook_secret', e.target.value)
+              }
+              placeholder={t('Enter secret key')}
+            />
+            <p className='text-muted-foreground text-xs'>
+              {t('Optional. Used for webhook signature verification.')}
+            </p>
+          </div>
+        </>
+      )}
+
+      {/* QQ Bot Settings */}
+      {notifyType === 'qqbot' && (
+        <>
+          <div className='space-y-1.5'>
+            <Label htmlFor='qqbotUrl'>{t('QQ Bot API URL')}</Label>
+            <Input
+              id='qqbotUrl'
+              type='url'
+              className='h-9'
+              value={settings.qqbot_url}
+              onChange={(e) => updateField('qqbot_url', e.target.value)}
+              placeholder='http://127.0.0.1:5700'
+            />
+            <p className='text-muted-foreground text-xs'>
+              {t(
+                'OneBot v11 HTTP API address. Compatible with go-cqhttp, NapCat, Lagrange, etc.'
+              )}
+            </p>
+          </div>
+          <div className='space-y-1.5'>
+            <Label htmlFor='qqbotToken'>{t('QQ Bot Access Token')}</Label>
+            <PasswordInput
+              id='qqbotToken'
+              value={settings.qqbot_access_token}
+              onChange={(e) =>
+                updateField('qqbot_access_token', e.target.value)
+              }
+              placeholder={t('Enter access token')}
+            />
+            <p className='text-muted-foreground text-xs'>
+              {t('Optional. Used for API authentication.')}
+            </p>
+          </div>
+          <div className='space-y-1.5'>
+            <Label htmlFor='qqbotTargetType'>{t('Message Target Type')}</Label>
+            <Select
+              value={settings.qqbot_target_type || 'private'}
+              onValueChange={(value) => updateField('qqbot_target_type', value)}
+            >
+              <SelectTrigger className='h-9'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='private'>
+                  {t('Private Message')}
+                </SelectItem>
+                <SelectItem value='group'>{t('Group Message')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className='space-y-1.5'>
+            <Label htmlFor='qqbotTargetId'>{t('Target ID')}</Label>
+            <Input
+              id='qqbotTargetId'
+              className='h-9'
+              value={settings.qqbot_target_id}
+              onChange={(e) => updateField('qqbot_target_id', e.target.value)}
+              placeholder={
+                settings.qqbot_target_type === 'group'
+                  ? t('Enter group number')
+                  : t('Enter QQ number')
+              }
+            />
           </div>
         </>
       )}

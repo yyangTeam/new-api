@@ -86,7 +86,7 @@ export interface UserProfile {
 /**
  * Notification type
  */
-export type NotifyType = 'email' | 'webhook' | 'bark' | 'gotify'
+export type NotifyType = 'email' | 'webhook' | 'bark' | 'gotify' | 'feishu' | 'qqbot'
 
 /**
  * Parsed user settings
@@ -110,6 +110,18 @@ export interface UserSettings {
   gotify_token?: string
   /** Gotify message priority (0-10) */
   gotify_priority?: number
+  /** Feishu webhook URL */
+  feishu_webhook_url?: string
+  /** Feishu webhook secret */
+  feishu_webhook_secret?: string
+  /** QQ Bot OneBot API URL */
+  qqbot_url?: string
+  /** QQ Bot access token */
+  qqbot_access_token?: string
+  /** QQ Bot target type (private/group) */
+  qqbot_target_type?: string
+  /** QQ Bot target ID (QQ number or group number) */
+  qqbot_target_id?: string
   /** Accept unset model ratio model */
   accept_unset_model_ratio_model?: boolean
   /** Record IP log */
@@ -142,6 +154,12 @@ export interface UpdateUserSettingsRequest {
   gotify_url?: string
   gotify_token?: string
   gotify_priority?: number
+  feishu_webhook_url?: string
+  feishu_webhook_secret?: string
+  qqbot_url?: string
+  qqbot_access_token?: string
+  qqbot_target_type?: string
+  qqbot_target_id?: string
   accept_unset_model_ratio_model?: boolean
   record_ip_log?: boolean
   upstream_model_update_notify_enabled?: boolean
