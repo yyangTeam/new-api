@@ -107,11 +107,11 @@ func NotifyUser(userId int, userEmail string, userSetting dto.UserSetting, data 
 		}
 		return sendFeishuNotify(userSetting.FeishuWebhookUrl, userSetting.FeishuWebhookSecret, data)
 	case dto.NotifyTypeQQBot:
-		if userSetting.QQBotUrl == "" {
-			common.SysLog(fmt.Sprintf("user %d has no qqbot url, skip sending qqbot", userId))
+		if userSetting.QQBotAppID == "" {
+			common.SysLog(fmt.Sprintf("user %d has no qqbot app id, skip sending qqbot", userId))
 			return nil
 		}
-		return sendQQBotNotify(userSetting.QQBotUrl, userSetting.QQBotAccessToken, userSetting.QQBotTargetType, userSetting.QQBotTargetId, data)
+		return sendQQBotNotify(userSetting.QQBotAppID, userSetting.QQBotAppSecret, userSetting.QQBotTargetType, userSetting.QQBotTargetId, data)
 	}
 	return nil
 }

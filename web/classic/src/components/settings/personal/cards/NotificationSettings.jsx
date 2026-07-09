@@ -795,44 +795,47 @@ const NotificationSettings = ({
                 {notificationSettings.warningType === 'qqbot' && (
                   <>
                     <Form.Input
-                      field='qqbotUrl'
-                      label={t('QQ机器人API地址')}
-                      initValue={notificationSettings.qqbotUrl}
-                      placeholder='http://127.0.0.1:5700'
-                      onChange={(val) => handleFormChange('qqbotUrl', val)}
-                      prefix={<IconLink />}
-                      extraText={t(
-                        'OneBot v11 HTTP API地址，兼容go-cqhttp、NapCat、Lagrange等',
-                      )}
+                      field='qqbotAppId'
+                      label={t('QQ机器人AppID')}
+                      initValue={notificationSettings.qqbotAppId}
+                      placeholder={t('请输入QQ开放平台的AppID')}
+                      onChange={(val) => handleFormChange('qqbotAppId', val)}
+                      prefix={<IconKey />}
                       showClear
                       rules={[
                         {
                           required:
                             notificationSettings.warningType === 'qqbot',
-                          message: t('请输入QQ机器人API地址'),
+                          message: t('请输入QQ机器人AppID'),
                         },
                       ]}
                     />
 
                     <Form.Input
-                      field='qqbotAccessToken'
-                      label={t('QQ机器人访问令牌')}
-                      initValue={notificationSettings.qqbotAccessToken}
-                      placeholder={t('请输入访问令牌')}
+                      field='qqbotAppSecret'
+                      label={t('QQ机器人AppSecret')}
+                      initValue={notificationSettings.qqbotAppSecret}
+                      placeholder={t('请输入QQ开放平台的AppSecret')}
                       onChange={(val) =>
-                        handleFormChange('qqbotAccessToken', val)
+                        handleFormChange('qqbotAppSecret', val)
                       }
                       prefix={<IconKey />}
                       mode='password'
-                      extraText={t('可选，用于API认证')}
                       showClear
+                      rules={[
+                        {
+                          required:
+                            notificationSettings.warningType === 'qqbot',
+                          message: t('请输入QQ机器人AppSecret'),
+                        },
+                      ]}
                     />
 
                     <Form.Select
                       field='qqbotTargetType'
                       label={t('消息目标类型')}
                       initValue={
-                        notificationSettings.qqbotTargetType || 'private'
+                        notificationSettings.qqbotTargetType || 'group'
                       }
                       onChange={(val) =>
                         handleFormChange('qqbotTargetType', val)
@@ -847,20 +850,21 @@ const NotificationSettings = ({
 
                     <Form.Input
                       field='qqbotTargetId'
-                      label={t('目标ID')}
+                      label={t('目标OpenID')}
                       initValue={notificationSettings.qqbotTargetId}
                       placeholder={
                         notificationSettings.qqbotTargetType === 'group'
-                          ? t('请输入群号')
-                          : t('请输入QQ号')
+                          ? t('请输入group_openid')
+                          : t('请输入user_openid')
                       }
                       onChange={(val) => handleFormChange('qqbotTargetId', val)}
                       showClear
+                      extraText={t('OpenID可从QQ机器人的Webhook事件回调中获取')}
                       rules={[
                         {
                           required:
                             notificationSettings.warningType === 'qqbot',
-                          message: t('请输入目标ID'),
+                          message: t('请输入目标OpenID'),
                         },
                       ]}
                     />

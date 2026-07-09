@@ -114,13 +114,13 @@ export interface UserSettings {
   feishu_webhook_url?: string
   /** Feishu webhook secret */
   feishu_webhook_secret?: string
-  /** QQ Bot OneBot API URL */
-  qqbot_url?: string
-  /** QQ Bot access token */
-  qqbot_access_token?: string
+  /** QQ Bot AppID */
+  qqbot_app_id?: string
+  /** QQ Bot AppSecret */
+  qqbot_app_secret?: string
   /** QQ Bot target type (private/group) */
   qqbot_target_type?: string
-  /** QQ Bot target ID (QQ number or group number) */
+  /** QQ Bot target ID (group_openid or user_openid) */
   qqbot_target_id?: string
   /** Accept unset model ratio model */
   accept_unset_model_ratio_model?: boolean

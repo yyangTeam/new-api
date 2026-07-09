@@ -89,9 +89,9 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
     gotify_priority: 5,
     feishu_webhook_url: '',
     feishu_webhook_secret: '',
-    qqbot_url: '',
-    qqbot_access_token: '',
-    qqbot_target_type: 'private',
+    qqbot_app_id: '',
+    qqbot_app_secret: '',
+    qqbot_target_type: 'group',
     qqbot_target_id: '',
     accept_unset_model_ratio_model: false,
     record_ip_log: false,
@@ -122,9 +122,9 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
         gotify_priority: parsed.gotify_priority ?? 5,
         feishu_webhook_url: parsed.feishu_webhook_url ?? '',
         feishu_webhook_secret: parsed.feishu_webhook_secret ?? '',
-        qqbot_url: parsed.qqbot_url ?? '',
-        qqbot_access_token: parsed.qqbot_access_token ?? '',
-        qqbot_target_type: parsed.qqbot_target_type || 'private',
+        qqbot_app_id: parsed.qqbot_app_id ?? '',
+        qqbot_app_secret: parsed.qqbot_app_secret ?? '',
+        qqbot_target_type: parsed.qqbot_target_type || 'group',
         qqbot_target_id: parsed.qqbot_target_id ?? '',
         accept_unset_model_ratio_model:
           parsed.accept_unset_model_ratio_model || false,
@@ -381,39 +381,30 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
       {notifyType === 'qqbot' && (
         <>
           <div className='space-y-1.5'>
-            <Label htmlFor='qqbotUrl'>{t('QQ Bot API URL')}</Label>
+            <Label htmlFor='qqbotAppId'>{t('QQ Bot AppID')}</Label>
             <Input
-              id='qqbotUrl'
-              type='url'
+              id='qqbotAppId'
               className='h-9'
-              value={settings.qqbot_url}
-              onChange={(e) => updateField('qqbot_url', e.target.value)}
-              placeholder='http://127.0.0.1:5700'
+              value={settings.qqbot_app_id}
+              onChange={(e) => updateField('qqbot_app_id', e.target.value)}
+              placeholder={t('Enter AppID from QQ Open Platform')}
             />
-            <p className='text-muted-foreground text-xs'>
-              {t(
-                'OneBot v11 HTTP API address. Compatible with go-cqhttp, NapCat, Lagrange, etc.'
-              )}
-            </p>
           </div>
           <div className='space-y-1.5'>
-            <Label htmlFor='qqbotToken'>{t('QQ Bot Access Token')}</Label>
+            <Label htmlFor='qqbotAppSecret'>{t('QQ Bot AppSecret')}</Label>
             <PasswordInput
-              id='qqbotToken'
-              value={settings.qqbot_access_token}
+              id='qqbotAppSecret'
+              value={settings.qqbot_app_secret}
               onChange={(e) =>
-                updateField('qqbot_access_token', e.target.value)
+                updateField('qqbot_app_secret', e.target.value)
               }
-              placeholder={t('Enter access token')}
+              placeholder={t('Enter AppSecret from QQ Open Platform')}
             />
-            <p className='text-muted-foreground text-xs'>
-              {t('Optional. Used for API authentication.')}
-            </p>
           </div>
           <div className='space-y-1.5'>
             <Label htmlFor='qqbotTargetType'>{t('Message Target Type')}</Label>
             <Select
-              value={settings.qqbot_target_type || 'private'}
+              value={settings.qqbot_target_type || 'group'}
               onValueChange={(value) => updateField('qqbot_target_type', value ?? undefined)}
             >
               <SelectTrigger className='h-9'>
@@ -428,7 +419,7 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
             </Select>
           </div>
           <div className='space-y-1.5'>
-            <Label htmlFor='qqbotTargetId'>{t('Target ID')}</Label>
+            <Label htmlFor='qqbotTargetId'>{t('Target OpenID')}</Label>
             <Input
               id='qqbotTargetId'
               className='h-9'
@@ -436,10 +427,15 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
               onChange={(e) => updateField('qqbot_target_id', e.target.value)}
               placeholder={
                 settings.qqbot_target_type === 'group'
-                  ? t('Enter group number')
-                  : t('Enter QQ number')
+                  ? t('Enter group_openid')
+                  : t('Enter user_openid')
               }
             />
+            <p className='text-muted-foreground text-xs'>
+              {t(
+                'OpenID can be obtained from QQ Bot webhook event callbacks.'
+              )}
+            </p>
           </div>
         </>
       )}

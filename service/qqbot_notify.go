@@ -6,96 +6,127 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/dto"
-	"github.com/QuantumNous/new-api/setting/system_setting"
 )
 
-func sendQQBotNotify(baseUrl string, accessToken string, targetType string, targetId string, data dto.Notify) error {
+const (
+	qqBotTokenURL   = "https://bots.qq.com/app/getAppAccessToken"
+	qqBotAPIDomain  = "https://api.sgroup.qq.com"
+	qqBotAuthScheme = "QQBot"
+)
+
+type qqBotToken struct {
+	accessToken string
+	expiry      time.Time
+}
+
+var qqBotTokenCache sync.Map
+
+func getQQBotAccessToken(appID, appSecret string) (string, error) {
+	if cached, ok := qqBotTokenCache.Load(appID); ok {
+		tk := cached.(*qqBotToken)
+		if time.Now().Before(tk.expiry) {
+			return tk.accessToken, nil
+		}
+	}
+
+	payload := map[string]string{
+		"appId":        appID,
+		"clientSecret": appSecret,
+	}
+	payloadBytes, err := common.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal token request: %v", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, qqBotTokenURL, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return "", fmt.Errorf("failed to create token request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := GetHttpClient()
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to request access token: %v", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Code        int    `json:"code"`
+		Message     string `json:"message"`
+		AccessToken string `json:"access_token"`
+		ExpiresIn   string `json:"expires_in"`
+	}
+	if err := common.DecodeJson(resp.Body, &result); err != nil {
+		return "", fmt.Errorf("failed to decode token response: %v", err)
+	}
+	if result.AccessToken == "" {
+		return "", fmt.Errorf("failed to get access token: code=%d, message=%s", result.Code, result.Message)
+	}
+
+	expiresIn, _ := strconv.ParseInt(result.ExpiresIn, 10, 64)
+	if expiresIn <= 0 {
+		expiresIn = 7200
+	}
+	tk := &qqBotToken{
+		accessToken: result.AccessToken,
+		expiry:      time.Now().Add(time.Duration(expiresIn-60) * time.Second),
+	}
+	qqBotTokenCache.Store(appID, tk)
+
+	return tk.accessToken, nil
+}
+
+func sendQQBotNotify(appID, appSecret, targetType, targetId string, data dto.Notify) error {
+	accessToken, err := getQQBotAccessToken(appID, appSecret)
+	if err != nil {
+		return err
+	}
+
 	content := data.Content
 	for _, value := range data.Values {
 		content = strings.Replace(content, dto.ContentValueParam, fmt.Sprintf("%v", value), 1)
 	}
-
 	message := data.Title + "\n" + content
 
-	var apiPath string
-	payload := make(map[string]interface{})
+	var apiURL string
 	switch targetType {
-	case "group":
-		apiPath = "/send_group_msg"
-		groupId, err := strconv.ParseInt(targetId, 10, 64)
-		if err != nil {
-			return fmt.Errorf("invalid group id: %v", err)
-		}
-		payload["group_id"] = groupId
+	case "private":
+		apiURL = fmt.Sprintf("%s/v2/users/%s/messages", qqBotAPIDomain, targetId)
 	default:
-		apiPath = "/send_private_msg"
-		userId, err := strconv.ParseInt(targetId, 10, 64)
-		if err != nil {
-			return fmt.Errorf("invalid user id: %v", err)
-		}
-		payload["user_id"] = userId
+		apiURL = fmt.Sprintf("%s/v2/groups/%s/messages", qqBotAPIDomain, targetId)
 	}
-	payload["message"] = message
 
+	payload := map[string]interface{}{
+		"content":  message,
+		"msg_type": 0,
+	}
 	payloadBytes, err := common.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("failed to marshal qqbot payload: %v", err)
+		return fmt.Errorf("failed to marshal qqbot message: %v", err)
 	}
 
-	apiUrl := strings.TrimSuffix(baseUrl, "/") + apiPath
+	req, err := http.NewRequest(http.MethodPost, apiURL, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return fmt.Errorf("failed to create qqbot request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("%s %s", qqBotAuthScheme, accessToken))
 
-	var req *http.Request
-	var resp *http.Response
+	client := GetHttpClient()
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send qqbot message: %v", err)
+	}
+	defer resp.Body.Close()
 
-	if system_setting.EnableWorker() {
-		headers := map[string]string{
-			"Content-Type": "application/json; charset=utf-8",
-			"User-Agent":   "NewAPI-QQBot-Notify/1.0",
-		}
-		if accessToken != "" {
-			headers["Authorization"] = "Bearer " + accessToken
-		}
-		workerReq := &WorkerRequest{
-			URL:     apiUrl,
-			Key:     system_setting.WorkerValidKey,
-			Method:  http.MethodPost,
-			Headers: headers,
-			Body:    payloadBytes,
-		}
-		resp, err = DoWorkerRequest(workerReq)
-		if err != nil {
-			return fmt.Errorf("failed to send qqbot request through worker: %v", err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return fmt.Errorf("qqbot request failed with status code: %d", resp.StatusCode)
-		}
-	} else {
-		fetchSetting := system_setting.GetFetchSetting()
-		if err := common.ValidateURLWithFetchSetting(apiUrl, fetchSetting.EnableSSRFProtection, fetchSetting.AllowPrivateIp, fetchSetting.DomainFilterMode, fetchSetting.IpFilterMode, fetchSetting.DomainList, fetchSetting.IpList, fetchSetting.AllowedPorts, fetchSetting.ApplyIPFilterForDomain); err != nil {
-			return fmt.Errorf("request reject: %v", err)
-		}
-		req, err = http.NewRequest(http.MethodPost, apiUrl, bytes.NewBuffer(payloadBytes))
-		if err != nil {
-			return fmt.Errorf("failed to create qqbot request: %v", err)
-		}
-		req.Header.Set("Content-Type", "application/json; charset=utf-8")
-		req.Header.Set("User-Agent", "NewAPI-QQBot-Notify/1.0")
-		if accessToken != "" {
-			req.Header.Set("Authorization", "Bearer "+accessToken)
-		}
-		client := GetHttpClient()
-		resp, err = client.Do(req)
-		if err != nil {
-			return fmt.Errorf("failed to send qqbot request: %v", err)
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return fmt.Errorf("qqbot request failed with status code: %d", resp.StatusCode)
-		}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("qqbot message failed with status %d", resp.StatusCode)
 	}
 
 	return nil
