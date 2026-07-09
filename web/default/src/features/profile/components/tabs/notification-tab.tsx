@@ -414,7 +414,7 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
             <Label htmlFor='qqbotTargetType'>{t('Message Target Type')}</Label>
             <Select
               value={settings.qqbot_target_type || 'private'}
-              onValueChange={(value) => updateField('qqbot_target_type', value)}
+              onValueChange={(value) => updateField('qqbot_target_type', value ?? undefined)}
             >
               <SelectTrigger className='h-9'>
                 <SelectValue />

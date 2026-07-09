@@ -285,7 +285,13 @@ export default function SettingsMonitoring(props) {
             </Row>
           </Form.Section>
           <Form.Section text={t('渠道错误告警')}>
-            <p style={{ fontSize: 13, color: 'var(--semi-color-text-2)', marginBottom: 12 }}>
+            <p
+              style={{
+                fontSize: 13,
+                color: 'var(--semi-color-text-2)',
+                marginBottom: 12,
+              }}
+            >
               {t('当渠道出现连续错误或高错误率时通知管理员')}
             </p>
             <Row gutter={16}>
@@ -393,11 +399,11 @@ export default function SettingsMonitoring(props) {
               </Col>
             </Row>
           </Form.Section>
-            <Row>
-              <Button size='default' onClick={onSubmit}>
-                {t('保存监控设置')}
-              </Button>
-            </Row>
+          <Row>
+            <Button size='default' onClick={onSubmit}>
+              {t('保存监控设置')}
+            </Button>
+          </Row>
         </Form>
       </Spin>
     </>

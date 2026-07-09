@@ -485,7 +485,10 @@ const NotificationSettings = ({
                     checkedText={t('开')}
                     uncheckedText={t('关')}
                     onChange={(value) =>
-                      handleFormChange('upstreamModelUpdateNotifyEnabled', value)
+                      handleFormChange(
+                        'upstreamModelUpdateNotifyEnabled',
+                        value,
+                      )
                     }
                     extraText={t(
                       '仅管理员可用。开启后，当系统定时检测全部渠道发现上游模型变更或检测异常时，将按你选择的通知方式发送汇总通知；渠道或模型过多时会自动省略部分明细。',
@@ -783,9 +786,7 @@ const NotificationSettings = ({
                       }
                       prefix={<IconKey />}
                       mode='password'
-                      extraText={t(
-                        '可选，用于Webhook签名验证',
-                      )}
+                      extraText={t('可选，用于Webhook签名验证')}
                       showClear
                     />
                   </>
@@ -830,7 +831,9 @@ const NotificationSettings = ({
                     <Form.Select
                       field='qqbotTargetType'
                       label={t('消息目标类型')}
-                      initValue={notificationSettings.qqbotTargetType || 'private'}
+                      initValue={
+                        notificationSettings.qqbotTargetType || 'private'
+                      }
                       onChange={(val) =>
                         handleFormChange('qqbotTargetType', val)
                       }
@@ -839,9 +842,7 @@ const NotificationSettings = ({
                       <Select.Option value='private'>
                         {t('私聊消息')}
                       </Select.Option>
-                      <Select.Option value='group'>
-                        {t('群消息')}
-                      </Select.Option>
+                      <Select.Option value='group'>{t('群消息')}</Select.Option>
                     </Form.Select>
 
                     <Form.Input
