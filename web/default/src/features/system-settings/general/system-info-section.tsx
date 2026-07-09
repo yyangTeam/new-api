@@ -16,10 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import * as z from 'zod'
-import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { Resolver } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
+import * as z from 'zod'
+
 import {
   Form,
   FormControl,
@@ -39,6 +40,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
 import {
@@ -76,24 +78,6 @@ type SystemInfoSectionProps = {
 function normalizeValue(value: unknown): string {
   if (value === undefined || value === null) return ''
   return typeof value === 'string' ? value : String(value)
-}
-
-function redirectToFrontendTheme(frontend: 'default' | 'classic') {
-  const { protocol, hostname, port } = window.location
-
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    if (frontend === 'classic' && port === '5173') {
-      window.location.href = `${protocol}//${hostname}:5174/`
-      return
-    }
-
-    if (frontend === 'default' && port === '5174') {
-      window.location.href = `${protocol}//${hostname}:5173/`
-      return
-    }
-  }
-
-  window.location.href = '/'
 }
 
 export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
@@ -144,21 +128,45 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
       >,
       defaultValues: normalizedDefaults,
       onSubmit: async (_data, changedFields) => {
-        const nextFrontend = changedFields['theme.frontend']
+        const entries = Object.entries(changedFields)
+        const themeEntry = entries.find(([key]) => key === 'theme.frontend')
+        const otherEntries = entries.filter(([key]) => key !== 'theme.frontend')
 
-        for (const [key, value] of Object.entries(changedFields)) {
+        let allSucceeded = true
+        for (const [key, value] of otherEntries) {
           let v = normalizeValue(value)
           if (key === 'ServerAddress') {
             v = v.replace(/\/+$/, '')
           }
-          await updateOption.mutateAsync({
+          const res = await updateOption.mutateAsync({
             key,
             value: v,
           })
+          if (!res.success) {
+            allSucceeded = false
+          }
         }
-
-        if (nextFrontend === 'default' || nextFrontend === 'classic') {
-          setTimeout(() => redirectToFrontendTheme(nextFrontend), 600)
+        if (themeEntry && !allSucceeded) {
+          // Theme was not submitted; keep form state consistent with backend.
+          _data.theme.frontend = normalizedDefaults.theme.frontend
+          return
+        }
+        if (themeEntry && allSucceeded) {
+          const res = await updateOption.mutateAsync({
+            key: themeEntry[0],
+            value: normalizeValue(themeEntry[1]),
+          })
+          if (res.success) {
+            // 当前路由在另一套前端中并不存在，主题切换成功后重置到首页以避免 404。
+            // 延时用于让表单脏状态先清除（移除 beforeunload 拦截）并展示成功提示后再刷新；
+            // 使用 replace 让已失效的路由不进入历史，防止返回按钮再次触发 404。
+            setTimeout(() => {
+              window.location.replace('/')
+            }, 600)
+          } else {
+            // Theme update failed; revert to the last saved value.
+            _data.theme.frontend = normalizedDefaults.theme.frontend
+          }
         }
       },
     })

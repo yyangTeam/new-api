@@ -99,7 +99,6 @@ import {
   SiOkta,
   SiOpenid,
   SiReddit,
-
   SiTelegram,
   SiTwitch,
   SiWechat,

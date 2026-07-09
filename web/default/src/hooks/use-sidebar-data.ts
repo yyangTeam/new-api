@@ -36,9 +36,10 @@ import {
   Wallet,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { ROLE } from '@/lib/roles'
+
 import { type SidebarData } from '@/components/layout/types'
 import { useStatus } from '@/hooks/use-status'
+import { ROLE } from '@/lib/roles'
 
 /**
  * Root navigation groups for the application sidebar.
