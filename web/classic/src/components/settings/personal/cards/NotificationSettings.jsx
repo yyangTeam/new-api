@@ -29,6 +29,7 @@ import {
   Tabs,
   TabPane,
   Switch,
+  Select,
   Row,
   Col,
 } from '@douyinfe/semi-ui';
@@ -432,6 +433,12 @@ const NotificationSettings = ({
                   <Radio value='webhook'>{t('Webhook通知')}</Radio>
                   <Radio value='bark'>{t('Bark通知')}</Radio>
                   <Radio value='gotify'>{t('Gotify通知')}</Radio>
+                  {isAdminOrRoot && (
+                    <Radio value='feishu'>{t('飞书通知')}</Radio>
+                  )}
+                  {isAdminOrRoot && (
+                    <Radio value='qqbot'>{t('QQ Bot通知')}</Radio>
+                  )}
                 </Form.RadioGroup>
 
                 <Form.AutoComplete
@@ -478,7 +485,10 @@ const NotificationSettings = ({
                     checkedText={t('开')}
                     uncheckedText={t('关')}
                     onChange={(value) =>
-                      handleFormChange('upstreamModelUpdateNotifyEnabled', value)
+                      handleFormChange(
+                        'upstreamModelUpdateNotifyEnabled',
+                        value,
+                      )
                     }
                     extraText={t(
                       '仅管理员可用。开启后，当系统定时检测全部渠道发现上游模型变更或检测异常时，将按你选择的通知方式发送汇总通知；渠道或模型过多时会自动省略部分明细。',
@@ -742,6 +752,122 @@ const NotificationSettings = ({
                         </div>
                       </div>
                     </div>
+                  </>
+                )}
+
+                {notificationSettings.warningType === 'feishu' && (
+                  <>
+                    <Form.Input
+                      field='feishuWebhookUrl'
+                      label={t('飞书Webhook地址')}
+                      initValue={notificationSettings.feishuWebhookUrl}
+                      placeholder='https://open.feishu.cn/open-apis/bot/v2/hook/...'
+                      onChange={(val) =>
+                        handleFormChange('feishuWebhookUrl', val)
+                      }
+                      prefix={<IconLink />}
+                      showClear
+                      rules={[
+                        {
+                          required:
+                            notificationSettings.warningType === 'feishu',
+                          message: t('请输入飞书Webhook地址'),
+                        },
+                      ]}
+                    />
+
+                    <Form.Input
+                      field='feishuWebhookSecret'
+                      label={t('飞书Webhook密钥')}
+                      initValue={notificationSettings.feishuWebhookSecret}
+                      placeholder={t('请输入飞书Webhook密钥')}
+                      onChange={(val) =>
+                        handleFormChange('feishuWebhookSecret', val)
+                      }
+                      prefix={<IconKey />}
+                      mode='password'
+                      extraText={t('可选，用于Webhook签名验证')}
+                      showClear
+                    />
+                  </>
+                )}
+
+                {notificationSettings.warningType === 'qqbot' && (
+                  <>
+                    <Form.Input
+                      field='qqbotAppId'
+                      label={t('QQ机器人AppID')}
+                      initValue={notificationSettings.qqbotAppId}
+                      placeholder={t('请输入QQ开放平台的AppID')}
+                      onChange={(val) => handleFormChange('qqbotAppId', val)}
+                      prefix={<IconKey />}
+                      showClear
+                      rules={[
+                        {
+                          required:
+                            notificationSettings.warningType === 'qqbot',
+                          message: t('请输入QQ机器人AppID'),
+                        },
+                      ]}
+                    />
+
+                    <Form.Input
+                      field='qqbotAppSecret'
+                      label={t('QQ机器人AppSecret')}
+                      initValue={notificationSettings.qqbotAppSecret}
+                      placeholder={t('请输入QQ开放平台的AppSecret')}
+                      onChange={(val) =>
+                        handleFormChange('qqbotAppSecret', val)
+                      }
+                      prefix={<IconKey />}
+                      mode='password'
+                      showClear
+                      rules={[
+                        {
+                          required:
+                            notificationSettings.warningType === 'qqbot',
+                          message: t('请输入QQ机器人AppSecret'),
+                        },
+                      ]}
+                    />
+
+                    <Form.Select
+                      field='qqbotTargetType'
+                      label={t('消息目标类型')}
+                      initValue={
+                        notificationSettings.qqbotTargetType || 'group'
+                      }
+                      onChange={(val) =>
+                        handleFormChange('qqbotTargetType', val)
+                      }
+                      style={{ width: '100%', maxWidth: '300px' }}
+                    >
+                      <Select.Option value='private'>
+                        {t('私聊消息')}
+                      </Select.Option>
+                      <Select.Option value='group'>{t('群消息')}</Select.Option>
+                    </Form.Select>
+
+                    <Form.Input
+                      field='qqbotTargetId'
+                      label={t('目标OpenID')}
+                      initValue={notificationSettings.qqbotTargetId}
+                      placeholder={
+                        notificationSettings.qqbotTargetType === 'group'
+                          ? t('请输入group_openid')
+                          : t('请输入user_openid')
+                      }
+                      onChange={(val) => handleFormChange('qqbotTargetId', val)}
+                      showClear
+                      extraText={t('OpenID可从QQ机器人的Webhook事件回调中获取')}
+                      rules={[
+                        {
+                          required:
+                            notificationSettings.warningType === 'qqbot',
+                          message: t('请输入目标OpenID'),
+                        },
+                      ]}
+                    />
                   </>
                 )}
               </div>

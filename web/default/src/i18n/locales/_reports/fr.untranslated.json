@@ -1,0 +1,6 @@
+{
+  "Minimum number of requests in the time window before checking error rate": "Minimum number of requests in the time window before checking error rate",
+  "Notify administrators when a channel experiences consecutive errors or high error rates.": "Notify administrators when a channel experiences consecutive errors or high error rates.",
+  "OneBot v11 HTTP API address. Compatible with go-cqhttp, NapCat, Lagrange, etc.": "OneBot v11 HTTP API address. Compatible with go-cqhttp, NapCat, Lagrange, etc.",
+  "Send notification when a channel error rate exceeds threshold within the time window": "Send notification when a channel error rate exceeds threshold within the time window"
+}

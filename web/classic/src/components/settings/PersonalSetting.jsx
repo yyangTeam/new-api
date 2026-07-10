@@ -92,6 +92,12 @@ const PersonalSetting = () => {
     gotifyUrl: '',
     gotifyToken: '',
     gotifyPriority: 5,
+    feishuWebhookUrl: '',
+    feishuWebhookSecret: '',
+    qqbotAppId: '',
+    qqbotAppSecret: '',
+    qqbotTargetType: 'group',
+    qqbotTargetId: '',
     upstreamModelUpdateNotifyEnabled: false,
     acceptUnsetModelRatioModel: false,
     recordIpLog: false,
@@ -193,6 +199,12 @@ const PersonalSetting = () => {
         gotifyToken: settings.gotify_token || '',
         gotifyPriority:
           settings.gotify_priority !== undefined ? settings.gotify_priority : 5,
+        feishuWebhookUrl: settings.feishu_webhook_url || '',
+        feishuWebhookSecret: settings.feishu_webhook_secret || '',
+        qqbotAppId: settings.qqbot_app_id || '',
+        qqbotAppSecret: settings.qqbot_app_secret || '',
+        qqbotTargetType: settings.qqbot_target_type || 'group',
+        qqbotTargetId: settings.qqbot_target_id || '',
         upstreamModelUpdateNotifyEnabled:
           settings.upstream_model_update_notify_enabled === true,
         acceptUnsetModelRatioModel:
@@ -523,6 +535,12 @@ const PersonalSetting = () => {
           const parsed = parseInt(notificationSettings.gotifyPriority);
           return isNaN(parsed) ? 5 : parsed;
         })(),
+        feishu_webhook_url: notificationSettings.feishuWebhookUrl,
+        feishu_webhook_secret: notificationSettings.feishuWebhookSecret,
+        qqbot_app_id: notificationSettings.qqbotAppId,
+        qqbot_app_secret: notificationSettings.qqbotAppSecret,
+        qqbot_target_type: notificationSettings.qqbotTargetType,
+        qqbot_target_id: notificationSettings.qqbotTargetId,
         upstream_model_update_notify_enabled:
           notificationSettings.upstreamModelUpdateNotifyEnabled === true,
         accept_unset_model_ratio_model:

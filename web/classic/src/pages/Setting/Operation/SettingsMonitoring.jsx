@@ -44,6 +44,12 @@ export default function SettingsMonitoring(props) {
       '100-199,300-399,401-407,409-499,500-503,505-523,525-599',
     'monitor_setting.auto_test_channel_enabled': false,
     'monitor_setting.auto_test_channel_minutes': 10,
+    'monitor_setting.channel_error_notify_enabled': false,
+    'monitor_setting.channel_consecutive_error_threshold': 5,
+    'monitor_setting.channel_error_rate_enabled': false,
+    'monitor_setting.channel_error_rate_threshold': 0.8,
+    'monitor_setting.channel_error_rate_window_minutes': 5,
+    'monitor_setting.channel_error_rate_min_requests': 10,
   });
   const refForm = useRef();
   const [inputsRow, setInputsRow] = useState(inputs);
@@ -277,12 +283,127 @@ export default function SettingsMonitoring(props) {
                 />
               </Col>
             </Row>
-            <Row>
-              <Button size='default' onClick={onSubmit}>
-                {t('保存监控设置')}
-              </Button>
+          </Form.Section>
+          <Form.Section text={t('渠道错误告警')}>
+            <p
+              style={{
+                fontSize: 13,
+                color: 'var(--semi-color-text-2)',
+                marginBottom: 12,
+              }}
+            >
+              {t('当渠道出现连续错误或高错误率时通知管理员')}
+            </p>
+            <Row gutter={16}>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.Switch
+                  field={'monitor_setting.channel_error_notify_enabled'}
+                  label={t('连续错误告警')}
+                  size='default'
+                  checkedText='｜'
+                  uncheckedText='〇'
+                  extraText={t('当渠道连续错误达到阈值时发送通知')}
+                  onChange={(value) =>
+                    setInputs({
+                      ...inputs,
+                      'monitor_setting.channel_error_notify_enabled': value,
+                    })
+                  }
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.InputNumber
+                  label={t('连续错误阈值')}
+                  step={1}
+                  min={1}
+                  extraText={t('连续错误达到此次数后发送告警')}
+                  field={'monitor_setting.channel_consecutive_error_threshold'}
+                  onChange={(value) =>
+                    setInputs({
+                      ...inputs,
+                      'monitor_setting.channel_consecutive_error_threshold':
+                        parseInt(value),
+                    })
+                  }
+                />
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.Switch
+                  field={'monitor_setting.channel_error_rate_enabled'}
+                  label={t('错误率告警')}
+                  size='default'
+                  checkedText='｜'
+                  uncheckedText='〇'
+                  extraText={t('当渠道在时间窗口内错误率超过阈值时发送通知')}
+                  onChange={(value) =>
+                    setInputs({
+                      ...inputs,
+                      'monitor_setting.channel_error_rate_enabled': value,
+                    })
+                  }
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.InputNumber
+                  label={t('错误率阈值')}
+                  step={0.05}
+                  min={0}
+                  max={1}
+                  extraText={t('错误率阈值（0-1），如0.8表示80%错误率')}
+                  field={'monitor_setting.channel_error_rate_threshold'}
+                  onChange={(value) =>
+                    setInputs({
+                      ...inputs,
+                      'monitor_setting.channel_error_rate_threshold':
+                        parseFloat(value),
+                    })
+                  }
+                />
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.InputNumber
+                  label={t('错误率时间窗口')}
+                  step={1}
+                  min={1}
+                  suffix={t('分钟')}
+                  extraText={t('计算错误率的时间窗口')}
+                  field={'monitor_setting.channel_error_rate_window_minutes'}
+                  onChange={(value) =>
+                    setInputs({
+                      ...inputs,
+                      'monitor_setting.channel_error_rate_window_minutes':
+                        parseInt(value),
+                    })
+                  }
+                />
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+                <Form.InputNumber
+                  label={t('错误率最小请求数')}
+                  step={1}
+                  min={1}
+                  extraText={t('时间窗口内达到此请求数后才计算错误率')}
+                  field={'monitor_setting.channel_error_rate_min_requests'}
+                  onChange={(value) =>
+                    setInputs({
+                      ...inputs,
+                      'monitor_setting.channel_error_rate_min_requests':
+                        parseInt(value),
+                    })
+                  }
+                />
+              </Col>
             </Row>
           </Form.Section>
+          <Row>
+            <Button size='default' onClick={onSubmit}>
+              {t('保存监控设置')}
+            </Button>
+          </Row>
         </Form>
       </Spin>
     </>
