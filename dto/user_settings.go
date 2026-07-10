@@ -12,10 +12,10 @@ type UserSetting struct {
 	GotifyPriority                   int     `json:"gotify_priority"`
 	FeishuWebhookUrl                 string  `json:"feishu_webhook_url,omitempty"`
 	FeishuWebhookSecret              string  `json:"feishu_webhook_secret,omitempty"`
-	QQBotAppID      string `json:"qqbot_app_id,omitempty"`
-	QQBotAppSecret  string `json:"qqbot_app_secret,omitempty"`
-	QQBotTargetType string `json:"qqbot_target_type,omitempty"`
-	QQBotTargetId   string `json:"qqbot_target_id,omitempty"`
+	QQBotAppID                       string  `json:"qqbot_app_id,omitempty"`
+	QQBotAppSecret                   string  `json:"qqbot_app_secret,omitempty"`
+	QQBotTargetType                  string  `json:"qqbot_target_type,omitempty"`
+	QQBotTargetId                    string  `json:"qqbot_target_id,omitempty"`
 	UpstreamModelUpdateNotifyEnabled bool    `json:"upstream_model_update_notify_enabled,omitempty"`
 	AcceptUnsetRatioModel            bool    `json:"accept_unset_model_ratio_model,omitempty"`
 	RecordIpLog                      bool    `json:"record_ip_log,omitempty"`
