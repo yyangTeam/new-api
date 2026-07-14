@@ -54,7 +54,7 @@ func NotifyUser(userId int, userEmail string, userSetting dto.UserSetting, data 
 	}
 
 	// Check notification limit
-	canSend, err := CheckNotificationLimit(userId, data.Type)
+	canSend, err := CheckNotificationLimit(userId, data.Type, userSetting.NotifyCooldownMinutes)
 	if err != nil {
 		common.SysLog(fmt.Sprintf("failed to check notification limit: %s", err.Error()))
 		return err

@@ -96,6 +96,8 @@ export interface UserSettings {
   notify_type?: NotifyType
   /** Quota warning threshold */
   quota_warning_threshold?: number
+  /** Notification cooldown in minutes (0 = use server default) */
+  notify_cooldown_minutes?: number
   /** Webhook URL */
   webhook_url?: string
   /** Webhook secret */
