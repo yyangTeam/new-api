@@ -25,5 +25,11 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Create frontend dist placeholders for go:embed
+        run: |
+          mkdir -p web/default/dist web/classic/dist
+          echo '<!doctype html>' > web/default/dist/index.html
+          echo '<!doctype html>' > web/classic/dist/index.html
+
       - name: Run tests
         run: go test -race -count=1 ./...
