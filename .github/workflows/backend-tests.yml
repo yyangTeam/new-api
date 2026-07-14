@@ -7,11 +7,13 @@ on:
       - '**.go'
       - 'go.mod'
       - 'go.sum'
+      - '.github/workflows/backend-tests.yml'
   pull_request:
     paths:
       - '**.go'
       - 'go.mod'
       - 'go.sum'
+      - '.github/workflows/backend-tests.yml'
 
 jobs:
   test:
