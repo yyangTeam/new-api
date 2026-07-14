@@ -32,7 +32,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: web
-        run: bun install --frozen-lockfile
+        run: bun install --registry https://registry.npmjs.org
 
       - name: Run tests
         working-directory: web/default
@@ -50,7 +50,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: web
-        run: bun install --frozen-lockfile
+        run: bun install --registry https://registry.npmjs.org
 
       - name: Run tests
         working-directory: web/classic
