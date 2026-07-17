@@ -4,6 +4,7 @@ on:
   push:
     branches: ['**']
     paths:
+      - '.github/workflows/frontend-tests.yml'
       - 'web/bun.lock'
       - 'web/package.json'
       - 'web/default/src/**'
@@ -14,6 +15,7 @@ on:
       - 'web/classic/vitest.config.ts'
   pull_request:
     paths:
+      - '.github/workflows/frontend-tests.yml'
       - 'web/bun.lock'
       - 'web/package.json'
       - 'web/default/src/**'
