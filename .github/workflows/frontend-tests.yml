@@ -5,6 +5,8 @@ on:
     branches: ['**']
     paths:
       - '.github/workflows/frontend-tests.yml'
+      - 'web/bun.lock'
+      - 'web/package.json'
       - 'web/default/src/**'
       - 'web/default/package.json'
       - 'web/default/vitest.config.ts'
@@ -14,6 +16,8 @@ on:
   pull_request:
     paths:
       - '.github/workflows/frontend-tests.yml'
+      - 'web/bun.lock'
+      - 'web/package.json'
       - 'web/default/src/**'
       - 'web/default/package.json'
       - 'web/default/vitest.config.ts'
@@ -28,17 +32,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: '22'
+
+      - name: Resolve catalog references
+        run: node web/resolve-catalogs.cjs
 
       - name: Install dependencies
-        working-directory: web
-        run: bun install --registry https://registry.npmjs.org
+        working-directory: web/default
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+        run: npm install
 
       - name: Run tests
         working-directory: web/default
-        run: bun run test
+        run: npx vitest run
 
   test-classic:
     name: Test Classic Frontend
@@ -46,14 +55,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: '22'
+
+      - name: Resolve catalog references
+        run: node web/resolve-catalogs.cjs
 
       - name: Install dependencies
-        working-directory: web
-        run: bun install --registry https://registry.npmjs.org
+        working-directory: web/classic
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+        run: npm install
 
       - name: Run tests
         working-directory: web/classic
-        run: bun run test
+        run: npx vitest run
