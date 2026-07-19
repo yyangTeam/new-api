@@ -1339,6 +1339,7 @@ type UpdateUserSettingRequest struct {
 	QQBotAppSecret                   string  `json:"qqbot_app_secret,omitempty"`
 	QQBotTargetType                  string  `json:"qqbot_target_type,omitempty"`
 	QQBotTargetId                    string  `json:"qqbot_target_id,omitempty"`
+	NotifyCooldownMinutes            int     `json:"notify_cooldown_minutes"`
 	UpstreamModelUpdateNotifyEnabled *bool   `json:"upstream_model_update_notify_enabled,omitempty"`
 	AcceptUnsetModelRatioModel       bool    `json:"accept_unset_model_ratio_model"`
 	RecordIpLog                      bool    `json:"record_ip_log"`
@@ -1360,6 +1361,12 @@ func UpdateUserSetting(c *gin.Context) {
 	// 验证预警阈值
 	if req.QuotaWarningThreshold <= 0 {
 		common.ApiErrorI18n(c, i18n.MsgQuotaThresholdGtZero)
+		return
+	}
+
+	// 验证通知冷却时间
+	if req.NotifyCooldownMinutes < 0 || req.NotifyCooldownMinutes > 43200 {
+		common.ApiErrorI18n(c, i18n.MsgSettingCooldownInvalid)
 		return
 	}
 
@@ -1441,6 +1448,7 @@ func UpdateUserSetting(c *gin.Context) {
 	settings := dto.UserSetting{
 		NotifyType:                       req.QuotaWarningType,
 		QuotaWarningThreshold:            req.QuotaWarningThreshold,
+		NotifyCooldownMinutes:            req.NotifyCooldownMinutes,
 		UpstreamModelUpdateNotifyEnabled: upstreamModelUpdateNotifyEnabled,
 		AcceptUnsetRatioModel:            req.AcceptUnsetModelRatioModel,
 		RecordIpLog:                      req.RecordIpLog,

@@ -478,6 +478,22 @@ const NotificationSettings = ({
                   ]}
                 />
 
+                <Form.AutoComplete
+                  field='notifyCooldownMinutes'
+                  label={t('通知冷却时间（分钟）')}
+                  placeholder='0'
+                  data={[
+                    { value: 0, label: t('默认（约每10分钟）') },
+                    { value: 60, label: t('每小时') },
+                    { value: 1440, label: t('每天') },
+                  ]}
+                  onChange={(val) => handleFormChange('notifyCooldownMinutes', val)}
+                  extraText={t(
+                    '两次通知之间的最小间隔。设为 0 使用系统默认值（约每 10 分钟）。',
+                  )}
+                  style={{ width: '100%', maxWidth: '300px' }}
+                />
+
                 {isAdminOrRoot && (
                   <Form.Switch
                     field='upstreamModelUpdateNotifyEnabled'

@@ -85,6 +85,7 @@ const PersonalSetting = () => {
   const [notificationSettings, setNotificationSettings] = useState({
     warningType: 'email',
     warningThreshold: 100000,
+    notifyCooldownMinutes: 0,
     webhookUrl: '',
     webhookSecret: '',
     notificationEmail: '',
@@ -191,6 +192,7 @@ const PersonalSetting = () => {
       setNotificationSettings({
         warningType: settings.notify_type || 'email',
         warningThreshold: settings.quota_warning_threshold || 500000,
+        notifyCooldownMinutes: settings.notify_cooldown_minutes || 0,
         webhookUrl: settings.webhook_url || '',
         webhookSecret: settings.webhook_secret || '',
         notificationEmail: settings.notification_email || '',
@@ -525,6 +527,7 @@ const PersonalSetting = () => {
         quota_warning_threshold: parseFloat(
           notificationSettings.warningThreshold,
         ),
+        notify_cooldown_minutes: parseInt(notificationSettings.notifyCooldownMinutes) || 0,
         webhook_url: notificationSettings.webhookUrl,
         webhook_secret: notificationSettings.webhookSecret,
         notification_email: notificationSettings.notificationEmail,

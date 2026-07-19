@@ -47,11 +47,51 @@ func startCleanupTask() {
 
 // CheckNotificationLimit checks if the user has exceeded their notification limit
 // Returns true if the user can send notification, false if limit exceeded
-func CheckNotificationLimit(userId int, notifyType string) (bool, error) {
+func CheckNotificationLimit(userId int, notifyType string, cooldownMinutes int) (bool, error) {
+	if cooldownMinutes > 0 {
+		if common.RedisEnabled {
+			return checkRedisCooldown(userId, notifyType, cooldownMinutes)
+		}
+		return checkMemoryCooldown(userId, notifyType, cooldownMinutes)
+	}
 	if common.RedisEnabled {
 		return checkRedisLimit(userId, notifyType)
 	}
 	return checkMemoryLimit(userId, notifyType)
+}
+
+func checkRedisCooldown(userId int, notifyType string, cooldownMinutes int) (bool, error) {
+	key := fmt.Sprintf("notify_cooldown:%d:%s", userId, notifyType)
+
+	count, err := common.RedisGet(key)
+	if err != nil && err.Error() != "redis: nil" {
+		return false, fmt.Errorf("failed to get notification cooldown: %w", err)
+	}
+
+	if count != "" {
+		return false, nil
+	}
+
+	err = common.RedisSet(key, "1", time.Duration(cooldownMinutes)*time.Minute)
+	return true, err
+}
+
+func checkMemoryCooldown(userId int, notifyType string, cooldownMinutes int) (bool, error) {
+	cleanupOnce.Do(startCleanupTask)
+
+	key := fmt.Sprintf("%d:%s:cooldown", userId, notifyType)
+	now := time.Now()
+	cooldownDuration := time.Duration(cooldownMinutes) * time.Minute
+
+	if value, ok := notifyLimitStore.Load(key); ok {
+		currentLimit := value.(limitCount)
+		if now.Sub(currentLimit.Timestamp) < cooldownDuration {
+			return false, nil
+		}
+	}
+
+	notifyLimitStore.Store(key, limitCount{Count: 1, Timestamp: now})
+	return true, nil
 }
 
 func checkRedisLimit(userId int, notifyType string) (bool, error) {

@@ -80,6 +80,7 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
   const [settings, setSettings] = useState<UserSettings>({
     notify_type: 'email',
     quota_warning_threshold: DEFAULT_QUOTA_WARNING_THRESHOLD,
+    notify_cooldown_minutes: 0,
     notification_email: '',
     webhook_url: '',
     webhook_secret: '',
@@ -113,6 +114,7 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
         notify_type: normalizeNotifyType(parsed.notify_type),
         quota_warning_threshold:
           parsed.quota_warning_threshold ?? DEFAULT_QUOTA_WARNING_THRESHOLD,
+        notify_cooldown_minutes: parsed.notify_cooldown_minutes ?? 0,
         notification_email: parsed.notification_email ?? '',
         webhook_url: parsed.webhook_url ?? '',
         webhook_secret: parsed.webhook_secret ?? '',
@@ -211,6 +213,26 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
         />
         <p className='text-muted-foreground text-xs'>
           {t('Get notified when balance falls below this value')}
+        </p>
+      </div>
+
+      {/* Notification Cooldown */}
+      <div className='space-y-1.5'>
+        <Label htmlFor='cooldown'>{t('Notification Cooldown (minutes)')}</Label>
+        <Input
+          id='cooldown'
+          type='number'
+          className='h-9'
+          min={0}
+          max={43200}
+          value={settings.notify_cooldown_minutes}
+          onChange={(e) =>
+            updateField('notify_cooldown_minutes', Number(e.target.value))
+          }
+          placeholder='0'
+        />
+        <p className='text-muted-foreground text-xs'>
+          {t('Minimum interval between notifications. Set to 0 to use server default (approx. every 10 minutes).')}
         </p>
       </div>
 

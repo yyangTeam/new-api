@@ -3323,6 +3323,8 @@
     "Quota Settings": "Quota Settings",
     "Quota Types": "Quota Types",
     "Quota Warning Threshold": "Quota Warning Threshold",
+    "Notification Cooldown (minutes)": "Notification Cooldown (minutes)",
+    "Minimum interval between notifications. Set to 0 to use server default (approx. every 10 minutes).": "Minimum interval between notifications. Set to 0 to use server default (approx. every 10 minutes).",
     "Quota adjusted successfully": "Quota adjusted successfully",
     "Quota clamped": "Quota clamped",
     "Quota consumed before charging users": "Quota consumed before charging users",

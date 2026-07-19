@@ -213,6 +213,7 @@ setting.gotify_url_empty: "Gotify伺服器位址不能為空"
 setting.gotify_token_empty: "Gotify令牌不能為空"
 setting.gotify_url_invalid: "無效的Gotify伺服器位址"
 setting.url_must_http: "URL必須以http://或https://開頭"
+setting.cooldown_invalid: "通知冷卻時間必須在 0 到 43200 分鐘之間"
 setting.saved: "設定已更新"
 
 # Deployment messages (io.net)
