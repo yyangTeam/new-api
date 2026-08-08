@@ -17,12 +17,16 @@ const t = (key: string) => key
 
 describe('getApiKeyFormSchema', () => {
   const schema = getApiKeyFormSchema(t)
+  // Required auto-group fields the schema enforces (set to safe defaults here
+  // so quota/name-focused cases don't fail on unrelated missing keys).
+  const auto = { auto_groups_mode: 'inherit' as const, auto_groups: [] }
 
   test('accepts valid form data with unlimited quota', () => {
     const result = schema.safeParse({
       name: 'test-key',
       unlimited_quota: true,
       model_limits: [],
+      ...auto,
     })
     expect(result.success).toBe(true)
   })
@@ -32,6 +36,7 @@ describe('getApiKeyFormSchema', () => {
       name: '',
       unlimited_quota: true,
       model_limits: [],
+      ...auto,
     })
     expect(result.success).toBe(false)
   })
@@ -42,6 +47,7 @@ describe('getApiKeyFormSchema', () => {
       unlimited_quota: false,
       remain_quota_dollars: 10,
       model_limits: [],
+      ...auto,
     })
     expect(result.success).toBe(true)
   })
@@ -52,6 +58,7 @@ describe('getApiKeyFormSchema', () => {
       unlimited_quota: false,
       remain_quota_dollars: -1,
       model_limits: [],
+      ...auto,
     })
     expect(result.success).toBe(false)
   })
@@ -61,6 +68,7 @@ describe('getApiKeyFormSchema', () => {
       name: 'test-key',
       unlimited_quota: false,
       model_limits: [],
+      ...auto,
     })
     expect(result.success).toBe(false)
   })
@@ -71,6 +79,7 @@ describe('getApiKeyFormSchema', () => {
       unlimited_quota: false,
       remain_quota_dollars: 0,
       model_limits: [],
+      ...auto,
     })
     expect(result.success).toBe(true)
   })
@@ -81,6 +90,7 @@ describe('getApiKeyFormSchema', () => {
       unlimited_quota: true,
       remain_quota_dollars: -100,
       model_limits: [],
+      ...auto,
     })
     expect(result.success).toBe(true)
   })

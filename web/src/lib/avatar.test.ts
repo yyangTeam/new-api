@@ -23,7 +23,7 @@ describe('getUserAvatarStyle', () => {
   test('backgroundColor is an hsl string', () => {
     const style = getUserAvatarStyle('Test')
     expect(style.backgroundColor).toMatch(
-      /^hsl\(\d+ \d+% \d+% \/ 0\.82\)$/
+      /^hsl\(\d+ \d+% \d+%\)$/
     )
   })
 

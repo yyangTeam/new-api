@@ -8,6 +8,7 @@ import {
 vi.mock('@/lib/format', () => ({
   parseQuotaFromDollars: (amount: number) => Math.round(amount * 500000),
   quotaUnitsToDollars: (units: number) => units / 500000,
+  quotaUnitsToEditableAmount: (units: number) => units / 500000,
 }))
 
 const t = (key: string, _opts?: Record<string, unknown>) => key

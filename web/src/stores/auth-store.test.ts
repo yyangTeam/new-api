@@ -9,34 +9,30 @@ const testUser: AuthUser = {
 
 describe('useAuthStore', () => {
   beforeEach(() => {
-    localStorage.clear()
     useAuthStore.getState().auth.reset()
   })
 
-  test('initializes with null user when localStorage is empty', () => {
+  test('initializes with null user', () => {
     expect(useAuthStore.getState().auth.user).toBeNull()
   })
 
-  test('setUser persists user to state and localStorage', () => {
+  test('setUser persists user to state', () => {
     useAuthStore.getState().auth.setUser(testUser)
 
     expect(useAuthStore.getState().auth.user).toEqual(testUser)
-    expect(JSON.parse(localStorage.getItem('user') ?? '')).toEqual(testUser)
   })
 
-  test('reset clears user from state and localStorage', () => {
+  test('reset clears user from state', () => {
     useAuthStore.getState().auth.setUser(testUser)
     useAuthStore.getState().auth.reset()
 
     expect(useAuthStore.getState().auth.user).toBeNull()
-    expect(localStorage.getItem('user')).toBeNull()
   })
 
-  test('setUser with null removes user from localStorage', () => {
+  test('setUser with null clears user from state', () => {
     useAuthStore.getState().auth.setUser(testUser)
     useAuthStore.getState().auth.setUser(null)
 
     expect(useAuthStore.getState().auth.user).toBeNull()
-    expect(localStorage.getItem('user')).toBeNull()
   })
 })

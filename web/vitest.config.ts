@@ -5,6 +5,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Some tests were authored against Node's native test runner API
+      // (hooks like `before`/`after`, `node:test` specifiers) or bun:test.
+      // Vitest exposes a compatible surface via this shim.
+      'node:test': path.resolve(__dirname, './src/test/node-test-shim.ts'),
+      'bun:test': path.resolve(__dirname, './src/test/node-test-shim.ts'),
     },
   },
   test: {

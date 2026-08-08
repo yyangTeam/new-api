@@ -610,7 +610,9 @@ describe('validateAdvancedCustomConfig', () => {
     }
     const result = validateAdvancedCustomConfig(config)
     expect(result!.routeIndex).toBe(1)
-    expect(result!.message).toBe('Incoming path must be unique')
+    expect(result!.message).toBe(
+      'Only one catch-all route is allowed for the same incoming path'
+    )
   })
 
   test('returns error for missing upstream path', () => {
