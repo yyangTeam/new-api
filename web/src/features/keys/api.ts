@@ -26,6 +26,8 @@ import type {
   SearchApiKeysParams,
   ApiKeyFormData,
   TokenAutoGroupsConfig,
+  BatchCreateApiKeysRequest,
+  BatchCreateApiKeysResponse,
 } from './types'
 
 // ============================================================================
@@ -123,5 +125,13 @@ export async function fetchTokenKeysBatch(ids: number[]): Promise<{
   data?: { keys: Record<number, string> }
 }> {
   const res = await api.post('/api/token/batch/keys', { ids })
+  return res.data
+}
+
+// Batch create multiple API keys
+export async function batchCreateApiKeys(
+  data: BatchCreateApiKeysRequest
+): Promise<ApiResponse<BatchCreateApiKeysResponse>> {
+  const res = await api.post('/api/token/batch/create', data)
   return res.data
 }

@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { ApiKeysBatchAddDrawer } from './api-keys-batch-add-drawer'
 import { ApiKeysDeleteDialog } from './api-keys-delete-dialog'
 import { ApiKeysMutateDrawer } from './api-keys-mutate-drawer'
 import { useApiKeys } from './api-keys-provider'
@@ -30,6 +31,10 @@ export function ApiKeysDialogs() {
         open={open === 'create' || open === 'update'}
         onOpenChange={(isOpen) => !isOpen && setOpen(null)}
         currentRow={open === 'update' ? currentRow || undefined : undefined}
+      />
+      <ApiKeysBatchAddDrawer
+        open={open === 'batch-create'}
+        onOpenChange={(isOpen) => !isOpen && setOpen(null)}
       />
       <ApiKeysDeleteDialog />
       <CCSwitchDialog

@@ -110,4 +110,28 @@ export type ApiKeysDialogType =
   | 'update'
   | 'delete'
   | 'batch-delete'
+  | 'batch-create'
   | 'cc-switch'
+
+// ============================================================================
+// Batch Create Types
+// ============================================================================
+
+export interface BatchCreateApiKeysRequest {
+  names: string[]
+  expired_time: number
+  remain_quota: number
+  unlimited_quota: boolean
+  model_limits_enabled: boolean
+  model_limits: string
+  allow_ips?: string
+  group: string
+  cross_group_retry: boolean
+}
+
+export interface BatchCreateApiKeysResponse {
+  created: number
+  failed: number
+  items: Array<{ name: string; status: 'created' | 'failed'; reason?: string }>
+  errors: Array<{ name: string; reason: string }>
+}
