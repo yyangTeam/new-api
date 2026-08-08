@@ -185,6 +185,8 @@ export type ContentSettings = {
   MjForwardUrlEnabled: boolean
   MjModeClearEnabled: boolean
   MjActionCheckSuccessEnabled: boolean
+  ImageGenerationUrl: string
+  ImageGenerationOpenMode: string
 }
 
 export type ModelSettings = {
@@ -236,6 +238,12 @@ export type ModelSettings = {
   'monitor_setting.auto_test_channel_enabled': boolean
   'monitor_setting.auto_test_channel_minutes': number
   'monitor_setting.channel_test_mode': 'scheduled_all' | 'passive_recovery'
+  'monitor_setting.channel_error_notify_enabled': boolean
+  'monitor_setting.channel_consecutive_error_threshold': number
+  'monitor_setting.channel_error_rate_enabled': boolean
+  'monitor_setting.channel_error_rate_threshold': number
+  'monitor_setting.channel_error_rate_window_minutes': number
+  'monitor_setting.channel_error_rate_min_requests': number
   'channel_affinity_setting.enabled': boolean
   'channel_affinity_setting.switch_on_success': boolean
   'channel_affinity_setting.keep_on_channel_disabled': boolean
@@ -350,6 +358,7 @@ export type OperationsSettings = {
   WorkerValidKey: string
   WorkerAllowHttpImageRequestEnabled: boolean
   LogConsumeEnabled: boolean
+  ModelMappedDisplayMode: number
   'performance_setting.disk_cache_enabled': boolean
   'performance_setting.disk_cache_threshold_mb': number
   'performance_setting.disk_cache_max_size_mb': number

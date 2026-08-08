@@ -11,6 +11,13 @@ type MonitorSetting struct {
 	AutoTestChannelEnabled bool    `json:"auto_test_channel_enabled"`
 	AutoTestChannelMinutes float64 `json:"auto_test_channel_minutes"`
 	ChannelTestMode        string  `json:"channel_test_mode"`
+
+	ChannelErrorNotifyEnabled        bool    `json:"channel_error_notify_enabled"`
+	ChannelConsecutiveErrorThreshold int     `json:"channel_consecutive_error_threshold"`
+	ChannelErrorRateEnabled          bool    `json:"channel_error_rate_enabled"`
+	ChannelErrorRateThreshold        float64 `json:"channel_error_rate_threshold"`
+	ChannelErrorRateWindowMinutes    int     `json:"channel_error_rate_window_minutes"`
+	ChannelErrorRateMinRequests      int     `json:"channel_error_rate_min_requests"`
 }
 
 const (
@@ -23,6 +30,13 @@ var monitorSetting = MonitorSetting{
 	AutoTestChannelEnabled: false,
 	AutoTestChannelMinutes: 10,
 	ChannelTestMode:        ChannelTestModeScheduledAll,
+
+	ChannelErrorNotifyEnabled:        false,
+	ChannelConsecutiveErrorThreshold: 5,
+	ChannelErrorRateEnabled:          false,
+	ChannelErrorRateThreshold:        0.8,
+	ChannelErrorRateWindowMinutes:    5,
+	ChannelErrorRateMinRequests:      10,
 }
 
 func init() {

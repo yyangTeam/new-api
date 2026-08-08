@@ -34,3 +34,8 @@ export const NOTIFICATION_METHODS = [
   { value: 'bark' as const, label: 'Bark' },
   { value: 'gotify' as const, label: 'Gotify' },
 ] as const
+
+export const ADMIN_NOTIFICATION_METHODS = [
+  { value: 'feishu' as const, label: 'Feishu' },
+  { value: 'qqbot' as const, label: 'QQ Bot' },
+] as const

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
@@ -340,6 +341,173 @@ func AddToken(c *gin.Context) {
 	})
 }
 
+const maxBatchCreateTokens = 50
+const maxTokenNameLength = 50
+
+type TokenBatchCreateRequest struct {
+	Names              []string `json:"names"`
+	ExpiredTime        int64    `json:"expired_time"`
+	RemainQuota        int      `json:"remain_quota"`
+	UnlimitedQuota     bool     `json:"unlimited_quota"`
+	ModelLimitsEnabled bool     `json:"model_limits_enabled"`
+	ModelLimits        string   `json:"model_limits"`
+	AllowIps           *string  `json:"allow_ips"`
+	Group              string   `json:"group"`
+	CrossGroupRetry    bool     `json:"cross_group_retry"`
+}
+
+type TokenBatchCreateItem struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+	Reason string `json:"reason,omitempty"`
+}
+
+type TokenBatchCreateError struct {
+	Name   string `json:"name"`
+	Reason string `json:"reason"`
+}
+
+type TokenBatchCreateResponse struct {
+	Created int                     `json:"created"`
+	Failed  int                     `json:"failed"`
+	Items   []TokenBatchCreateItem  `json:"items"`
+	Errors  []TokenBatchCreateError `json:"errors"`
+}
+
+func normalizeBatchTokenNames(names []string) ([]string, error) {
+	if len(names) < 1 {
+		return nil, fmt.Errorf("token name count must be between 1 and %d", maxBatchCreateTokens)
+	}
+	if len(names) > maxBatchCreateTokens {
+		return nil, fmt.Errorf("token name count cannot exceed %d", maxBatchCreateTokens)
+	}
+
+	normalized := make([]string, 0, len(names))
+	seen := make(map[string]bool, len(names))
+	for _, rawName := range names {
+		name := strings.TrimSpace(rawName)
+		if name == "" {
+			return nil, fmt.Errorf("token name cannot be empty")
+		}
+		if utf8.RuneCountInString(name) > maxTokenNameLength {
+			return nil, fmt.Errorf("token name cannot exceed %d characters", maxTokenNameLength)
+		}
+		if seen[name] {
+			return nil, fmt.Errorf("duplicate token name in the same batch: %s", name)
+		}
+		seen[name] = true
+		normalized = append(normalized, name)
+	}
+	return normalized, nil
+}
+
+func validateBatchTokenQuota(req TokenBatchCreateRequest) error {
+	if req.UnlimitedQuota {
+		return nil
+	}
+	if req.RemainQuota < 0 {
+		return fmt.Errorf("token quota cannot be negative")
+	}
+	maxQuotaValue := int(1000000000 * common.QuotaPerUnit)
+	if req.RemainQuota > maxQuotaValue {
+		return fmt.Errorf("token quota cannot exceed %d", maxQuotaValue)
+	}
+	return nil
+}
+
+func CreateTokenBatch(c *gin.Context) {
+	req := TokenBatchCreateRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	names, err := normalizeBatchTokenNames(req.Names)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := validateBatchTokenQuota(req); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	userId := c.GetInt("id")
+	maxTokens := operation_setting.GetMaxUserTokens()
+	count, err := model.CountUserTokens(userId)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if int(count)+len(names) > maxTokens {
+		common.ApiErrorMsg(c, fmt.Sprintf("token count exceeds maximum limit (%d)", maxTokens))
+		return
+	}
+
+	now := common.GetTimestamp()
+	result := TokenBatchCreateResponse{
+		Items:  make([]TokenBatchCreateItem, 0, len(names)),
+		Errors: make([]TokenBatchCreateError, 0),
+	}
+
+	for _, name := range names {
+		key, err := common.GenerateKey()
+		if err != nil {
+			reason := "failed to generate token key"
+			common.SysLog("failed to generate token key: " + err.Error())
+			result.Failed++
+			result.Items = append(result.Items, TokenBatchCreateItem{
+				Name:   name,
+				Status: "failed",
+				Reason: reason,
+			})
+			result.Errors = append(result.Errors, TokenBatchCreateError{
+				Name:   name,
+				Reason: reason,
+			})
+			continue
+		}
+
+		token := model.Token{
+			UserId:             userId,
+			Name:               name,
+			Key:                key,
+			CreatedTime:        now,
+			AccessedTime:       now,
+			ExpiredTime:        req.ExpiredTime,
+			RemainQuota:        req.RemainQuota,
+			UnlimitedQuota:     req.UnlimitedQuota,
+			ModelLimitsEnabled: req.ModelLimitsEnabled,
+			ModelLimits:        req.ModelLimits,
+			AllowIps:           req.AllowIps,
+			Group:              req.Group,
+			CrossGroupRetry:    req.CrossGroupRetry,
+		}
+		if err := token.Insert(); err != nil {
+			reason := err.Error()
+			result.Failed++
+			result.Items = append(result.Items, TokenBatchCreateItem{
+				Name:   name,
+				Status: "failed",
+				Reason: reason,
+			})
+			result.Errors = append(result.Errors, TokenBatchCreateError{
+				Name:   name,
+				Reason: reason,
+			})
+			continue
+		}
+
+		result.Created++
+		result.Items = append(result.Items, TokenBatchCreateItem{
+			Name:   name,
+			Status: "created",
+		})
+	}
+
+	common.ApiSuccess(c, result)
+}
+
 func DeleteToken(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	userId := c.GetInt("id")
@@ -432,6 +600,17 @@ type TokenBatch struct {
 	Ids []int `json:"ids"`
 }
 
+type TokenBatchUpdate struct {
+	Ids             []int   `json:"ids"`
+	ExpiredTime     *int64  `json:"expired_time"`
+	RemainQuota     *int    `json:"remain_quota"`
+	UnlimitedQuota  *bool   `json:"unlimited_quota"`
+	ModelLimits     *string `json:"model_limits"`
+	AllowIps        *string `json:"allow_ips"`
+	Group           *string `json:"group"`
+	CrossGroupRetry *bool   `json:"cross_group_retry"`
+}
+
 func DeleteTokenBatch(c *gin.Context) {
 	tokenBatch := TokenBatch{}
 	if err := c.ShouldBindJSON(&tokenBatch); err != nil || len(tokenBatch.Ids) == 0 {
@@ -472,4 +651,69 @@ func GetTokenKeysBatch(c *gin.Context) {
 		keysMap[t.Id] = t.GetFullKey()
 	}
 	common.ApiSuccess(c, gin.H{"keys": keysMap})
+}
+
+func UpdateTokenBatch(c *gin.Context) {
+	req := TokenBatchUpdate{}
+	if err := c.ShouldBindJSON(&req); err != nil || len(req.Ids) == 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if len(req.Ids) > 100 {
+		common.ApiErrorI18n(c, i18n.MsgBatchTooMany, map[string]any{"Max": 100})
+		return
+	}
+
+	if req.RemainQuota != nil && req.UnlimitedQuota != nil && !*req.UnlimitedQuota {
+		if *req.RemainQuota < 0 {
+			common.ApiErrorI18n(c, i18n.MsgTokenQuotaNegative)
+			return
+		}
+		maxQuotaValue := int(1000000000 * common.QuotaPerUnit)
+		if *req.RemainQuota > maxQuotaValue {
+			common.ApiErrorI18n(c, i18n.MsgTokenQuotaExceedMax, map[string]any{"Max": maxQuotaValue})
+			return
+		}
+	}
+
+	updateFields := make(map[string]interface{})
+	if req.ExpiredTime != nil {
+		updateFields["expired_time"] = *req.ExpiredTime
+	}
+	if req.RemainQuota != nil {
+		updateFields["remain_quota"] = *req.RemainQuota
+	}
+	if req.UnlimitedQuota != nil {
+		updateFields["unlimited_quota"] = *req.UnlimitedQuota
+	}
+	if req.ModelLimits != nil {
+		updateFields["model_limits"] = *req.ModelLimits
+		updateFields["model_limits_enabled"] = len(strings.TrimSpace(*req.ModelLimits)) > 0
+	}
+	if req.AllowIps != nil {
+		updateFields["allow_ips"] = *req.AllowIps
+	}
+	if req.Group != nil {
+		updateFields["group"] = *req.Group
+	}
+	if req.CrossGroupRetry != nil {
+		updateFields["cross_group_retry"] = *req.CrossGroupRetry
+	}
+
+	if len(updateFields) == 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	userId := c.GetInt("id")
+	count, err := model.BatchUpdateTokens(req.Ids, userId, updateFields)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    count,
+	})
 }

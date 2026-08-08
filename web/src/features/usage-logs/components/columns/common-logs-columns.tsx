@@ -62,6 +62,7 @@ import { LogCostDisplay } from '../log-cost-display'
 import { ModelBadge } from '../model-badge'
 import { TimingMetricsCell, StreamTpsCell } from '../timing-metrics-cell'
 import { useUsageLogsContext } from '../usage-logs-provider'
+import { useModelMappedVisible } from '../../hooks/use-model-mapped-visible'
 
 interface DetailSegment {
   text: string
@@ -603,6 +604,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
       header: t('Model'),
       cell: function ModelCell({ row }) {
         const log = row.original
+        const showMapping = useModelMappedVisible()
         if (!isDisplayableLogType(log.type)) return null
 
         const modelInfo = formatModelName(log)
@@ -611,7 +613,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
           <div className='flex w-fit flex-col gap-0.5'>
             <ModelBadge
               modelName={modelInfo.name}
-              actualModel={modelInfo.actualModel}
+              actualModel={showMapping ? modelInfo.actualModel : undefined}
             />
           </div>
         )

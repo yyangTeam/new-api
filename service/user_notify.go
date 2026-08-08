@@ -54,7 +54,7 @@ func NotifyUser(userId int, userEmail string, userSetting dto.UserSetting, data 
 	}
 
 	// Check notification limit
-	canSend, err := CheckNotificationLimit(userId, data.Type)
+	canSend, err := CheckNotificationLimit(userId, data.Type, userSetting.NotifyCooldownMinutes)
 	if err != nil {
 		common.SysLog(fmt.Sprintf("failed to check notification limit: %s", err.Error()))
 		return err
@@ -100,6 +100,18 @@ func NotifyUser(userId int, userEmail string, userSetting dto.UserSetting, data 
 			return nil
 		}
 		return sendGotifyNotify(gotifyUrl, gotifyToken, userSetting.GotifyPriority, data)
+	case dto.NotifyTypeFeishu:
+		if userSetting.FeishuWebhookUrl == "" {
+			common.SysLog(fmt.Sprintf("user %d has no feishu webhook url, skip sending feishu", userId))
+			return nil
+		}
+		return sendFeishuNotify(userSetting.FeishuWebhookUrl, userSetting.FeishuWebhookSecret, data)
+	case dto.NotifyTypeQQBot:
+		if userSetting.QQBotAppID == "" {
+			common.SysLog(fmt.Sprintf("user %d has no qqbot app id, skip sending qqbot", userId))
+			return nil
+		}
+		return sendQQBotNotify(userSetting.QQBotAppID, userSetting.QQBotAppSecret, userSetting.QQBotTargetType, userSetting.QQBotTargetId, data)
 	}
 	return nil
 }

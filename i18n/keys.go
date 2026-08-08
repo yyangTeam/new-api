@@ -253,6 +253,7 @@ const (
 	MsgSettingGotifyTokenEmpty = "setting.gotify_token_empty"
 	MsgSettingGotifyUrlInvalid = "setting.gotify_url_invalid"
 	MsgSettingUrlMustHttp      = "setting.url_must_http"
+	MsgSettingCooldownInvalid  = "setting.cooldown_invalid"
 	MsgSettingSaved            = "setting.saved"
 )
 

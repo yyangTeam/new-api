@@ -36,6 +36,7 @@ func InitOptionMap() {
 	common.OptionMap["FileDownloadPermission"] = strconv.Itoa(common.FileDownloadPermission)
 	common.OptionMap["ImageUploadPermission"] = strconv.Itoa(common.ImageUploadPermission)
 	common.OptionMap["ImageDownloadPermission"] = strconv.Itoa(common.ImageDownloadPermission)
+	common.OptionMap["ModelMappedDisplayMode"] = strconv.Itoa(common.ModelMappedDisplayMode)
 	common.OptionMap["PasswordLoginEnabled"] = strconv.FormatBool(common.PasswordLoginEnabled)
 	common.OptionMap["PasswordRegisterEnabled"] = strconv.FormatBool(common.PasswordRegisterEnabled)
 	common.OptionMap["EmailVerificationEnabled"] = strconv.FormatBool(common.EmailVerificationEnabled)
@@ -159,6 +160,8 @@ func InitOptionMap() {
 	common.OptionMap["DataExportInterval"] = strconv.Itoa(common.DataExportInterval)
 	common.OptionMap["DataExportDefaultTime"] = common.DataExportDefaultTime
 	common.OptionMap["DefaultCollapseSidebar"] = strconv.FormatBool(common.DefaultCollapseSidebar)
+	common.OptionMap["ImageGenerationUrl"] = common.ImageGenerationUrl
+	common.OptionMap["ImageGenerationOpenMode"] = common.ImageGenerationOpenMode
 	common.OptionMap["MjNotifyEnabled"] = strconv.FormatBool(setting.MjNotifyEnabled)
 	common.OptionMap["MjAccountFilterEnabled"] = strconv.FormatBool(setting.MjAccountFilterEnabled)
 	common.OptionMap["MjModeClearEnabled"] = strconv.FormatBool(setting.MjModeClearEnabled)
@@ -289,7 +292,7 @@ func updateOptionMap(key string, value string) (err error) {
 	}
 
 	// 处理传统配置项...
-	if strings.HasSuffix(key, "Permission") {
+	if strings.HasSuffix(key, "Permission") || key == "ModelMappedDisplayMode" {
 		intValue, _ := strconv.Atoi(value)
 		switch key {
 		case "FileUploadPermission":
@@ -300,6 +303,8 @@ func updateOptionMap(key string, value string) (err error) {
 			common.ImageUploadPermission = intValue
 		case "ImageDownloadPermission":
 			common.ImageDownloadPermission = intValue
+		case "ModelMappedDisplayMode":
+			common.ModelMappedDisplayMode = intValue
 		}
 	}
 	if strings.HasSuffix(key, "Enabled") || key == "DefaultCollapseSidebar" || key == "DefaultUseAutoGroup" || key == "SMTPForceAuthLogin" || key == "SMTPInsecureSkipVerify" {
@@ -411,6 +416,10 @@ func updateOptionMap(key string, value string) (err error) {
 		system_setting.WorkerUrl = value
 	case "WorkerValidKey":
 		system_setting.WorkerValidKey = value
+	case "ImageGenerationUrl":
+		common.ImageGenerationUrl = value
+	case "ImageGenerationOpenMode":
+		common.ImageGenerationOpenMode = value
 	case "PayAddress":
 		operation_setting.PayAddress = value
 	case "Chats":

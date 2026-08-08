@@ -22,6 +22,7 @@ import {
   CreditCard,
   FileText,
   FlaskConical,
+  Image,
   Key,
   LayoutDashboard,
   ListTodo,
@@ -37,6 +38,7 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import { type SidebarData } from '@/components/layout/types'
+import { useStatus } from '@/hooks/use-status'
 import { ROLE } from '@/lib/roles'
 
 /**
@@ -47,6 +49,9 @@ import { ROLE } from '@/lib/roles'
  */
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
+  const { status } = useStatus()
+  const imageGenUrl = status?.image_generation_url
+  const imageGenOpenMode = status?.image_generation_open_mode ?? 'embed'
 
   return {
     navGroups: [
@@ -64,6 +69,22 @@ export function useSidebarData(): SidebarData {
             icon: MessageSquare,
             type: 'chat-presets',
           },
+          ...(imageGenUrl
+            ? [
+                imageGenOpenMode === 'new_tab'
+                  ? {
+                      title: t('Image Generation'),
+                      url: '/image-gen' as const,
+                      externalUrl: imageGenUrl,
+                      icon: Image,
+                    }
+                  : {
+                      title: t('Image Generation'),
+                      url: '/image-gen' as const,
+                      icon: Image,
+                    },
+              ]
+            : []),
         ],
       },
       {

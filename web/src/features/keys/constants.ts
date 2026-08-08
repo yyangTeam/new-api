@@ -85,6 +85,7 @@ export const ERROR_MESSAGES = {
   DELETE_FAILED: 'Failed to delete API key',
   BATCH_DELETE_FAILED: 'Failed to delete API keys',
   BATCH_CREATE_FAILED: 'Failed to batch create API keys',
+  BATCH_UPDATE_FAILED: 'Failed to batch update API keys',
   STATUS_UPDATE_FAILED: 'Failed to update API key status',
 } as const
 
@@ -101,4 +102,5 @@ export const SUCCESS_MESSAGES = {
   API_KEYS_BATCH_CREATED:
     'Batch add tokens succeeded. Created {{count}} tokens.',
   API_KEYS_BATCH_PARTIAL: 'Created {{count}} tokens',
+  API_KEYS_BATCH_UPDATED: 'Successfully updated {{count}} API key(s)',
 } as const

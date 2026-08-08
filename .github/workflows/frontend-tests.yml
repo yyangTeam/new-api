@@ -1,0 +1,73 @@
+name: Frontend Tests
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - '.github/workflows/frontend-tests.yml'
+      - 'web/bun.lock'
+      - 'web/package.json'
+      - 'web/default/src/**'
+      - 'web/default/package.json'
+      - 'web/default/vitest.config.ts'
+      - 'web/classic/src/**'
+      - 'web/classic/package.json'
+      - 'web/classic/vitest.config.ts'
+  pull_request:
+    paths:
+      - '.github/workflows/frontend-tests.yml'
+      - 'web/bun.lock'
+      - 'web/package.json'
+      - 'web/default/src/**'
+      - 'web/default/package.json'
+      - 'web/default/vitest.config.ts'
+      - 'web/classic/src/**'
+      - 'web/classic/package.json'
+      - 'web/classic/vitest.config.ts'
+
+jobs:
+  test-default:
+    name: Test Default Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Resolve catalog references
+        run: node web/resolve-catalogs.cjs
+
+      - name: Install dependencies
+        working-directory: web/default
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+        run: npm install
+
+      - name: Run tests
+        working-directory: web/default
+        run: npx vitest run
+
+  test-classic:
+    name: Test Classic Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Resolve catalog references
+        run: node web/resolve-catalogs.cjs
+
+      - name: Install dependencies
+        working-directory: web/classic
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+        run: npm install
+
+      - name: Run tests
+        working-directory: web/classic
+        run: npx vitest run

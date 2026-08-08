@@ -75,6 +75,44 @@ func newSMTPClient(addr string) (*smtp.Client, error) {
 	return client, nil
 }
 
+func wrapEmailTemplate(body string) string {
+	return fmt.Sprintf(`<!DOCTYPE html>
+<html lang="zh">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#eef2f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table width="100%%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#eef2f7;">
+<tr><td align="center" style="padding:40px 16px 48px;">
+  <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;width:100%%;">
+    <!-- Header -->
+    <tr><td style="background:linear-gradient(135deg,#4f46e5 0%%,#7c3aed 50%%,#a855f7 100%%);border-radius:16px 16px 0 0;padding:36px 44px;text-align:center;">
+      <table width="100%%" cellpadding="0" cellspacing="0" role="presentation">
+        <tr><td align="center">
+          <div style="width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:12px;display:inline-block;line-height:48px;font-size:22px;color:#ffffff;font-weight:bold;">%s</div>
+        </td></tr>
+        <tr><td align="center" style="padding-top:14px;">
+          <span style="font-size:22px;font-weight:700;color:#ffffff;letter-spacing:0.5px;">%s</span>
+        </td></tr>
+      </table>
+    </td></tr>
+    <!-- Body -->
+    <tr><td style="background:#ffffff;padding:40px 44px;color:#1e293b;font-size:15px;line-height:1.8;">
+      %s
+    </td></tr>
+    <!-- Footer -->
+    <tr><td style="background:#f8fafc;border-radius:0 0 16px 16px;padding:24px 44px;border-top:1px solid #f1f5f9;">
+      <table width="100%%" cellpadding="0" cellspacing="0" role="presentation">
+        <tr><td align="center" style="color:#94a3b8;font-size:12px;line-height:1.6;">
+          此邮件由 %s 系统自动发送，请勿直接回复
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`, string([]rune(SystemName)[0]), SystemName, body, SystemName)
+}
+
 func SendEmail(subject string, receiver string, content string) error {
 	if SMTPFrom == "" { // for compatibility
 		SMTPFrom = SMTPAccount
@@ -86,14 +124,15 @@ func SendEmail(subject string, receiver string, content string) error {
 	if SMTPServer == "" && SMTPAccount == "" {
 		return fmt.Errorf("SMTP 服务器未配置")
 	}
+	styledContent := wrapEmailTemplate(content)
 	encodedSubject := fmt.Sprintf("=?UTF-8?B?%s?=", base64.StdEncoding.EncodeToString([]byte(subject)))
 	mail := []byte(fmt.Sprintf("To: %s\r\n"+
 		"From: %s <%s>\r\n"+
 		"Subject: %s\r\n"+
 		"Date: %s\r\n"+
-		"Message-ID: %s\r\n"+ // 添加 Message-ID 头
+		"Message-ID: %s\r\n"+
 		"Content-Type: text/html; charset=UTF-8\r\n\r\n%s\r\n",
-		receiver, SystemName, SMTPFrom, encodedSubject, time.Now().Format(time.RFC1123Z), id, content))
+		receiver, SystemName, SMTPFrom, encodedSubject, time.Now().Format(time.RFC1123Z), id, styledContent))
 	auth := getSMTPAuth()
 	addr := fmt.Sprintf("%s:%d", SMTPServer, SMTPPort)
 	to := strings.Split(receiver, ";")
