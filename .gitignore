@@ -44,3 +44,4 @@ service/openaicompat/chat_responses_live_local_test.go
 go.work
 go.work.sum
 web/package-lock.json
+web/src/routeTree.gen.ts
