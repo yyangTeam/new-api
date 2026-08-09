@@ -16,7 +16,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { ExternalLinkIcon, RefreshCcwIcon } from 'lucide-react'
+import {
+  DownloadIcon,
+  ExternalLinkIcon,
+  PowerIcon,
+  RefreshCcwIcon,
+} from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -24,6 +29,7 @@ import { toast } from 'sonner'
 import { Dialog } from '@/components/dialog'
 import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/ui/markdown'
+import { api } from '@/lib/api'
 import { formatTimestamp, formatTimestampToDate } from '@/lib/format'
 
 import { SettingsSection } from '../components/settings-section'
@@ -47,6 +53,8 @@ export function UpdateCheckerSection({
 }: UpdateCheckerSectionProps) {
   const { t } = useTranslation()
   const [checking, setChecking] = useState(false)
+  const [updating, setUpdating] = useState(false)
+  const [restarting, setRestarting] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [release, setRelease] = useState<ReleaseInfo | null>(null)
 
@@ -56,21 +64,15 @@ export function UpdateCheckerSection({
   const handleCheckUpdates = async () => {
     setChecking(true)
     try {
-      const response = await fetch(
-        'https://api.github.com/repos/Calcium-Ion/new-api/releases/latest',
-        {
-          headers: {
-            Accept: 'application/vnd.github+json',
-            'User-Agent': 'new-api-dashboard',
-          },
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error(t('Failed to contact GitHub releases API'))
+      const response = await api.get('/api/latest-release')
+      const payload = response.data
+      if (!payload?.success) {
+        throw new Error(
+          payload?.message || t('Failed to contact GitHub releases API')
+        )
       }
 
-      const data = (await response.json()) as ReleaseInfo
+      const data = payload.data as ReleaseInfo
       if (!data?.tag_name) {
         throw new Error(t('Unexpected release payload'))
       }
@@ -94,6 +96,47 @@ export function UpdateCheckerSection({
       toast.error(message)
     } finally {
       setChecking(false)
+    }
+  }
+
+  const handleUpdate = async () => {
+    setUpdating(true)
+    try {
+      const response = await api.post('/api/system/update')
+      const payload = response.data
+      if (!payload?.success) {
+        throw new Error(payload?.message || t('Update failed'))
+      }
+      toast.success(
+        t('Update to {{version}} successful. Service is restarting...', {
+          version: payload.data?.version,
+        })
+      )
+      setDialogOpen(false)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t('Update failed')
+      toast.error(message)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const handleRestart = async () => {
+    setRestarting(true)
+    try {
+      const response = await api.post('/api/system/restart')
+      const payload = response.data
+      if (!payload?.success) {
+        throw new Error(payload?.message || t('Restart failed'))
+      }
+      toast.success(t('Service is restarting...'))
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t('Restart failed')
+      toast.error(message)
+    } finally {
+      setRestarting(false)
     }
   }
 
@@ -122,16 +165,33 @@ export function UpdateCheckerSection({
             </div>
           </div>
 
-          <Button onClick={handleCheckUpdates} disabled={checking}>
-            {checking ? (
-              t('Checking updates...')
-            ) : (
-              <>
-                <RefreshCcwIcon className='me-2 h-4 w-4' />
-                {t('Check for updates')}
-              </>
-            )}
-          </Button>
+          <div className='flex flex-wrap gap-3'>
+            <Button onClick={handleCheckUpdates} disabled={checking}>
+              {checking ? (
+                t('Checking updates...')
+              ) : (
+                <>
+                  <RefreshCcwIcon className='me-2 h-4 w-4' />
+                  {t('Check for updates')}
+                </>
+              )}
+            </Button>
+
+            <Button
+              variant='outline'
+              onClick={handleRestart}
+              disabled={restarting}
+            >
+              {restarting ? (
+                t('Restarting...')
+              ) : (
+                <>
+                  <PowerIcon className='me-2 h-4 w-4' />
+                  {t('Restart service')}
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </SettingsSection>
 
@@ -166,11 +226,21 @@ export function UpdateCheckerSection({
               {t('Close')}
             </Button>
             {release?.html_url && (
-              <Button type='button' onClick={goToRelease}>
+              <Button type='button' variant='outline' onClick={goToRelease}>
                 <ExternalLinkIcon className='me-2 h-4 w-4' />
                 {t('Open release')}
               </Button>
             )}
+            <Button type='button' onClick={handleUpdate} disabled={updating}>
+              {updating ? (
+                t('Updating...')
+              ) : (
+                <>
+                  <DownloadIcon className='me-2 h-4 w-4' />
+                  {t('Update & Restart')}
+                </>
+              )}
+            </Button>
           </>
         }
       >

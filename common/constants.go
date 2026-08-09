@@ -32,6 +32,13 @@ var DefaultCollapseSidebar = false // default value of collapse sidebar
 var ImageGenerationUrl = ""
 var ImageGenerationOpenMode = "embed" // "embed" or "new_tab"
 
+// Update check: the dashboard proxies the latest release through the backend
+// (no browser cross-origin call to api.github.com). Both the API base and the
+// owner/repo are configurable so deployments behind an intranet can point at
+// a mirror and check their own fork instead of the upstream.
+var UpdateCheckApiBase = "https://api.github.com"
+var UpdateCheckRepo = "yyangTeam/new-api"
+
 // Any options with "Secret", "Token" in its key won't be return by GetOptions
 
 var SessionSecret = uuid.New().String()

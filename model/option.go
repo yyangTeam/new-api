@@ -162,6 +162,8 @@ func InitOptionMap() {
 	common.OptionMap["DefaultCollapseSidebar"] = strconv.FormatBool(common.DefaultCollapseSidebar)
 	common.OptionMap["ImageGenerationUrl"] = common.ImageGenerationUrl
 	common.OptionMap["ImageGenerationOpenMode"] = common.ImageGenerationOpenMode
+	common.OptionMap["UpdateCheckApiBase"] = common.UpdateCheckApiBase
+	common.OptionMap["UpdateCheckRepo"] = common.UpdateCheckRepo
 	common.OptionMap["MjNotifyEnabled"] = strconv.FormatBool(setting.MjNotifyEnabled)
 	common.OptionMap["MjAccountFilterEnabled"] = strconv.FormatBool(setting.MjAccountFilterEnabled)
 	common.OptionMap["MjModeClearEnabled"] = strconv.FormatBool(setting.MjModeClearEnabled)
@@ -420,6 +422,10 @@ func updateOptionMap(key string, value string) (err error) {
 		common.ImageGenerationUrl = value
 	case "ImageGenerationOpenMode":
 		common.ImageGenerationOpenMode = value
+	case "UpdateCheckApiBase":
+		common.UpdateCheckApiBase = value
+	case "UpdateCheckRepo":
+		common.UpdateCheckRepo = value
 	case "PayAddress":
 		operation_setting.PayAddress = value
 	case "Chats":
