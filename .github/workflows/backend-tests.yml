@@ -32,5 +32,17 @@ jobs:
           mkdir -p web/dist
           echo '<!doctype html>' > web/dist/index.html
 
-      - name: Run tests
-        run: go test -race -count=1 ./...
+      - name: Run tests with coverage
+        run: |
+          go test -race -count=1 -coverprofile=coverage.out -covermode=atomic ./...
+          go tool cover -func=coverage.out | tail -1
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | tr -d '%')
+          echo "Total coverage: ${COVERAGE}%"
+          THRESHOLD=15
+          if [ "$(echo "$COVERAGE < $THRESHOLD" | bc -l)" -eq 1 ]; then
+            echo "::error::Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
+            exit 1
+          fi
