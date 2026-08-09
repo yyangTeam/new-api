@@ -36,6 +36,7 @@ const SITE_SECTIONS = [
     build: (settings: SiteSettings) => (
       <SystemInfoSection
         defaultValues={{
+          theme: { frontend: 'default' as const },
           SystemName: settings.SystemName,
           Logo: settings.Logo,
           Footer: settings.Footer,

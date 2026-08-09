@@ -5,9 +5,7 @@ import {
   getAnnouncementColorClass,
   stringToColor,
   avatarColorMap,
-  colorToBgClass,
   CHART_COLORS,
-  ANNOUNCEMENT_TYPE_COLORS,
 } from './colors'
 
 describe('stringToColor', () => {

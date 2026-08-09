@@ -1,8 +1,3 @@
-import {
-  DASHBOARD_CHART_PREFERENCES_STORAGE_KEY,
-  TIME_GRANULARITY_STORAGE_KEY,
-} from '@/features/dashboard/constants'
-
 import { cleanFilters, getDefaultDays, buildQueryParams } from './filters'
 
 beforeEach(() => {

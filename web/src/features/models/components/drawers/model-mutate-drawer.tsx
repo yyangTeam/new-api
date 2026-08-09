@@ -344,6 +344,12 @@ export function ModelMutateDrawer({
       'channel_affinity_setting.rules': '[]',
       'model_deployment.ionet.api_key': '',
       'model_deployment.ionet.enabled': false,
+      'monitor_setting.channel_error_notify_enabled': false,
+      'monitor_setting.channel_consecutive_error_threshold': 5,
+      'monitor_setting.channel_error_rate_enabled': false,
+      'monitor_setting.channel_error_rate_threshold': 0.8,
+      'monitor_setting.channel_error_rate_window_minutes': 5,
+      'monitor_setting.channel_error_rate_min_requests': 10,
     }
     return getOptionValue(systemOptionsData.data, defaultModelSettings)
   }, [systemOptionsData])

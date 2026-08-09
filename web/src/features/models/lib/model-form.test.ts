@@ -102,6 +102,7 @@ describe('transformModelToFormDefaults', () => {
       sync_official: 0,
       created_time: 0,
       updated_time: 0,
+      name_rule: 0,
     }
 
     const result = transformModelToFormDefaults(model)
@@ -117,6 +118,7 @@ describe('transformModelToFormDefaults', () => {
       sync_official: 1,
       created_time: 0,
       updated_time: 0,
+      name_rule: 0,
     }
 
     const result = transformModelToFormDefaults(model)

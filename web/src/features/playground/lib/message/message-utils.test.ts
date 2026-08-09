@@ -11,7 +11,7 @@ import {
   formatMessageForAPI,
   isValidMessage,
 } from './message-utils'
-import type { Message, MessageVersion } from '../../types'
+import type { Message } from '../../types'
 
 vi.mock('nanoid', () => ({
   nanoid: () => 'test-id',

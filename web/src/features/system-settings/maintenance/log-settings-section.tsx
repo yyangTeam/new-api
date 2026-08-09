@@ -80,7 +80,7 @@ import type { LogCleanupTask } from '../types'
 
 const logSettingsSchema = z.object({
   LogConsumeEnabled: z.boolean(),
-  ModelMappedDisplayMode: z.coerce.number().min(0).max(2),
+  ModelMappedDisplayMode: z.number().min(0).max(2),
 })
 
 type LogSettingsFormValues = z.infer<typeof logSettingsSchema>

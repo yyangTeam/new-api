@@ -2,7 +2,7 @@ import {
   getMessageAlignment,
   getMessageAlignmentClass,
 } from './message-layout-utils'
-import type { Message, PlaygroundMessageLayoutMode } from '../../types'
+import type { Message } from '../../types'
 
 function makeMessage(overrides: Partial<Message> = {}): Message {
   return {

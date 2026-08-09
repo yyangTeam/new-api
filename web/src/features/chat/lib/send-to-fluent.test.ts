@@ -7,7 +7,7 @@ describe('sendToFluent', () => {
     dispatchSpy = vi.fn()
     const container = document.createElement('div')
     container.id = 'fluent-new-api-container'
-    container.dispatchEvent = dispatchSpy
+    container.dispatchEvent = dispatchSpy as unknown as (event: Event) => boolean
     document.body.appendChild(container)
   })
 

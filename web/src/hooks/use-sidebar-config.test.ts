@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react'
 
-import type { NavGroup, NavItem } from '@/components/layout/types'
+import type { NavGroup, NavItem, NavLink } from '@/components/layout/types'
 
 import { useSidebarConfig, useIsSidebarModuleVisible } from './use-sidebar-config'
 
@@ -48,7 +48,9 @@ describe('useSidebarConfig', () => {
           admin: { enabled: true, channel: true, models: true, redemption: true, user: true, setting: true, subscription: true },
         }),
       },
-    } as ReturnType<typeof useStatus>)
+      loading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useStatus>)
 
     const navGroups = makeNavGroups([
       { title: 'Playground', url: '/playground' },
@@ -56,7 +58,7 @@ describe('useSidebarConfig', () => {
     ])
     const { result } = renderHook(() => useSidebarConfig(navGroups))
     const urls = result.current[0].items
-      .filter((item): item is Extract<NavItem, { url: string }> => 'url' in item)
+      .filter((item): item is NavLink => 'url' in item)
       .map((item) => item.url)
     expect(urls).not.toContain('/playground')
     expect(urls).toContain('/keys')
@@ -69,7 +71,9 @@ describe('useSidebarConfig', () => {
           chat: { enabled: false, playground: true, chat: true, image_gen: true },
         }),
       },
-    } as ReturnType<typeof useStatus>)
+      loading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useStatus>)
 
     const navGroups = makeNavGroups([
       { title: 'Playground', url: '/playground' },
@@ -85,7 +89,9 @@ describe('useSidebarConfig', () => {
           chat: { enabled: true, playground: false, chat: false, image_gen: false },
         }),
       },
-    } as ReturnType<typeof useStatus>)
+      loading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useStatus>)
 
     const navGroups = makeNavGroups([
       { title: 'Playground', url: '/playground' },
@@ -98,7 +104,9 @@ describe('useSidebarConfig', () => {
   test('applies user config as narrowing layer', () => {
     mockedUseStatus.mockReturnValue({
       status: { SidebarModulesAdmin: '' },
-    } as ReturnType<typeof useStatus>)
+      loading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useStatus>)
 
     mockedUseAuthStore.mockReturnValue({
       auth: {
@@ -116,7 +124,7 @@ describe('useSidebarConfig', () => {
     ])
     const { result } = renderHook(() => useSidebarConfig(navGroups))
     const urls = result.current[0].items
-      .filter((item): item is Extract<NavItem, { url: string }> => 'url' in item)
+      .filter((item): item is NavLink => 'url' in item)
       .map((item) => item.url)
     expect(urls).not.toContain('/keys')
     expect(urls).toContain('/dashboard')
@@ -125,7 +133,9 @@ describe('useSidebarConfig', () => {
   test('skips user config when sidebar_settings permission is false', () => {
     mockedUseStatus.mockReturnValue({
       status: { SidebarModulesAdmin: '' },
-    } as ReturnType<typeof useStatus>)
+      loading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useStatus>)
 
     mockedUseAuthStore.mockReturnValue({
       auth: {
@@ -172,7 +182,9 @@ describe('useIsSidebarModuleVisible', () => {
           personal: { enabled: true, topup: false, personal: true },
         }),
       },
-    } as ReturnType<typeof useStatus>)
+      loading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useStatus>)
 
     const { result } = renderHook(() => useIsSidebarModuleVisible('/wallet'))
     expect(result.current).toBe(false)
@@ -185,7 +197,9 @@ describe('useIsSidebarModuleVisible', () => {
           personal: { enabled: true, topup: true, personal: true },
         }),
       },
-    } as ReturnType<typeof useStatus>)
+      loading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useStatus>)
 
     const { result } = renderHook(() => useIsSidebarModuleVisible('/wallet'))
     expect(result.current).toBe(true)

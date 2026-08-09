@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next'
+
 import type { ApiKey } from '../types'
 
 import {
@@ -13,7 +15,7 @@ vi.mock('@/lib/format', () => ({
   quotaUnitsToDollars: (units: number) => units / 500000,
 }))
 
-const t = (key: string) => key
+const t = ((key: string) => key) as unknown as TFunction
 
 describe('getApiKeyFormSchema', () => {
   const schema = getApiKeyFormSchema(t)
@@ -144,6 +146,8 @@ describe('transformFormDataToPayload', () => {
       model_limits: [],
       allow_ips: '',
       group: '',
+      auto_groups_mode: 'inherit',
+      auto_groups: [],
     })
 
     expect(payload.name).toBe('my-key')
@@ -162,6 +166,8 @@ describe('transformFormDataToPayload', () => {
       unlimited_quota: false,
       remain_quota_dollars: 5,
       model_limits: [],
+      auto_groups_mode: 'inherit',
+      auto_groups: [],
     })
 
     expect(payload.remain_quota).toBe(2500000)
@@ -173,6 +179,8 @@ describe('transformFormDataToPayload', () => {
       name: 'my-key',
       unlimited_quota: false,
       model_limits: [],
+      auto_groups_mode: 'inherit',
+      auto_groups: [],
     })
 
     expect(payload.remain_quota).toBe(0)
@@ -185,6 +193,8 @@ describe('transformFormDataToPayload', () => {
       unlimited_quota: true,
       expired_time: date,
       model_limits: [],
+      auto_groups_mode: 'inherit',
+      auto_groups: [],
     })
 
     expect(payload.expired_time).toBe(Math.floor(date.getTime() / 1000))
@@ -195,6 +205,8 @@ describe('transformFormDataToPayload', () => {
       name: 'my-key',
       unlimited_quota: true,
       model_limits: [],
+      auto_groups_mode: 'inherit',
+      auto_groups: [],
     })
 
     expect(payload.expired_time).toBe(-1)
@@ -205,6 +217,8 @@ describe('transformFormDataToPayload', () => {
       name: 'my-key',
       unlimited_quota: true,
       model_limits: ['gpt-4', 'claude-3', 'gemini-pro'],
+      auto_groups_mode: 'inherit',
+      auto_groups: [],
     })
 
     expect(payload.model_limits_enabled).toBe(true)
@@ -216,6 +230,8 @@ describe('transformFormDataToPayload', () => {
       name: 'my-key',
       unlimited_quota: true,
       model_limits: [],
+      auto_groups_mode: 'inherit',
+      auto_groups: [],
     })
 
     expect(payload.model_limits_enabled).toBe(false)
@@ -229,6 +245,8 @@ describe('transformFormDataToPayload', () => {
       model_limits: [],
       group: 'auto',
       cross_group_retry: true,
+      auto_groups_mode: 'inherit',
+      auto_groups: [],
     })
     expect(payloadAuto.cross_group_retry).toBe(true)
 
@@ -238,6 +256,8 @@ describe('transformFormDataToPayload', () => {
       model_limits: [],
       group: 'default',
       cross_group_retry: true,
+      auto_groups_mode: 'inherit',
+      auto_groups: [],
     })
     expect(payloadNonAuto.cross_group_retry).toBe(false)
   })
@@ -256,6 +276,7 @@ describe('transformApiKeyToFormDefaults', () => {
     created_time: 1718000000,
     accessed_time: 1718100000,
     group: 'default',
+    auto_groups: [],
     cross_group_retry: false,
     model_limits_enabled: true,
     model_limits: 'gpt-4,claude-3',

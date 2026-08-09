@@ -132,6 +132,8 @@ describe('planToFormValues', () => {
       max_purchase_per_user: 0,
       total_amount: 0,
       quota_reset_period: 'never' as const,
+      allow_balance_pay: true,
+      allow_wallet_overflow: true,
     }
 
     const result = planToFormValues(plan)
@@ -155,6 +157,8 @@ describe('planToFormValues', () => {
       max_purchase_per_user: 0,
       total_amount: 0,
       quota_reset_period: 'never' as const,
+      allow_balance_pay: true,
+      allow_wallet_overflow: true,
     }
 
     const result = planToFormValues(plan)
