@@ -1,12 +1,15 @@
 import {
   isStripePayment,
+  isWaffoPayment,
   isWaffoPancakePayment,
   getDefaultPaymentType,
   getMinTopupAmount,
   generatePresetAmounts,
   mergePresetAmounts,
+  submitPaymentForm,
+  dispatchSelectedPayment,
 } from './payment'
-import type { TopupInfo } from '../types'
+import type { TopupInfo, PaymentMethod } from '../types'
 
 describe('isStripePayment', () => {
   test('returns true for stripe', () => {
@@ -19,6 +22,24 @@ describe('isStripePayment', () => {
 
   test('returns false for empty string', () => {
     expect(isStripePayment('')).toBe(false)
+  })
+})
+
+describe('isWaffoPayment', () => {
+  test('returns true for waffo', () => {
+    expect(isWaffoPayment('waffo')).toBe(true)
+  })
+
+  test('returns false for waffo_pancake', () => {
+    expect(isWaffoPayment('waffo_pancake')).toBe(false)
+  })
+
+  test('returns false for stripe', () => {
+    expect(isWaffoPayment('stripe')).toBe(false)
+  })
+
+  test('returns false for empty string', () => {
+    expect(isWaffoPayment('')).toBe(false)
   })
 })
 
@@ -173,5 +194,84 @@ describe('mergePresetAmounts', () => {
   test('defaults to 1.0 discount when not in discounts map', () => {
     const result = mergePresetAmounts([25], {})
     expect(result).toEqual([{ value: 25, discount: 1.0 }])
+  })
+})
+
+describe('submitPaymentForm', () => {
+  test('creates and submits a form', () => {
+    const mockSubmit = vi.fn()
+    const mockAppend = vi.fn()
+    const mockRemove = vi.fn()
+
+    const originalCreateElement = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = originalCreateElement(tag)
+      if (tag === 'form') {
+        el.submit = mockSubmit
+      }
+      return el
+    })
+    vi.spyOn(document.body, 'appendChild').mockImplementation(mockAppend)
+    vi.spyOn(document.body, 'removeChild').mockImplementation(mockRemove)
+
+    submitPaymentForm('http://pay.com', { key1: 'val1', key2: 'val2' })
+
+    expect(mockAppend).toHaveBeenCalled()
+    expect(mockSubmit).toHaveBeenCalled()
+    expect(mockRemove).toHaveBeenCalled()
+
+    vi.restoreAllMocks()
+  })
+})
+
+describe('dispatchSelectedPayment', () => {
+  const processors = {
+    regular: vi.fn().mockResolvedValue(true),
+    waffo: vi.fn().mockResolvedValue(true),
+    waffoPancake: vi.fn().mockResolvedValue(true),
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('dispatches waffo payment with method index', async () => {
+    const method: PaymentMethod = { name: 'Waffo', type: 'waffo' }
+    const result = await dispatchSelectedPayment(method, 100, 2, processors)
+
+    expect(result).toBe(true)
+    expect(processors.waffo).toHaveBeenCalledWith(100, 2)
+  })
+
+  test('returns false for waffo when waffoMethodIndex is null', async () => {
+    const method: PaymentMethod = { name: 'Waffo', type: 'waffo' }
+    const result = await dispatchSelectedPayment(method, 100, null, processors)
+
+    expect(result).toBe(false)
+    expect(processors.waffo).not.toHaveBeenCalled()
+  })
+
+  test('dispatches waffo pancake payment', async () => {
+    const method: PaymentMethod = { name: 'Waffo Pancake', type: 'waffo_pancake' }
+    const result = await dispatchSelectedPayment(method, 200, null, processors)
+
+    expect(result).toBe(true)
+    expect(processors.waffoPancake).toHaveBeenCalledWith(200)
+  })
+
+  test('dispatches regular payment for other types', async () => {
+    const method: PaymentMethod = { name: 'Alipay', type: 'alipay' }
+    const result = await dispatchSelectedPayment(method, 50, null, processors)
+
+    expect(result).toBe(true)
+    expect(processors.regular).toHaveBeenCalledWith(50, 'alipay')
+  })
+
+  test('dispatches regular payment for stripe type', async () => {
+    const method: PaymentMethod = { name: 'Stripe', type: 'stripe' }
+    const result = await dispatchSelectedPayment(method, 75, null, processors)
+
+    expect(result).toBe(true)
+    expect(processors.regular).toHaveBeenCalledWith(75, 'stripe')
   })
 })

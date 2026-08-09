@@ -1,9 +1,32 @@
 import {
+  formatCreemPrice,
   formatQuotaShort,
   formatCurrency,
   getDiscountLabel,
   calculatePresetPricing,
 } from './format'
+
+describe('formatCreemPrice', () => {
+  test('formats USD price with $ symbol', () => {
+    expect(formatCreemPrice(9.99, 'USD')).toBe('$9.99')
+  })
+
+  test('formats EUR price with euro symbol', () => {
+    expect(formatCreemPrice(19.5, 'EUR')).toBe('€19.50')
+  })
+
+  test('formats zero price', () => {
+    expect(formatCreemPrice(0, 'USD')).toBe('$0.00')
+  })
+
+  test('formats integer price with two decimals', () => {
+    expect(formatCreemPrice(100, 'EUR')).toBe('€100.00')
+  })
+
+  test('formats large price', () => {
+    expect(formatCreemPrice(1234.5, 'USD')).toBe('$1234.50')
+  })
+})
 
 describe('formatQuotaShort', () => {
   test('returns value as string for small numbers', () => {
