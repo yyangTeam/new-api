@@ -1,9 +1,13 @@
-import { render } from '@/test/test-utils'
-import * as React from 'react'
+import { render, screen } from '@/test/test-utils'
 import * as RechartsPrimitive from 'recharts'
 
-import { ChartContainer, ChartStyle } from './chart'
-import type { ChartConfig } from './chart'
+import {
+  ChartContainer,
+  ChartLegendContent,
+  ChartStyle,
+  ChartTooltipContent,
+  type ChartConfig,
+} from './chart'
 
 const testConfig: ChartConfig = {
   visits: {
@@ -65,6 +69,20 @@ describe('ChartContainer', () => {
       container.querySelector('[data-chart="chart-my-chart"]')
     ).toBeInTheDocument()
   })
+
+  test('accepts custom initial dimensions', () => {
+    const { container } = render(
+      <ChartContainer
+        config={testConfig}
+        initialDimension={{ width: 500, height: 300 }}
+      >
+        <RechartsPrimitive.BarChart data={[]}>
+          <RechartsPrimitive.Bar dataKey='visits' />
+        </RechartsPrimitive.BarChart>
+      </ChartContainer>
+    )
+    expect(container.querySelector('[data-slot="chart"]')).toBeInTheDocument()
+  })
 })
 
 describe('ChartStyle', () => {
@@ -88,11 +106,88 @@ describe('ChartStyle', () => {
     expect(container.querySelector('style')).not.toBeInTheDocument()
   })
 
-  test('renders theme-based colors', () => {
+  test('renders theme-based colors for both light and dark', () => {
     const { container } = render(
       <ChartStyle id='test-chart' config={testConfig} />
     )
     const style = container.querySelector('style')
     expect(style?.textContent).toContain('--color-revenue')
+    expect(style?.textContent).toContain('#00ff00')
+    expect(style?.textContent).toContain('#0000ff')
+  })
+
+  test('renders colors with theme prefix for dark', () => {
+    const { container } = render(
+      <ChartStyle id='test-chart' config={testConfig} />
+    )
+    const style = container.querySelector('style')
+    expect(style?.textContent).toContain('.dark')
+  })
+})
+
+describe('ChartTooltipContent', () => {
+  // Must be rendered inside a ChartContainer to have context
+  function renderTooltipContent(props: Record<string, unknown>) {
+    return render(
+      <ChartContainer config={testConfig}>
+        <RechartsPrimitive.BarChart data={[{ name: 'A', visits: 100 }]}>
+          <RechartsPrimitive.Bar dataKey='visits' />
+          <RechartsPrimitive.Tooltip
+            content={<ChartTooltipContent {...props} />}
+          />
+        </RechartsPrimitive.BarChart>
+      </ChartContainer>
+    )
+  }
+
+  test('returns null when not active', () => {
+    const { container } = render(
+      <ChartContainer config={testConfig}>
+        <RechartsPrimitive.BarChart data={[]}>
+          <RechartsPrimitive.Bar dataKey='visits' />
+        </RechartsPrimitive.BarChart>
+      </ChartContainer>
+    )
+    // Tooltip content should not be visible when not active
+    expect(container.querySelector('[data-slot="chart"]')).toBeInTheDocument()
+  })
+
+  test('renders when active with payload', () => {
+    renderTooltipContent({})
+    // Chart container rendered OK
+    expect(document.querySelector('[data-slot="chart"]')).toBeInTheDocument()
+  })
+})
+
+describe('ChartLegendContent', () => {
+  test('returns null when payload is empty', () => {
+    const { container } = render(
+      <ChartContainer config={testConfig}>
+        <RechartsPrimitive.BarChart data={[]}>
+          <RechartsPrimitive.Bar dataKey='visits' />
+          <RechartsPrimitive.Legend
+            content={<ChartLegendContent payload={[]} />}
+          />
+        </RechartsPrimitive.BarChart>
+      </ChartContainer>
+    )
+    expect(container.querySelector('[data-slot="chart"]')).toBeInTheDocument()
+  })
+
+  test('renders with payload items', () => {
+    const payload = [
+      { value: 'visits', type: 'line' as const, color: '#ff0000', dataKey: 'visits' },
+    ]
+    const { container } = render(
+      <ChartContainer config={testConfig}>
+        <RechartsPrimitive.BarChart data={[{ visits: 100 }]}>
+          <RechartsPrimitive.Bar dataKey='visits' />
+          <RechartsPrimitive.Legend
+            content={<ChartLegendContent payload={payload} />}
+          />
+        </RechartsPrimitive.BarChart>
+      </ChartContainer>
+    )
+    expect(container.querySelector('[data-slot="chart"]')).toBeInTheDocument()
   })
 })

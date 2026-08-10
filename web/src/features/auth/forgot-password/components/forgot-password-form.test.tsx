@@ -1,157 +1,183 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import React from 'react'
+import { toast } from 'sonner'
+
+import { render, screen, userEvent, waitFor } from '@/test/test-utils'
 
 import { ForgotPasswordForm } from './forgot-password-form'
 
-const mockSendPasswordResetEmail = vi.fn()
-const mockUseTurnstile = vi.fn()
-const mockUseCountdown = vi.fn()
+// ---------------------------------------------------------------------------
+// Mock ONLY external dependencies
+// ---------------------------------------------------------------------------
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, opts?: Record<string, unknown>) =>
-      opts ? `${key} ${JSON.stringify(opts)}` : key,
-  }),
+const mockUseStatus = vi.fn()
+const mockSendPasswordResetEmail = vi.fn()
+
+vi.mock('@/hooks/use-status', () => ({
+  useStatus: () => mockUseStatus(),
 }))
 
 vi.mock('sonner', () => ({
-  toast: { error: vi.fn(), success: vi.fn() },
+  toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
 }))
 
 vi.mock('@/features/auth/api', () => ({
-  sendPasswordResetEmail: (...args: unknown[]) => mockSendPasswordResetEmail(...args),
+  sendPasswordResetEmail: (...args: unknown[]) =>
+    mockSendPasswordResetEmail(...args),
 }))
 
-vi.mock('@/features/auth/constants', () => ({
-  forgotPasswordFormSchema: {
-    parse: (data: unknown) => data,
-    safeParse: () => ({ success: true }),
-  },
-  PASSWORD_RESET_COUNTDOWN: 60,
-}))
-
-vi.mock('@hookform/resolvers/zod', () => ({
-  zodResolver: () => async (values: unknown) => ({ values, errors: {} }),
-}))
-
-vi.mock('@/features/auth/hooks/use-turnstile', () => ({
-  useTurnstile: () => mockUseTurnstile(),
-}))
-
-vi.mock('@/hooks/use-countdown', () => ({
-  useCountdown: () => mockUseCountdown(),
-}))
-
-vi.mock('@/lib/utils', () => ({
-  cn: (...args: string[]) => args.filter(Boolean).join(' '),
-}))
-
+// Turnstile is a browser widget, must mock
 vi.mock('@/components/turnstile', () => ({
-  Turnstile: ({ onVerify }: { onVerify: (token: string) => void }) =>
-    React.createElement('div', {
-      'data-testid': 'turnstile',
-      onClick: () => onVerify('tk'),
-    }),
+  Turnstile: () => <div data-testid='turnstile' />,
 }))
 
-vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, disabled, ...props }: React.PropsWithChildren<Record<string, unknown>>) =>
-    React.createElement('button', { disabled, ...props }, children),
-}))
-
-vi.mock('@/components/ui/input', () => ({
-  Input: (props: Record<string, unknown>) =>
-    React.createElement('input', { ...props, 'data-testid': 'email-input' }),
-}))
-
-vi.mock('@/components/ui/form', () => ({
-  Form: ({ children }: React.PropsWithChildren) =>
-    React.createElement('div', null, children),
-  FormControl: ({ children }: React.PropsWithChildren) =>
-    React.createElement('div', null, children),
-  FormField: ({ render }: { render: (opts: { field: Record<string, unknown> }) => React.ReactNode }) =>
-    React.createElement('div', null, render({ field: { value: '', onChange: vi.fn(), name: 'email' } })),
-  FormItem: ({ children }: React.PropsWithChildren) =>
-    React.createElement('div', null, children),
-  FormLabel: ({ children }: React.PropsWithChildren) =>
-    React.createElement('label', null, children),
-  FormMessage: () => null,
-}))
-
-vi.mock('lucide-react', () => ({
-  ArrowRight: () => React.createElement('span', null, '>'),
-  Loader2: () => React.createElement('span', { 'data-testid': 'loader' }),
-}))
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 describe('ForgotPasswordForm', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUseTurnstile.mockReturnValue({
-      isTurnstileEnabled: false,
-      turnstileSiteKey: '',
-      turnstileToken: '',
-      setTurnstileToken: vi.fn(),
-      validateTurnstile: () => true,
-    })
-    mockUseCountdown.mockReturnValue({
-      secondsLeft: 0,
-      isActive: false,
-      start: vi.fn(),
+    mockUseStatus.mockReturnValue({
+      status: {},
+      loading: false,
     })
   })
 
-  it('renders the forgot password form', () => {
-    render(React.createElement(ForgotPasswordForm))
+  it('renders email input and send reset email button', () => {
+    render(<ForgotPasswordForm />)
 
     expect(screen.getByText('Email')).toBeInTheDocument()
-    expect(screen.getByText('Send reset email')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('name@example.com')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /send reset email/i })
+    ).toBeInTheDocument()
   })
 
   it('does not render turnstile when disabled', () => {
-    render(React.createElement(ForgotPasswordForm))
+    render(<ForgotPasswordForm />)
 
     expect(screen.queryByTestId('turnstile')).not.toBeInTheDocument()
   })
 
   it('renders turnstile when enabled', () => {
-    mockUseTurnstile.mockReturnValue({
-      isTurnstileEnabled: true,
-      turnstileSiteKey: 'site-key',
-      turnstileToken: '',
-      setTurnstileToken: vi.fn(),
-      validateTurnstile: () => true,
+    mockUseStatus.mockReturnValue({
+      status: {
+        turnstile_check: true,
+        turnstile_site_key: 'site-key',
+      },
+      loading: false,
     })
 
-    render(React.createElement(ForgotPasswordForm))
+    render(<ForgotPasswordForm />)
 
     expect(screen.getByTestId('turnstile')).toBeInTheDocument()
   })
 
-  it('shows countdown text when active', () => {
-    mockUseCountdown.mockReturnValue({
-      secondsLeft: 45,
-      isActive: true,
-      start: vi.fn(),
+  it('shows validation error for invalid email', async () => {
+    render(<ForgotPasswordForm />)
+    const user = userEvent.setup()
+
+    await user.type(
+      screen.getByPlaceholderText('name@example.com'),
+      'notanemail'
+    )
+    await user.click(
+      screen.getByRole('button', { name: /send reset email/i })
+    )
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Please enter a valid email address')
+      ).toBeInTheDocument()
     })
-
-    render(React.createElement(ForgotPasswordForm))
-
-    // The button text includes "Resend" with interpolation
-    const btn = screen.getByRole('button', { name: /Resend/i })
-    expect(btn).toBeInTheDocument()
   })
 
-  it('disables button during countdown', () => {
-    mockUseCountdown.mockReturnValue({
-      secondsLeft: 30,
-      isActive: true,
-      start: vi.fn(),
+  it('shows validation error for empty email', async () => {
+    render(<ForgotPasswordForm />)
+    const user = userEvent.setup()
+
+    await user.click(
+      screen.getByRole('button', { name: /send reset email/i })
+    )
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Please enter a valid email address')
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('calls sendPasswordResetEmail on valid submission', async () => {
+    mockSendPasswordResetEmail.mockResolvedValue({ success: true })
+
+    render(<ForgotPasswordForm />)
+    const user = userEvent.setup()
+
+    await user.type(
+      screen.getByPlaceholderText('name@example.com'),
+      'test@example.com'
+    )
+    await user.click(
+      screen.getByRole('button', { name: /send reset email/i })
+    )
+
+    await waitFor(() => {
+      expect(mockSendPasswordResetEmail).toHaveBeenCalledWith(
+        'test@example.com',
+        ''
+      )
+    })
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith(
+        'Reset email sent, please check your inbox'
+      )
+    })
+  })
+
+  it('shows error toast when send fails', async () => {
+    mockSendPasswordResetEmail.mockResolvedValue({
+      success: false,
+      message: 'Email not found',
     })
 
-    render(React.createElement(ForgotPasswordForm))
+    render(<ForgotPasswordForm />)
+    const user = userEvent.setup()
 
-    const btn = screen.getByRole('button', { name: /Resend/i })
-    expect(btn).toBeDisabled()
+    await user.type(
+      screen.getByPlaceholderText('name@example.com'),
+      'unknown@example.com'
+    )
+    await user.click(
+      screen.getByRole('button', { name: /send reset email/i })
+    )
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Email not found')
+    })
+  })
+
+  it('disables button during countdown after successful send', async () => {
+    mockSendPasswordResetEmail.mockResolvedValue({ success: true })
+
+    render(<ForgotPasswordForm />)
+    const user = userEvent.setup()
+
+    await user.type(
+      screen.getByPlaceholderText('name@example.com'),
+      'test@example.com'
+    )
+    await user.click(
+      screen.getByRole('button', { name: /send reset email/i })
+    )
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalled()
+    })
+
+    // After successful send, the countdown should start and button text changes
+    await waitFor(() => {
+      const btn = screen.getByRole('button', { name: /resend/i })
+      expect(btn).toBeDisabled()
+    })
   })
 })

@@ -42,11 +42,19 @@ describe('RiskAcknowledgementDialog', () => {
     render(
       <RiskAcknowledgementDialog
         {...defaultProps}
-        items={['Step 1', 'Step 2']}
+        items={['Step 1', 'Step 2', 'Step 3']}
       />
     )
     expect(screen.getByText('Step 1')).toBeInTheDocument()
     expect(screen.getByText('Step 2')).toBeInTheDocument()
+    expect(screen.getByText('Step 3')).toBeInTheDocument()
+  })
+
+  test('does not render items when array is empty', () => {
+    const { container } = render(
+      <RiskAcknowledgementDialog {...defaultProps} items={[]} />
+    )
+    expect(container.querySelector('ol')).not.toBeInTheDocument()
   })
 
   test('renders checklist items', () => {
@@ -72,23 +80,37 @@ describe('RiskAcknowledgementDialog', () => {
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
     expect(confirmBtn).toBeDisabled()
 
-    // Check first checkbox
     const checkboxes = screen.getAllByRole('checkbox')
     await user.click(checkboxes[0])
     expect(confirmBtn).toBeDisabled()
 
-    // Check second checkbox
     await user.click(checkboxes[1])
     expect(confirmBtn).not.toBeDisabled()
+  })
+
+  test('unchecking a checkbox re-disables confirm', async () => {
+    const user = userEvent.setup()
+    render(
+      <RiskAcknowledgementDialog
+        {...defaultProps}
+        checklist={['Check 1']}
+      />
+    )
+
+    const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
+    const checkbox = screen.getByRole('checkbox')
+
+    await user.click(checkbox)
+    expect(confirmBtn).not.toBeDisabled()
+
+    await user.click(checkbox)
+    expect(confirmBtn).toBeDisabled()
   })
 
   test('confirm button is disabled until required text matches', async () => {
     const user = userEvent.setup()
     render(
-      <RiskAcknowledgementDialog
-        {...defaultProps}
-        requiredText='DELETE'
-      />
+      <RiskAcknowledgementDialog {...defaultProps} requiredText='DELETE' />
     )
 
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
@@ -105,10 +127,7 @@ describe('RiskAcknowledgementDialog', () => {
   test('shows mismatch hint when typed text does not match', async () => {
     const user = userEvent.setup()
     render(
-      <RiskAcknowledgementDialog
-        {...defaultProps}
-        requiredText='CONFIRM'
-      />
+      <RiskAcknowledgementDialog {...defaultProps} requiredText='CONFIRM' />
     )
 
     const textarea = screen.getByRole('textbox')
@@ -141,10 +160,7 @@ describe('RiskAcknowledgementDialog', () => {
     const user = userEvent.setup()
     const onConfirm = vi.fn()
     render(
-      <RiskAcknowledgementDialog
-        {...defaultProps}
-        onConfirm={onConfirm}
-      />
+      <RiskAcknowledgementDialog {...defaultProps} onConfirm={onConfirm} />
     )
 
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
@@ -166,10 +182,7 @@ describe('RiskAcknowledgementDialog', () => {
 
   test('renders custom cancel text', () => {
     render(
-      <RiskAcknowledgementDialog
-        {...defaultProps}
-        cancelText='Go Back'
-      />
+      <RiskAcknowledgementDialog {...defaultProps} cancelText='Go Back' />
     )
     expect(screen.getByText('Go Back')).toBeInTheDocument()
   })
@@ -183,10 +196,14 @@ describe('RiskAcknowledgementDialog', () => {
   })
 
   test('disables cancel button when isLoading', () => {
-    render(
-      <RiskAcknowledgementDialog {...defaultProps} isLoading />
-    )
+    render(<RiskAcknowledgementDialog {...defaultProps} isLoading />)
     expect(screen.getByText('Cancel')).toBeDisabled()
+  })
+
+  test('disables confirm button when isLoading even if all conditions met', () => {
+    render(<RiskAcknowledgementDialog {...defaultProps} isLoading />)
+    const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
+    expect(confirmBtn).toBeDisabled()
   })
 
   test('renders custom input prompt', () => {
@@ -214,5 +231,103 @@ describe('RiskAcknowledgementDialog', () => {
     render(<RiskAcknowledgementDialog {...defaultProps} />)
     const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
     expect(confirmBtn).not.toBeDisabled()
+  })
+
+  test('applies custom className', () => {
+    const { baseElement } = render(
+      <RiskAcknowledgementDialog {...defaultProps} className='custom-dialog' />
+    )
+    expect(
+      baseElement.querySelector('.custom-dialog')
+    ).toBeInTheDocument()
+  })
+
+  test('renders non-destructive variant when destructive=false', () => {
+    render(
+      <RiskAcknowledgementDialog {...defaultProps} destructive={false} />
+    )
+    const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
+    expect(confirmBtn).toBeInTheDocument()
+  })
+
+  test('renders description as ReactNode', () => {
+    render(
+      <RiskAcknowledgementDialog
+        {...defaultProps}
+        description={
+          <div>
+            <strong>Warning:</strong> This is dangerous
+          </div>
+        }
+      />
+    )
+    expect(screen.getByText('Warning:')).toBeInTheDocument()
+  })
+
+  test('requiredTextParts renders segmented inputs', async () => {
+    const user = userEvent.setup()
+    render(
+      <RiskAcknowledgementDialog
+        {...defaultProps}
+        requiredTextParts={[
+          { type: 'static', text: 'prefix' },
+          { type: 'input', text: 'DELETE', placeholder: 'type DELETE' },
+          { type: 'static', text: 'suffix' },
+        ]}
+      />
+    )
+
+    // The full combined text should be displayed
+    expect(screen.getByText('prefixDELETEsuffix')).toBeInTheDocument()
+
+    // Static parts should be rendered
+    expect(screen.getByText('prefix')).toBeInTheDocument()
+    expect(screen.getByText('suffix')).toBeInTheDocument()
+
+    // Input part should be a textarea
+    const textarea = screen.getByPlaceholderText('type DELETE')
+    expect(textarea).toBeInTheDocument()
+
+    // Confirm should be disabled
+    const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
+    expect(confirmBtn).toBeDisabled()
+
+    // Type the correct text
+    await user.type(textarea, 'DELETE')
+
+    await waitFor(() => {
+      expect(confirmBtn).not.toBeDisabled()
+    })
+  })
+
+  test('both checklist and requiredText must be satisfied', async () => {
+    const user = userEvent.setup()
+    render(
+      <RiskAcknowledgementDialog
+        {...defaultProps}
+        checklist={['I agree']}
+        requiredText='YES'
+      />
+    )
+
+    const confirmBtn = screen.getByRole('button', { name: 'Confirm' })
+    expect(confirmBtn).toBeDisabled()
+
+    // Check the checkbox but don't type
+    const checkbox = screen.getByRole('checkbox')
+    await user.click(checkbox)
+    expect(confirmBtn).toBeDisabled()
+
+    // Type but leave unchecked
+    await user.click(checkbox) // uncheck
+    const textarea = screen.getByRole('textbox')
+    await user.type(textarea, 'YES')
+    expect(confirmBtn).toBeDisabled()
+
+    // Both satisfied
+    await user.click(checkbox)
+    await waitFor(() => {
+      expect(confirmBtn).not.toBeDisabled()
+    })
   })
 })

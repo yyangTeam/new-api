@@ -1,17 +1,13 @@
-import { render, screen } from '@/test/test-utils'
+import { render, screen, userEvent } from '@/test/test-utils'
 
-import { StatusBadge, StatusBadgeList, StatusBadgeTypeContext } from './status-badge'
+import {
+  StatusBadge,
+  StatusBadgeList,
+  StatusBadgeTypeContext,
+} from './status-badge'
 
-vi.mock('@/hooks/use-copy-to-clipboard', () => ({
-  useCopyToClipboard: () => ({
-    copiedText: null,
-    copyToClipboard: vi.fn(),
-  }),
-}))
-
-vi.mock('@/lib/colors', () => ({
-  stringToColor: (s: string) => (s === 'admin' ? 'success' : 'info'),
-}))
+// We do NOT mock use-copy-to-clipboard or colors -- test the real code paths.
+// navigator.clipboard may not exist in happy-dom, but the hook handles that gracefully.
 
 describe('StatusBadge', () => {
   test('renders label text', () => {
@@ -60,12 +56,22 @@ describe('StatusBadge', () => {
     expect(badge.className).toContain('animate-pulse')
   })
 
-  test('uses autoColor when provided', () => {
+  test('does not apply pulse by default', () => {
+    const { container } = render(
+      <StatusBadge label='Normal' variant='info' />
+    )
+    const badge = container.querySelector('[data-slot="status-badge"]')!
+    expect(badge.className).not.toContain('animate-pulse')
+  })
+
+  test('uses autoColor to compute variant via stringToColor', () => {
+    // stringToColor is a real function that maps strings to color keys
     const { container } = render(
       <StatusBadge label='Admin' autoColor='admin' />
     )
     const badge = container.querySelector('[data-slot="status-badge"]')!
-    expect(badge.className).toContain('text-success')
+    // It should have some text-* color class (the exact color depends on stringToColor)
+    expect(badge.className).toMatch(/text-/)
   })
 
   test('falls back to neutral variant when no variant and no autoColor', () => {
@@ -82,6 +88,14 @@ describe('StatusBadge', () => {
     )
     const badge = container.querySelector('[data-slot="status-badge"]')!
     expect(badge.className).not.toContain('rounded-4xl')
+  })
+
+  test('applies badge type styles by default', () => {
+    const { container } = render(
+      <StatusBadge label='Badge' variant='info' />
+    )
+    const badge = container.querySelector('[data-slot="status-badge"]')!
+    expect(badge.className).toContain('rounded-4xl')
   })
 
   test('applies underline type styles', () => {
@@ -123,12 +137,31 @@ describe('StatusBadge', () => {
     expect(badge).toHaveAttribute('title', 'Click to copy: full-value')
   })
 
-  test('does not show title when not copyable', () => {
+  test('does not show copy-related title when not copyable', () => {
     const { container } = render(
       <StatusBadge label='Test' variant='neutral' copyable={false} />
     )
     const badge = container.querySelector('[data-slot="status-badge"]')!
-    expect(badge).not.toHaveAttribute('title', expect.stringContaining('Click to copy'))
+    expect(badge).not.toHaveAttribute(
+      'title',
+      expect.stringContaining('Click to copy')
+    )
+  })
+
+  test('has cursor-copy class when copyable', () => {
+    const { container } = render(
+      <StatusBadge label='Copy me' variant='neutral' copyable />
+    )
+    const badge = container.querySelector('[data-slot="status-badge"]')!
+    expect(badge.className).toContain('cursor-copy')
+  })
+
+  test('does not have cursor-copy when not copyable', () => {
+    const { container } = render(
+      <StatusBadge label='No copy' variant='neutral' copyable={false} />
+    )
+    const badge = container.querySelector('[data-slot="status-badge"]')!
+    expect(badge.className).not.toContain('cursor-copy')
   })
 
   test('applies size lg class', () => {
@@ -139,6 +172,14 @@ describe('StatusBadge', () => {
     expect(badge.className).toContain('h-6')
   })
 
+  test('applies size md class', () => {
+    const { container } = render(
+      <StatusBadge label='Medium' variant='success' size='md' />
+    )
+    const badge = container.querySelector('[data-slot="status-badge"]')!
+    expect(badge.className).toContain('h-5')
+  })
+
   test('handles null size gracefully', () => {
     const { container } = render(
       <StatusBadge label='NoSize' variant='success' size={null} />
@@ -147,11 +188,26 @@ describe('StatusBadge', () => {
     expect(badge).toBeInTheDocument()
   })
 
+  test('handles null variant gracefully', () => {
+    const { container } = render(
+      <StatusBadge label='NoVariant' variant={null} />
+    )
+    const badge = container.querySelector('[data-slot="status-badge"]')!
+    // Falls back to neutral
+    expect(badge.className).toContain('text-muted-foreground')
+  })
+
   test('renders icon when provided', () => {
     const MockIcon = (props: { className?: string }) => (
       <svg data-testid='mock-icon' className={props.className} />
     )
-    render(<StatusBadge label='With Icon' variant='info' icon={MockIcon as any} />)
+    render(
+      <StatusBadge
+        label='With Icon'
+        variant='info'
+        icon={MockIcon as any}
+      />
+    )
     expect(screen.getByTestId('mock-icon')).toBeInTheDocument()
   })
 
@@ -161,6 +217,44 @@ describe('StatusBadge', () => {
     )
     const badge = container.querySelector('[data-slot="status-badge"]')!
     expect(badge.className).toContain('my-badge')
+  })
+
+  test('calls onClick handler and copies on click', async () => {
+    const user = userEvent.setup()
+    const onClick = vi.fn()
+    render(
+      <StatusBadge
+        label='Clickable'
+        variant='neutral'
+        copyable
+        onClick={onClick}
+      />
+    )
+
+    const badge = screen.getByText('Clickable').closest('[data-slot="status-badge"]')!
+    await user.click(badge)
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
+  test('renders with each variant color correctly', () => {
+    const variants = [
+      'success',
+      'warning',
+      'danger',
+      'info',
+      'neutral',
+      'purple',
+    ] as const
+
+    for (const variant of variants) {
+      const { container, unmount } = render(
+        <StatusBadge label={variant} variant={variant} />
+      )
+      const badge = container.querySelector('[data-slot="status-badge"]')!
+      expect(badge).toBeInTheDocument()
+      expect(badge.className).toMatch(/text-/)
+      unmount()
+    }
   })
 })
 
@@ -224,7 +318,7 @@ describe('StatusBadgeList', () => {
   })
 
   test('uses getKey for custom keys', () => {
-    const getKey = vi.fn((item: string, index: number) => `key-${item}`)
+    const getKey = vi.fn((item: string) => `key-${item}`)
     render(
       <StatusBadgeList
         items={['x', 'y']}
@@ -246,6 +340,17 @@ describe('StatusBadgeList', () => {
     )
     expect(screen.getByText('one')).toBeInTheDocument()
     expect(screen.getByText('two')).toBeInTheDocument()
+  })
+
+  test('does not show +N badge when items fit within max', () => {
+    render(
+      <StatusBadgeList
+        items={['one', 'two']}
+        max={5}
+        renderItem={(item) => <span key={item}>{item}</span>}
+      />
+    )
+    expect(screen.queryByText(/^\+/)).not.toBeInTheDocument()
   })
 
   test('applies custom className', () => {

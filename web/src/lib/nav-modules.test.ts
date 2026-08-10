@@ -3,11 +3,17 @@ import {
   parseHeaderNavModules,
   parseHeaderNavModulesFromStatus,
   getModuleAccessFromStatus,
+  getModuleAccess,
+  getFreshModuleAccess,
+  isSidebarModuleEnabled,
 } from './nav-modules'
 
 vi.mock('@/lib/api', () => ({
   getStatus: vi.fn(),
 }))
+
+import { getStatus } from '@/lib/api'
+const mockGetStatus = getStatus as ReturnType<typeof vi.fn>
 
 describe('parseHeaderNavBoolean', () => {
   test('returns boolean value directly', () => {
@@ -188,5 +194,124 @@ describe('getModuleAccessFromStatus', () => {
   test('returns defaults when module not specified in status', () => {
     const result = getModuleAccessFromStatus({}, 'rankings')
     expect(result).toEqual({ enabled: true, requireAuth: false })
+  })
+})
+
+describe('getModuleAccess', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  test('returns defaults when no status is cached', () => {
+    const result = getModuleAccess('pricing')
+    expect(result).toEqual({ enabled: true, requireAuth: false })
+  })
+
+  test('returns parsed access from cached status', () => {
+    localStorage.setItem('status', JSON.stringify({
+      HeaderNavModules: { pricing: { enabled: false, requireAuth: true } },
+    }))
+    const result = getModuleAccess('pricing')
+    expect(result).toEqual({ enabled: false, requireAuth: true })
+  })
+
+  test('returns defaults when cached status is invalid JSON', () => {
+    localStorage.setItem('status', 'not-json')
+    const result = getModuleAccess('rankings')
+    expect(result).toEqual({ enabled: true, requireAuth: false })
+  })
+})
+
+describe('getFreshModuleAccess', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.clearAllMocks()
+  })
+
+  test('fetches fresh status and returns access', async () => {
+    mockGetStatus.mockResolvedValue({
+      HeaderNavModules: { pricing: { enabled: false, requireAuth: true } },
+    })
+    const result = await getFreshModuleAccess('pricing')
+    expect(result).toEqual({ enabled: false, requireAuth: true })
+  })
+
+  test('caches fetched status to localStorage', async () => {
+    mockGetStatus.mockResolvedValue({
+      HeaderNavModules: { rankings: { enabled: true, requireAuth: true } },
+    })
+    await getFreshModuleAccess('rankings')
+    const cached = JSON.parse(localStorage.getItem('status')!)
+    expect(cached.HeaderNavModules.rankings).toEqual({ enabled: true, requireAuth: true })
+  })
+
+  test('returns disabled access on fetch error', async () => {
+    mockGetStatus.mockRejectedValue(new Error('Network'))
+    const result = await getFreshModuleAccess('pricing')
+    expect(result).toEqual({ enabled: false, requireAuth: true })
+  })
+
+  test('returns defaults when status is null', async () => {
+    mockGetStatus.mockResolvedValue(null)
+    const result = await getFreshModuleAccess('pricing')
+    expect(result).toEqual({ enabled: true, requireAuth: false })
+  })
+})
+
+describe('isSidebarModuleEnabled', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  test('returns true when no status is cached', () => {
+    expect(isSidebarModuleEnabled('chat', 'playground')).toBe(true)
+  })
+
+  test('returns true when SidebarModulesAdmin is not set', () => {
+    localStorage.setItem('status', JSON.stringify({}))
+    expect(isSidebarModuleEnabled('chat', 'playground')).toBe(true)
+  })
+
+  test('returns true when SidebarModulesAdmin is empty string', () => {
+    localStorage.setItem('status', JSON.stringify({ SidebarModulesAdmin: '' }))
+    expect(isSidebarModuleEnabled('chat', 'playground')).toBe(true)
+  })
+
+  test('returns true when section is not in config', () => {
+    localStorage.setItem('status', JSON.stringify({
+      SidebarModulesAdmin: JSON.stringify({ console: { enabled: true } }),
+    }))
+    expect(isSidebarModuleEnabled('chat', 'playground')).toBe(true)
+  })
+
+  test('returns false when section.enabled is false', () => {
+    localStorage.setItem('status', JSON.stringify({
+      SidebarModulesAdmin: JSON.stringify({ chat: { enabled: false, playground: true } }),
+    }))
+    expect(isSidebarModuleEnabled('chat', 'playground')).toBe(false)
+  })
+
+  test('returns false when specific module is false', () => {
+    localStorage.setItem('status', JSON.stringify({
+      SidebarModulesAdmin: JSON.stringify({ chat: { enabled: true, playground: false } }),
+    }))
+    expect(isSidebarModuleEnabled('chat', 'playground')).toBe(false)
+  })
+
+  test('returns true when module is enabled', () => {
+    localStorage.setItem('status', JSON.stringify({
+      SidebarModulesAdmin: JSON.stringify({ chat: { enabled: true, playground: true } }),
+    }))
+    expect(isSidebarModuleEnabled('chat', 'playground')).toBe(true)
+  })
+
+  test('returns true when SidebarModulesAdmin is invalid JSON', () => {
+    localStorage.setItem('status', JSON.stringify({ SidebarModulesAdmin: 'not-json' }))
+    expect(isSidebarModuleEnabled('chat', 'playground')).toBe(true)
+  })
+
+  test('handles whitespace-only SidebarModulesAdmin', () => {
+    localStorage.setItem('status', JSON.stringify({ SidebarModulesAdmin: '   ' }))
+    expect(isSidebarModuleEnabled('chat', 'playground')).toBe(true)
   })
 })

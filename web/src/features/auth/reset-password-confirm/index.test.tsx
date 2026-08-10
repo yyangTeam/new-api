@@ -1,20 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import React from 'react'
+import { toast } from 'sonner'
+
+import { render, screen, userEvent, waitFor } from '@/test/test-utils'
 
 import { ResetPasswordConfirm } from './index'
+
+// ---------------------------------------------------------------------------
+// Mock ONLY external dependencies
+// ---------------------------------------------------------------------------
 
 const mockNavigate = vi.fn()
 const mockApiPost = vi.fn()
 const mockCopyToClipboard = vi.fn()
-const mockCountdown = { secondsLeft: 0, isActive: false, start: vi.fn() }
-
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, opts?: Record<string, unknown>) =>
-      opts ? `${key} ${JSON.stringify(opts)}` : key,
-  }),
-}))
 
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), success: vi.fn() },
@@ -22,6 +19,19 @@ vi.mock('sonner', () => ({
 
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => mockNavigate,
+  Link: ({
+    children,
+    to,
+    ...props
+  }: {
+    children: React.ReactNode
+    to: string
+    [key: string]: unknown
+  }) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
+  ),
 }))
 
 vi.mock('@/lib/api', () => ({
@@ -32,62 +42,62 @@ vi.mock('@/lib/copy-to-clipboard', () => ({
   copyToClipboard: (...args: unknown[]) => mockCopyToClipboard(...args),
 }))
 
-vi.mock('@/hooks/use-countdown', () => ({
-  useCountdown: () => mockCountdown,
+vi.mock('@/hooks/use-system-config', () => ({
+  useSystemConfig: () => ({
+    systemName: 'Test',
+    logo: '/logo.png',
+    loading: false,
+  }),
 }))
 
-vi.mock('../auth-layout', () => ({
-  AuthLayout: ({ children }: React.PropsWithChildren) =>
-    React.createElement('div', { 'data-testid': 'auth-layout' }, children),
-}))
-
-vi.mock('@/components/ui/alert', () => ({
-  Alert: ({ children }: React.PropsWithChildren) =>
-    React.createElement('div', { role: 'alert' }, children),
-  AlertDescription: ({ children }: React.PropsWithChildren) =>
-    React.createElement('p', null, children),
-}))
-
-vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, disabled, ...props }: React.PropsWithChildren<Record<string, unknown>>) =>
-    React.createElement('button', { onClick, disabled, ...props }, children),
-}))
-
-vi.mock('@/components/ui/input', () => ({
-  Input: (props: Record<string, unknown>) =>
-    React.createElement('input', { ...props }),
-}))
-
-vi.mock('@/components/ui/label', () => ({
-  Label: ({ children }: React.PropsWithChildren) =>
-    React.createElement('label', null, children),
-}))
-
-vi.mock('lucide-react', () => ({
-  CheckIcon: () => React.createElement('span', null, 'check'),
-  CopyIcon: () => React.createElement('span', null, 'copy'),
-}))
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 describe('ResetPasswordConfirm', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockCountdown.secondsLeft = 0
-    mockCountdown.isActive = false
     mockCopyToClipboard.mockResolvedValue(true)
   })
 
   it('renders with email and shows confirm button', () => {
-    render(React.createElement(ResetPasswordConfirm, { email: 'test@example.com', token: 'abc' }))
+    render(
+      <ResetPasswordConfirm email='test@example.com' token='abc' />
+    )
 
     expect(screen.getByText('Reset password')).toBeInTheDocument()
-    expect(screen.getByText('auth.resetPasswordConfirm.confirm')).toBeInTheDocument()
+    // Email input should show the provided email
+    const emailInput = screen.getByDisplayValue('test@example.com')
+    expect(emailInput).toBeInTheDocument()
+    expect(emailInput).toBeDisabled()
   })
 
-  it('shows error alert when reset link is invalid', () => {
-    render(React.createElement(ResetPasswordConfirm, {}))
+  it('shows error alert when reset link is invalid (no email/token)', () => {
+    render(<ResetPasswordConfirm />)
 
-    expect(screen.getByRole('alert')).toBeInTheDocument()
-    expect(screen.getByText('Invalid reset link, please request a new password reset.')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Invalid reset link, please request a new password reset.'
+      )
+    ).toBeInTheDocument()
+  })
+
+  it('shows back to login link when no email/token', () => {
+    render(<ResetPasswordConfirm />)
+
+    expect(screen.getByText('Back to login')).toBeInTheDocument()
+  })
+
+  it('navigates to sign-in when back to login is clicked', async () => {
+    render(<ResetPasswordConfirm />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByText('Back to login'))
+
+    expect(mockNavigate).toHaveBeenCalledWith({
+      to: '/sign-in',
+      replace: true,
+    })
   })
 
   it('submits reset request and shows new password', async () => {
@@ -95,10 +105,15 @@ describe('ResetPasswordConfirm', () => {
       data: { success: true, data: 'newpass123' },
     })
 
-    render(React.createElement(ResetPasswordConfirm, { email: 'test@example.com', token: 'tok' }))
+    render(
+      <ResetPasswordConfirm email='test@example.com' token='tok' />
+    )
+    const user = userEvent.setup()
 
-    const confirmBtn = screen.getByText('auth.resetPasswordConfirm.confirm')
-    fireEvent.click(confirmBtn)
+    // Find and click the confirm button
+    const buttons = screen.getAllByRole('button')
+    const confirmBtn = buttons.find((b) => !b.textContent?.includes('Back'))!
+    await user.click(confirmBtn)
 
     await waitFor(() => {
       expect(mockApiPost).toHaveBeenCalledWith(
@@ -107,30 +122,37 @@ describe('ResetPasswordConfirm', () => {
         expect.any(Object)
       )
     })
+
+    // After success, new password should be displayed
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('newpass123')).toBeInTheDocument()
+    })
   })
 
-  it('shows back to login when no email/token', () => {
-    render(React.createElement(ResetPasswordConfirm, {}))
+  it('disables confirm button when no valid reset link', () => {
+    render(<ResetPasswordConfirm />)
 
-    expect(screen.getByText('Back to login')).toBeInTheDocument()
+    // The confirm button should be disabled when no email/token
+    const buttons = screen.getAllByRole('button')
+    const confirmBtn = buttons.find(
+      (b) => !b.textContent?.includes('Back')
+    )!
+    expect(confirmBtn).toBeDisabled()
   })
 
-  it('back to login navigates to sign-in', () => {
-    render(React.createElement(ResetPasswordConfirm, {}))
+  it('renders email label', () => {
+    render(
+      <ResetPasswordConfirm email='test@example.com' token='tok' />
+    )
 
-    const btn = screen.getByText('Back to login')
-    fireEvent.click(btn)
-
-    expect(mockNavigate).toHaveBeenCalledWith({ to: '/sign-in', replace: true })
+    expect(screen.getByText('Email')).toBeInTheDocument()
   })
 
-  it('disables confirm button during countdown', () => {
-    mockCountdown.isActive = true
-    mockCountdown.secondsLeft = 25
+  it('shows placeholder when no email provided', () => {
+    render(<ResetPasswordConfirm />)
 
-    render(React.createElement(ResetPasswordConfirm, { email: 'a@b.com', token: 'x' }))
-
-    const btn = screen.getByRole('button', { name: /retry/i })
-    expect(btn).toBeDisabled()
+    expect(
+      screen.getByPlaceholderText('Waiting for email...')
+    ).toBeInTheDocument()
   })
 })
