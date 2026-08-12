@@ -34,7 +34,11 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: web
-        run: bun run test:coverage
+        # --maxWorkers=1 + 4GB heap: the happy-dom suite leaks retained DOM
+        # state across test files in a long-lived worker; under multi-worker GC
+        # contention one worker exhausts its ~2GB heap and crashes. A single
+        # worker has no GC contention (heap stays flat) and 4GB gives headroom.
+        run: NODE_OPTIONS=--max-old-space-size=4096 bun run test:coverage -- --maxWorkers=1
 
       - name: Upload coverage report
         if: always()
