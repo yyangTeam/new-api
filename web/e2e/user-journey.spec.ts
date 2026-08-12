@@ -109,7 +109,7 @@ test.describe("User journey - registration and setup", () => {
     });
 
     await page.goto("/sign-up");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Fill in the registration form
     const usernameInput = page.getByRole("textbox", { name: /username/i });
@@ -208,7 +208,7 @@ test.describe("User journey - registration and setup", () => {
     });
 
     await page.goto("/sign-in");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     await page.getByRole("textbox", { name: /username/i }).fill("newuser");
     await page.getByLabel(/password/i).fill("SecurePass123!");
@@ -301,7 +301,7 @@ test.describe("User journey - token management", () => {
     });
 
     await page.goto("/keys");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // The page should load without errors
     const body = page.locator("body");
@@ -424,7 +424,7 @@ test.describe("User journey - token management", () => {
     });
 
     await page.goto("/keys");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Look for create token button
     const createBtn = page
@@ -514,7 +514,7 @@ test.describe("User journey - token management", () => {
     });
 
     await page.goto("/playground");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Should load the playground page
     const body = page.locator("body");

@@ -85,7 +85,7 @@ test.describe("Error pages - 404 Not Found", () => {
     });
 
     await page.goto("/this-route-does-not-exist-at-all");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // The app should render a not-found page or redirect to 404
     const body = page.locator("body");
@@ -130,7 +130,7 @@ test.describe("Error pages - 404 Not Found", () => {
     });
 
     await page.goto("/404");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     const body = page.locator("body");
     await expect(body).not.toBeEmpty();
@@ -158,7 +158,7 @@ test.describe("Error pages - 401 Unauthorized redirect", () => {
 
     // Try to access a protected route without authentication
     await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Should redirect to sign-in page
     await page.waitForURL(/\/sign-in/, { timeout: 10_000 });
@@ -175,7 +175,7 @@ test.describe("Error pages - 401 Unauthorized redirect", () => {
     });
 
     await page.goto("/channels");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Should redirect to sign-in
     await page.waitForURL(/\/sign-in/, { timeout: 10_000 });
@@ -192,7 +192,7 @@ test.describe("Error pages - 401 Unauthorized redirect", () => {
     });
 
     await page.goto("/keys");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     await page.waitForURL(/\/sign-in/, { timeout: 10_000 });
     expect(page.url()).toContain("/sign-in");
@@ -233,7 +233,7 @@ test.describe("Error pages - API error handling", () => {
     });
 
     await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // The page should still render (not crash completely)
     const body = page.locator("body");
@@ -267,7 +267,7 @@ test.describe("Error pages - API error handling", () => {
     });
 
     await page.goto("/500");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     const body = page.locator("body");
     await expect(body).not.toBeEmpty();
@@ -309,7 +309,7 @@ test.describe("Error pages - API error handling", () => {
     });
 
     await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // App should handle 401 gracefully - either show error or redirect to login
     await page.waitForTimeout(2000);

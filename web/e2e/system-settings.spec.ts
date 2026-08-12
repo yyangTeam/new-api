@@ -129,7 +129,7 @@ test.describe("System settings", () => {
 
     // /system-settings redirects to /system-settings/site
     await page.goto("/system-settings");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Should redirect to site section
     expect(page.url()).toContain("/system-settings/site");
@@ -149,7 +149,7 @@ test.describe("System settings", () => {
     });
 
     await page.goto("/system-settings/auth");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     expect(page.url()).toContain("/system-settings/auth");
     const body = page.locator("body");
@@ -166,7 +166,7 @@ test.describe("System settings", () => {
     });
 
     await page.goto("/system-settings/billing");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     expect(page.url()).toContain("/system-settings/billing");
     const body = page.locator("body");
@@ -183,7 +183,7 @@ test.describe("System settings", () => {
     });
 
     await page.goto("/system-settings/operations");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     expect(page.url()).toContain("/system-settings/operations");
     const body = page.locator("body");
@@ -200,7 +200,7 @@ test.describe("System settings", () => {
     });
 
     await page.goto("/system-settings/security");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     expect(page.url()).toContain("/system-settings/security");
     const body = page.locator("body");
@@ -223,7 +223,7 @@ test.describe("System settings", () => {
     });
 
     await page.goto("/system-settings/models");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     expect(page.url()).toContain("/system-settings/models");
     const body = page.locator("body");
@@ -274,7 +274,7 @@ test.describe("System settings", () => {
     });
 
     await page.goto("/system-settings/site");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Find a save button and attempt to save
     const saveBtn = page.getByRole("button", { name: /save/i }).first();
@@ -303,7 +303,7 @@ test.describe("System settings", () => {
     });
 
     await page.goto("/system-settings/site");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Try to navigate to another section via links in the page
     const billingLink = page
@@ -311,7 +311,7 @@ test.describe("System settings", () => {
       .first();
     if (await billingLink.isVisible()) {
       await billingLink.click();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
       expect(page.url()).toContain("/system-settings/billing");
     }
   });

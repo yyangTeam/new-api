@@ -123,7 +123,7 @@ test.describe("Channel management", () => {
     });
 
     await page.goto("/channels");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Should display the channel page
     const body = page.locator("body");
@@ -197,7 +197,7 @@ test.describe("Channel management", () => {
     });
 
     await page.goto("/channels");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Find and click the create/add channel button
     const createBtn = page
@@ -252,7 +252,7 @@ test.describe("Channel management", () => {
     });
 
     await page.goto("/channels");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Look for a delete button/icon associated with the first channel
     const deleteBtn = page
@@ -302,7 +302,7 @@ test.describe("Channel management", () => {
     });
 
     await page.goto("/channels");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Look for a test button
     const testBtn = page.getByRole("button", { name: /test/i }).first();
@@ -345,7 +345,7 @@ test.describe("Channel management", () => {
     });
 
     await page.goto("/channels");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     const testBtn = page.getByRole("button", { name: /test/i }).first();
     if (await testBtn.isVisible()) {

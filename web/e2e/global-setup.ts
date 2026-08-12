@@ -9,7 +9,10 @@ import path from "node:path";
  * tests can bypass the login page.
  */
 export default function globalSetup() {
-  const authDir = path.join(__dirname, ".auth");
+  // import.meta.dirname (not __dirname) — Playwright runs this in an ESM
+  // context where __dirname is undefined; the ESM equivalent works in both
+  // Node >=20.11 and Bun.
+  const authDir = path.join(import.meta.dirname, ".auth");
   const authFile = path.join(authDir, "pw-auth-state-classic.json");
 
   if (!fs.existsSync(authDir)) {

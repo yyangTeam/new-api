@@ -54,7 +54,7 @@ test.describe("Sign-in page", () => {
       window.localStorage.setItem("i18nextLng", "en");
     });
     await page.goto("/sign-in");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     await expect(
       page.getByRole("textbox", { name: /username/i }),
@@ -71,7 +71,7 @@ test.describe("Sign-in page", () => {
       window.localStorage.setItem("i18nextLng", "en");
     });
     await page.goto("/sign-in");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     await page.getByRole("button", { name: /sign in/i }).click();
 
@@ -113,7 +113,7 @@ test.describe("Sign-in page", () => {
     });
 
     await page.goto("/sign-in");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     await page.getByRole("textbox", { name: /username/i }).fill("admin");
     await page.getByLabel(/password/i).fill("password123");

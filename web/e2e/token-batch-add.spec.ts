@@ -73,7 +73,7 @@ async function goToTokenPage(page: Page) {
     window.localStorage.setItem("i18nextLng", "en");
   });
   await page.goto("/console/token");
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await expect(page.getByRole("button", { name: "Batch Add Tokens" })).toBeVisible();
 }
 

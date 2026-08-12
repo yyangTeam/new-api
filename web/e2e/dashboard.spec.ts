@@ -98,7 +98,7 @@ test.describe("Dashboard", () => {
     });
 
     await page.goto("/console");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // The page should contain dashboard-related content
     // Check that the page loaded without errors (no blank page)
@@ -116,7 +116,7 @@ test.describe("Dashboard", () => {
     });
 
     await page.goto("/console");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Look for metric-related content (token count, quota, requests)
     // The exact rendering depends on the dashboard component, so we check
@@ -149,7 +149,7 @@ test.describe("Dashboard", () => {
     });
 
     await page.goto("/console");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Navigate to tokens via sidebar link or direct URL
     const tokenLink = page.getByRole("link", { name: /token|key/i }).first();
@@ -160,7 +160,7 @@ test.describe("Dashboard", () => {
     } else {
       // If sidebar is collapsed or uses a different pattern, navigate directly
       await page.goto("/console/token");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
       expect(page.url()).toContain("/console/token");
     }
   });
@@ -183,7 +183,7 @@ test.describe("Dashboard", () => {
     });
 
     await page.goto("/console");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     const channelLink = page
       .getByRole("link", { name: /channel/i })
@@ -194,7 +194,7 @@ test.describe("Dashboard", () => {
       expect(page.url()).toContain("/console/channel");
     } else {
       await page.goto("/console/channel");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
       expect(page.url()).toContain("/console/channel");
     }
   });
