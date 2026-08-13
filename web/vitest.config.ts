@@ -15,26 +15,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom',
-    // happy-dom attempts to fetch iframe/script/css content during renders.
-    // On CI (public network) it really fetches example.com (custom-home /
-    // about iframes, telegram/turnstile scripts), and the retained async
-    // tasks accumulate across files until the worker heap-exhausts (~4GB,
-    // OOM). Blocking these loads (key is `happyDOM` camelCase, NOT
-    // 'happy-dom' — vitest's happy-dom env destructures { happyDOM }) keeps
-    // the worker heap flat.
-    environmentOptions: {
-      happyDOM: {
-        settings: {
-          disableIframePageLoading: true,
-          disableJavaScriptFileLoading: true,
-          disableCSSFileLoading: true,
-          navigation: {
-            disableChildFrameNavigation: true,
-            disableMainFrameNavigation: true,
-          },
-        },
-      },
-    },
     setupFiles: ['./src/test/setup.ts'],
     css: false,
     include: ['src/**/*.test.{ts,tsx}'],
