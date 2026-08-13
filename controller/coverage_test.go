@@ -1,3 +1,5 @@
+// Fork-added coverage tests for the controller package. Appended here per
+// the fork-aware convention (one coverage_test.go per package).
 package controller
 
 import (
