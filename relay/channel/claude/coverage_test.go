@@ -1044,19 +1044,28 @@ func TestClaudeStreamHandler_ClaudeFormatAccumulatesUsage(t *testing.T) {
 // --- DoRequest (delegates to channel.DoApiRequest) -------------------------
 
 func TestDoRequest_DelegatesToChannel(t *testing.T) {
-	// DoRequest just forwards to channel.DoApiRequest(a, ...). We assert the
-	// method is wired (returns without panicking) by invoking with a nil body —
-	// channel.DoApiRequest will surface a normal error, which is the contract.
+	// DoRequest just forwards to channel.DoApiRequest(a, ...). Assert the
+	// method is wired (returns without panicking). Use a local mock upstream
+	// and a non-nil request body: a nil body made http.NewRequest leave
+	// req.Body nil, and on a runner WITH network (CI) the real call to
+	// api.anthropic.com succeeded, reached the body-cleanup path, and
+	// nil-derefed req.Body.Close() — locally (no network) it errored early
+	// so the suite passed. The mock + non-nil body make the test
+	// deterministic and avoid the nil-deref.
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
 	a := &Adaptor{}
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
 		ChannelMeta: &relaycommon.ChannelMeta{
-			ChannelBaseUrl: "https://api.anthropic.com",
-			ApiKey:        "sk-test",
+			ChannelBaseUrl: ts.URL,
+			ApiKey:         "sk-test",
 		},
 		RequestURLPath: "/v1/messages",
 	}
 	require.NotPanics(t, func() {
-		_, _ = a.DoRequest(c, info, nil)
+		_, _ = a.DoRequest(c, info, strings.NewReader("{}"))
 	})
 }
