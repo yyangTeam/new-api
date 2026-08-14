@@ -28,15 +28,28 @@ jobs:
         with:
           bun-version: 1.3.14
 
+      # Pin Node to 22 (LTS). The happy-dom/jsdom suite heap-exhausts at
+      # ~4GB on the runner's DEFAULT Node 24 (V8 13.x retains DOM/window
+      # state across test files in a long-lived worker); Node 22's V8 does
+      # not reproduce the leak (verified locally: node-v22.16.0 stays flat
+      # at ~350MB across the full suite). `bun run` spawns `node` from PATH
+      # for the vitest bin, so setup-node's Node 22 is what runs the tests.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Install dependencies
         working-directory: web
         run: bun install --frozen-lockfile
 
-      - name: Run tests
+      - name: Run tests with coverage
         working-directory: web
-        # Run WITHOUT --coverage to test whether v8 coverage instrumentation
-        # is the worker heap-exhaustion source (CI OOMs at ~4GB with
-        # --coverage; local no-coverage runs stay flat at ~350MB). If this
-        # passes, --coverage (v8) was the leak; restore coverage in a
-        # separate non-blocking step or after the leak is fixed.
-        run: bun run test
+        run: bun run test:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: web/coverage/
+          retention-days: 7
