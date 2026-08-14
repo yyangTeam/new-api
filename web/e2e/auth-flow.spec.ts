@@ -50,7 +50,7 @@ test.describe("Sign-in page", () => {
   test("renders the sign-in form with username and password fields", async ({
     page,
   }) => {
-  await mockBootstrapApis(page)
+  await mockBootstrapApis(page, { authed: false })
     await mockStatusApi(page);
     await page.addInitScript(() => {
       window.localStorage.setItem("i18nextLng", "en");
@@ -68,7 +68,7 @@ test.describe("Sign-in page", () => {
   test("shows validation error when submitting empty form", async ({
     page,
   }) => {
-  await mockBootstrapApis(page)
+  await mockBootstrapApis(page, { authed: false })
     await mockStatusApi(page);
     await page.addInitScript(() => {
       window.localStorage.setItem("i18nextLng", "en");
@@ -89,7 +89,7 @@ test.describe("Sign-in page", () => {
   });
 
   test("successful login redirects to dashboard", async ({ page }) => {
-  await mockBootstrapApis(page)
+  await mockBootstrapApis(page, { authed: false })
     await mockStatusApi(page);
     await page.addInitScript(() => {
       window.localStorage.setItem("i18nextLng", "en");
@@ -124,7 +124,7 @@ test.describe("Sign-in page", () => {
     await page.getByRole("button", { name: /sign in/i }).click();
 
     // Should redirect to console/dashboard after successful login
-    await page.waitForURL(/\/console/, { timeout: 10_000 });
-    expect(page.url()).toContain("/console");
+    await page.waitForURL(/\/dashboard/, { timeout: 10_000 });
+    expect(page.url()).toContain("/dashboard");
   });
 });

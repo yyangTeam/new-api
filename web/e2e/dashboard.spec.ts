@@ -99,7 +99,7 @@ test.describe("Dashboard", () => {
       window.localStorage.setItem("i18nextLng", "en");
     });
 
-    await page.goto("/console");
+    await page.goto("/dashboard");
     await page.waitForLoadState("load");
 
     // The page should contain dashboard-related content
@@ -108,7 +108,7 @@ test.describe("Dashboard", () => {
     await expect(body).not.toBeEmpty();
 
     // Should be on a console route
-    expect(page.url()).toContain("/console");
+    expect(page.url()).toContain("/dashboard");
   });
 
   test("displays user metrics from the dashboard API", async ({ page }) => {
@@ -117,7 +117,7 @@ test.describe("Dashboard", () => {
       window.localStorage.setItem("i18nextLng", "en");
     });
 
-    await page.goto("/console");
+    await page.goto("/dashboard");
     await page.waitForLoadState("load");
 
     // Look for metric-related content (token count, quota, requests)
@@ -150,20 +150,20 @@ test.describe("Dashboard", () => {
       window.localStorage.setItem("i18nextLng", "en");
     });
 
-    await page.goto("/console");
+    await page.goto("/dashboard");
     await page.waitForLoadState("load");
 
     // Navigate to tokens via sidebar link or direct URL
     const tokenLink = page.getByRole("link", { name: /token|key/i }).first();
     if (await tokenLink.isVisible()) {
       await tokenLink.click();
-      await page.waitForURL(/\/console\/token/, { timeout: 10_000 });
-      expect(page.url()).toContain("/console/token");
+      await page.waitForURL(/\/keys/, { timeout: 10_000 });
+      expect(page.url()).toContain("/keys");
     } else {
       // If sidebar is collapsed or uses a different pattern, navigate directly
-      await page.goto("/console/token");
+      await page.goto("/keys");
       await page.waitForLoadState("load");
-      expect(page.url()).toContain("/console/token");
+      expect(page.url()).toContain("/keys");
     }
   });
 
@@ -184,7 +184,7 @@ test.describe("Dashboard", () => {
       window.localStorage.setItem("i18nextLng", "en");
     });
 
-    await page.goto("/console");
+    await page.goto("/dashboard");
     await page.waitForLoadState("load");
 
     const channelLink = page
@@ -192,12 +192,12 @@ test.describe("Dashboard", () => {
       .first();
     if (await channelLink.isVisible()) {
       await channelLink.click();
-      await page.waitForURL(/\/console\/channel/, { timeout: 10_000 });
-      expect(page.url()).toContain("/console/channel");
+      await page.waitForURL(/\/channels/, { timeout: 10_000 });
+      expect(page.url()).toContain("/channels");
     } else {
-      await page.goto("/console/channel");
+      await page.goto("/channels");
       await page.waitForLoadState("load");
-      expect(page.url()).toContain("/console/channel");
+      expect(page.url()).toContain("/channels");
     }
   });
 });

@@ -153,7 +153,7 @@ test.describe("Error pages - 401 Unauthorized redirect", () => {
   test("unauthenticated user accessing protected route redirects to sign-in", async ({
     page,
   }) => {
-  await mockBootstrapApis(page)
+  await mockBootstrapApis(page, { authed: false })
     await mockStatusApi(page);
 
     await page.addInitScript(() => {
@@ -172,7 +172,7 @@ test.describe("Error pages - 401 Unauthorized redirect", () => {
   test("unauthenticated user accessing channels page redirects to sign-in", async ({
     page,
   }) => {
-  await mockBootstrapApis(page)
+  await mockBootstrapApis(page, { authed: false })
     await mockStatusApi(page);
 
     await page.addInitScript(() => {
@@ -190,7 +190,7 @@ test.describe("Error pages - 401 Unauthorized redirect", () => {
   test("unauthenticated user accessing keys page redirects to sign-in", async ({
     page,
   }) => {
-  await mockBootstrapApis(page)
+  await mockBootstrapApis(page, { authed: false })
     await mockStatusApi(page);
 
     await page.addInitScript(() => {

@@ -143,7 +143,7 @@ test.describe("User journey - registration and setup", () => {
       const url = page.url();
       const isRedirected =
         url.includes("/dashboard") ||
-        url.includes("/console") ||
+        url.includes("/dashboard") ||
         url.includes("/sign-in");
       expect(isRedirected).toBe(true);
     }
@@ -220,7 +220,7 @@ test.describe("User journey - registration and setup", () => {
     // Should redirect to dashboard
     await page.waitForURL(/\/(console|dashboard)/, { timeout: 10_000 });
     const url = page.url();
-    expect(url.includes("/console") || url.includes("/dashboard")).toBe(true);
+    expect(url.includes("/dashboard") || url.includes("/dashboard")).toBe(true);
   });
 });
 

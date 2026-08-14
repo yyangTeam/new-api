@@ -75,7 +75,7 @@ async function goToTokenPage(page: Page) {
   await page.addInitScript(() => {
     window.localStorage.setItem("i18nextLng", "en");
   });
-  await page.goto("/console/token");
+  await page.goto("/keys");
   await page.waitForLoadState("load");
   await expect(page.getByRole("button", { name: "Batch Add Tokens" })).toBeVisible();
 }
