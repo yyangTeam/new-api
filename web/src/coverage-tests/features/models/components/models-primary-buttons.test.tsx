@@ -1,3 +1,4 @@
+import { fireEvent } from '@testing-library/react'
 import { render, screen, userEvent } from '@/test/test-utils'
 
 import { ModelsProvider } from '@/features/models/components/models-provider'
@@ -37,15 +38,19 @@ describe('ModelsPrimaryButtons', () => {
     const user = userEvent.setup()
     renderInProvider()
 
-    // Click the more button (second button)
+    // Click the more button (last button). Base UI's DropdownMenu trigger
+    // opens on pointerdown; under jsdom userEvent.click's synthetic pointer
+    // events don't activate Base UI's handler, so dispatch pointerdown+click
+    // directly and await the async menu render via findByText.
     const buttons = screen.getAllByRole('button')
     const moreButton = buttons[buttons.length - 1]
-    await user.click(moreButton)
+    fireEvent.pointerDown(moreButton)
+    fireEvent.click(moreButton)
 
     // Menu items should be visible
-    expect(screen.getByText('Missing Models')).toBeInTheDocument()
-    expect(screen.getByText('Sync Upstream')).toBeInTheDocument()
-    expect(screen.getByText('Prefill Groups')).toBeInTheDocument()
-    expect(screen.getByText('Manage Vendors')).toBeInTheDocument()
+    expect(await screen.findByText('Missing Models')).toBeInTheDocument()
+    expect(await screen.findByText('Sync Upstream')).toBeInTheDocument()
+    expect(await screen.findByText('Prefill Groups')).toBeInTheDocument()
+    expect(await screen.findByText('Manage Vendors')).toBeInTheDocument()
   })
 })

@@ -107,7 +107,11 @@ describe('useUpdateOption', () => {
 
   it('invalidates status query for status-related keys', async () => {
     mockUpdateSystemOption.mockResolvedValue({ success: true, message: '' })
-    const removeItemSpy = vi.spyOn(window.localStorage, 'removeItem')
+    // Spy on Storage.prototype.removeItem (not the window.localStorage
+    // instance): under jsdom the instance spy doesn't intercept calls the
+    // hook makes via window.localStorage.removeItem, so removeItem('status')
+    // bypassed it. Spying at the prototype level catches all instances.
+    const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem')
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
