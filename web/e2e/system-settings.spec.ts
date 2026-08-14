@@ -69,6 +69,7 @@ async function mockBaseApis(page: Page) {
 }
 
 function mockSettingsApis(page: Page) {
+  // Sub-path option endpoints (e.g. /api/option/rest_model_ratio).
   return page.route("**/api/option/**", async (route) => {
     await route.fulfill({
       json: {
@@ -80,26 +81,38 @@ function mockSettingsApis(page: Page) {
   });
 }
 
+// The app calls GET/PUT /api/option/ (trailing slash) and expects `data` to be
+// an array of { key, value } pairs (SystemOptionsResponse.data = SystemOption[]).
+// A flat object here triggers `options.forEach is not a function` in
+// getOptionValue and renders a 500 error boundary.
+const OPTION_DATA = [
+  { key: "SystemName", value: "New API" },
+  { key: "Logo", value: "/logo.png" },
+  { key: "Footer", value: "" },
+  { key: "About", value: "" },
+  { key: "HomePageContent", value: "" },
+  { key: "ServerAddress", value: "http://localhost:3000" },
+  { key: "Notice", value: "" },
+  { key: "RegisterEnabled", value: "true" },
+  { key: "PasswordLoginEnabled", value: "true" },
+  { key: "EmailVerificationEnabled", value: "false" },
+  { key: "GitHubOAuthEnabled", value: "false" },
+  { key: "TurnstileCheckEnabled", value: "false" },
+  { key: "QuotaPerUnit", value: "500000" },
+  { key: "DisplayInCurrency", value: "true" },
+  { key: "HeaderNavModules", value: "" },
+  { key: "SidebarModulesAdmin", value: "" },
+];
+
 function mockSettingsGetApis(page: Page) {
-  return page.route("**/api/option", async (route) => {
+  // Match /api/option and /api/option/ (the app uses the trailing-slash form).
+  return page.route(/.*\/api\/option\/?$/, async (route) => {
     if (route.request().method() === "GET") {
       await route.fulfill({
         json: {
           success: true,
           message: "",
-          data: {
-            SystemName: "New API",
-            Logo: "/logo.png",
-            FooterHTML: "",
-            ServerAddress: "http://localhost:3000",
-            RegisterEnabled: "true",
-            PasswordLoginEnabled: "true",
-            EmailVerificationEnabled: "false",
-            GitHubOAuthEnabled: "false",
-            TurnstileCheckEnabled: "false",
-            QuotaPerUnit: "500000",
-            DisplayInCurrency: "true",
-          },
+          data: OPTION_DATA,
         },
       });
     } else if (route.request().method() === "PUT") {
@@ -129,16 +142,20 @@ test.describe("System settings", () => {
       window.localStorage.setItem("i18nextLng", "en");
     });
 
-    // /system-settings redirects to /system-settings/site
+    // /system-settings redirects to /system-settings/site (and then to the
+    // default site section, system-info). TanStack Router resolves the
+    // beforeLoad redirect after hydration, so wait for the URL rather than the
+    // initial "load" event (which fires before the client redirect resolves).
     await page.goto("/system-settings");
-    await page.waitForLoadState("load");
+    await page.waitForURL(/\/system-settings\/site\//, { timeout: 15_000 });
 
-    // Should redirect to site section
+    // Should be on a site section route
     expect(page.url()).toContain("/system-settings/site");
 
-    // Page should load successfully
-    const body = page.locator("body");
-    await expect(body).not.toBeEmpty();
+    // Page should load the settings UI rather than an error boundary
+    await expect(
+      page.getByRole("heading", { name: /system information/i }),
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test("navigates to auth settings section", async ({ page }) => {

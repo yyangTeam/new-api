@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { mockBootstrapApis } from "./bootstrap"
+import { buildAuthBundle, mockBootstrapApis } from "./bootstrap"
 
 /**
  * Full user journey E2E tests.
@@ -150,20 +150,18 @@ test.describe("User journey - registration and setup", () => {
   });
 
   test("logs in with the new account", async ({ page }) => {
-  await mockBootstrapApis(page)
+  await mockBootstrapApis(page, { authed: false })
     await mockStatusApi(page);
 
-    await page.route("**/api/user/login", async (route) => {
+    // Mock the login API — must return a valid AuthBundle (see buildAuthBundle).
+    // The app POSTs /api/user/login?turnstile=<token>, so the glob must allow
+    // the query string (`**/api/user/login` alone does not match `?turnstile=`).
+    await page.route("**/api/user/login*", async (route) => {
       await route.fulfill({
         json: {
           success: true,
           message: "Login successful",
-          data: {
-            token:
-              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoxLCJleHAiOjk5OTk5OTk5OTl9.fake-sig",
-            username: "newuser",
-            role: 1,
-          },
+          data: buildAuthBundle({ id: 2, username: "newuser", role: 1 }),
         },
       });
     });

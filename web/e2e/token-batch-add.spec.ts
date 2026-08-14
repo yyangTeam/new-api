@@ -86,7 +86,7 @@ async function openBatchAddModal(page: Page) {
   await expect(page.getByText("Token Name List", { exact: true })).toBeVisible();
   await expect(
     page.getByText(
-      /Supports one delimiter type per batch: comma .*Chinese comma/,
+      /Supports one delimiter type per batch: comma \(English or Chinese\), semicolon \(English or Chinese\), or whitespace/,
     ),
   ).toBeVisible();
 }
@@ -103,9 +103,9 @@ test.describe("Batch add tokens (classic frontend)", () => {
 
     await openBatchAddModal(page);
 
-    await expect(page.getByText("Set token names and shared configuration")).toBeVisible();
+    await expect(page.getByText("Create multiple API keys by entering a list of names with shared configuration.")).toBeVisible();
     await expect(page.getByText("Quota Settings")).toBeVisible();
-    await expect(page.getByText("Access Limits", { exact: true })).toBeVisible();
+    await expect(page.getByText("Basic Information", { exact: true })).toBeVisible();
     await expect(page.getByText("Please enter token name list")).toBeVisible();
   });
 
@@ -140,22 +140,22 @@ test.describe("Batch add tokens (classic frontend)", () => {
 
     await fillTokenNames(page, "mixed-a, mixed-b; mixed-c");
     await expect(page.getByText("Please use only one delimiter")).toBeVisible();
-    await page.getByRole("button", { name: "Submit" }).click();
+    await expect(page.getByRole("button", { name: "Save changes" })).toBeDisabled();
     await expect.poll(() => submittedBodies.length).toBe(0);
 
     await fillTokenNames(page, "empty-a,,empty-b");
     await expect(page.getByText("Token name cannot be empty")).toBeVisible();
-    await page.getByRole("button", { name: "Submit" }).click();
+    await expect(page.getByRole("button", { name: "Save changes" })).toBeDisabled();
     await expect.poll(() => submittedBodies.length).toBe(0);
 
     await fillTokenNames(page, "dup-a dup-a");
     await expect(page.getByText("Duplicate names exist in this batch")).toBeVisible();
-    await page.getByRole("button", { name: "Submit" }).click();
+    await expect(page.getByRole("button", { name: "Save changes" })).toBeDisabled();
     await expect.poll(() => submittedBodies.length).toBe(0);
 
     await fillTokenNames(page, "x".repeat(51));
     await expect(page.getByText("Token name cannot exceed 50 characters")).toBeVisible();
-    await page.getByRole("button", { name: "Submit" }).click();
+    await expect(page.getByRole("button", { name: "Save changes" })).toBeDisabled();
     await expect.poll(() => submittedBodies.length).toBe(0);
 
     await fillTokenNames(
@@ -163,7 +163,7 @@ test.describe("Batch add tokens (classic frontend)", () => {
       Array.from({ length: 51 }, (_, index) => `too-many-${index}`).join(" "),
     );
     await expect(page.getByText("Token count must be 1-50")).toBeVisible();
-    await page.getByRole("button", { name: "Submit" }).click();
+    await expect(page.getByRole("button", { name: "Save changes" })).toBeDisabled();
     await expect.poll(() => submittedBodies.length).toBe(0);
   });
 
@@ -194,7 +194,13 @@ test.describe("Batch add tokens (classic frontend)", () => {
 
     await fillTokenNames(page, "api-a，api-b，api-c");
     await page.getByRole("button", { name: "Never expires" }).click();
-    await page.getByRole("button", { name: "Submit" }).click();
+    // The TanStack Router Devtools floating button (dev-only) overlaps the
+    // drawer footer in the viewport, so a coordinate-based click on the Save
+    // button hits the overlay instead. Submit the form directly: this fires
+    // the same React onSubmit -> form.handleSubmit(onSubmit) path.
+    await page.locator("#batch-add-form").evaluate((form: HTMLFormElement) =>
+      form.requestSubmit(),
+    );
 
     await expect.poll(() => submittedBodies.length).toBe(1);
     expect(submittedBodies[0]).toMatchObject({

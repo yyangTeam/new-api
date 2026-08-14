@@ -1,12 +1,15 @@
 name: E2E Tests
 
 on:
-  # E2E is pre-existing-broken: the app does not render in headless chromium
-  # (React never mounts — root stays empty, no console errors). global-setup
-  # and networkidle were fixed (2309975d) but the render issue remains and
-  # needs browser-devtools-level debugging. To avoid blocking dev pushes on
-  # a known-broken suite, E2E runs only on pull requests, not on push to
-  # dev. Re-add the push trigger once the headless render issue is resolved.
+  push:
+    branches: ['**']
+    paths:
+      - '.github/workflows/e2e-tests.yml'
+      - 'web/bun.lock'
+      - 'web/package.json'
+      - 'web/playwright.config.ts'
+      - 'web/e2e/**'
+      - 'web/src/**'
   pull_request:
     paths:
       - '.github/workflows/e2e-tests.yml'

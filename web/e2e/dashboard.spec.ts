@@ -153,18 +153,13 @@ test.describe("Dashboard", () => {
     await page.goto("/dashboard");
     await page.waitForLoadState("load");
 
-    // Navigate to tokens via sidebar link or direct URL
-    const tokenLink = page.getByRole("link", { name: /token|key/i }).first();
-    if (await tokenLink.isVisible()) {
-      await tokenLink.click();
-      await page.waitForURL(/\/keys/, { timeout: 10_000 });
-      expect(page.url()).toContain("/keys");
-    } else {
-      // If sidebar is collapsed or uses a different pattern, navigate directly
-      await page.goto("/keys");
-      await page.waitForLoadState("load");
-      expect(page.url()).toContain("/keys");
-    }
+    // The sidebar renders a nav link labeled "API Keys" (i18n key) pointing
+    // to /keys. Click it and assert the router lands on /keys.
+    const tokenLink = page.getByRole("link", { name: /^API Keys$/ }).first();
+    await expect(tokenLink).toBeVisible({ timeout: 10_000 });
+    await tokenLink.click();
+    await page.waitForURL(/\/keys/, { timeout: 10_000 });
+    expect(page.url()).toContain("/keys");
   });
 
   test("sidebar navigation to channel page works", async ({ page }) => {
@@ -187,17 +182,13 @@ test.describe("Dashboard", () => {
     await page.goto("/dashboard");
     await page.waitForLoadState("load");
 
-    const channelLink = page
-      .getByRole("link", { name: /channel/i })
-      .first();
-    if (await channelLink.isVisible()) {
-      await channelLink.click();
-      await page.waitForURL(/\/channels/, { timeout: 10_000 });
-      expect(page.url()).toContain("/channels");
-    } else {
-      await page.goto("/channels");
-      await page.waitForLoadState("load");
-      expect(page.url()).toContain("/channels");
-    }
+    // The sidebar renders a nav link labeled "Channels" (i18n key, under the
+    // Admin group, visible because the mocked user has role 100) pointing to
+    // /channels. Click it and assert the router lands on /channels.
+    const channelLink = page.getByRole("link", { name: /^Channels$/ }).first();
+    await expect(channelLink).toBeVisible({ timeout: 10_000 });
+    await channelLink.click();
+    await page.waitForURL(/\/channels/, { timeout: 10_000 });
+    expect(page.url()).toContain("/channels");
   });
 });

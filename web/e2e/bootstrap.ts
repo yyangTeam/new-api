@@ -19,6 +19,47 @@ import type { Page } from "@playwright/test";
  * Call this at the start of each spec's mock helper, before the spec's own
  * page.route() calls, so the spec's mocks take precedence for shared URLs.
  */
+/**
+ * Builds a valid AuthBundle (the shape returned by /api/user/auth/refresh and
+ * /api/user/login). The sign-in form validates the login response with
+ * isAuthBundle(): it requires access_token/token_type/access_expires_at, a
+ * user {id,username,role}, and a session {sid,current,login_method,ip,
+ * user_agent,created_at,last_active_at,expires_at}. Returning {token,
+ * username, role} (the legacy shape) fails that check and the form throws
+ * "Login failed" instead of redirecting.
+ */
+export function buildAuthBundle(user: {
+  id: number
+  username: string
+  role: number
+}) {
+  return {
+    access_token: `e2e-${user.username}-access-token`,
+    token_type: "Bearer",
+    access_expires_at: 9999999999,
+    user: {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      status: 1,
+      group: "default",
+      quota: 0,
+      used_quota: 0,
+      request_count: 0,
+    },
+    session: {
+      sid: `e2e-session-${user.id}`,
+      current: true,
+      login_method: "password",
+      ip: "127.0.0.1",
+      user_agent: "Playwright",
+      created_at: 0,
+      last_active_at: 0,
+      expires_at: 9999999999,
+    },
+  }
+}
+
 export async function mockBootstrapApis(
   page: Page,
   opts: { authed?: boolean } = {},
@@ -36,31 +77,7 @@ export async function mockBootstrapApis(
             json: {
               success: true,
               message: "",
-              data: {
-                access_token: "e2e-admin-access-token",
-                token_type: "Bearer",
-                access_expires_at: 9999999999,
-                user: {
-                  id: 1,
-                  username: "admin",
-                  role: 100,
-                  status: 1,
-                  group: "default",
-                  quota: 0,
-                  used_quota: 0,
-                  request_count: 0,
-                },
-                session: {
-                  sid: "e2e-session-1",
-                  current: true,
-                  login_method: "password",
-                  ip: "127.0.0.1",
-                  user_agent: "Playwright",
-                  created_at: 0,
-                  last_active_at: 0,
-                  expires_at: 9999999999,
-                },
-              },
+              data: buildAuthBundle({ id: 1, username: "admin", role: 100 }),
             },
           }
         : { json: { success: false, message: "no session" } },
