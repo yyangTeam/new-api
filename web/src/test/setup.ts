@@ -32,4 +32,21 @@ globalThis.ResizeObserver = class ResizeObserver {
   disconnect() {}
 }
 
+// jsdom (unlike happy-dom) does not ship IntersectionObserver or
+// Element.prototype.scrollIntoView; components that use them (carousel,
+// combobox, command menus) throw without these mocks.
+globalThis.IntersectionObserver = class IntersectionObserver {
+  root = null
+  rootMargin = ''
+  thresholds = []
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return []
+  }
+}
+Element.prototype.scrollIntoView = function scrollIntoView() {}
+
+
 afterEach(cleanup)
