@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { mockBootstrapApis } from "./bootstrap"
 
 /**
  * Full user journey E2E tests.
@@ -47,6 +48,7 @@ test.describe("User journey - registration and setup", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test("registers a new account successfully", async ({ page }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
 
     // Mock the register API
@@ -148,6 +150,7 @@ test.describe("User journey - registration and setup", () => {
   });
 
   test("logs in with the new account", async ({ page }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
 
     await page.route("**/api/user/login", async (route) => {
@@ -211,7 +214,7 @@ test.describe("User journey - registration and setup", () => {
     await page.waitForLoadState("load");
 
     await page.getByRole("textbox", { name: /username/i }).fill("newuser");
-    await page.getByLabel(/password/i).fill("SecurePass123!");
+    await page.getByRole("textbox", { name: /password/i }).fill("SecurePass123!");
     await page.getByRole("button", { name: /sign in/i }).click();
 
     // Should redirect to dashboard
@@ -226,6 +229,7 @@ test.describe("User journey - token management", () => {
   test.use({ storageState: authStatePath });
 
   test("navigates to tokens page and sees empty state", async ({ page }) => {
+  await mockBootstrapApis(page)
     await page.route("**/api/status", async (route) => {
       await route.fulfill({
         json: {
@@ -310,6 +314,7 @@ test.describe("User journey - token management", () => {
   });
 
   test("creates a new token and copies the key", async ({ page }) => {
+  await mockBootstrapApis(page)
     await page.route("**/api/status", async (route) => {
       await route.fulfill({
         json: {
@@ -449,6 +454,7 @@ test.describe("User journey - token management", () => {
   });
 
   test("navigates to playground page", async ({ page }) => {
+  await mockBootstrapApis(page)
     await page.route("**/api/status", async (route) => {
       await route.fulfill({
         json: {

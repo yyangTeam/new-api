@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { mockBootstrapApis } from "./bootstrap"
 
 /**
  * Auth flow E2E tests.
@@ -49,6 +50,7 @@ test.describe("Sign-in page", () => {
   test("renders the sign-in form with username and password fields", async ({
     page,
   }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
     await page.addInitScript(() => {
       window.localStorage.setItem("i18nextLng", "en");
@@ -59,13 +61,14 @@ test.describe("Sign-in page", () => {
     await expect(
       page.getByRole("textbox", { name: /username/i }),
     ).toBeVisible();
-    await expect(page.getByLabel(/password/i)).toBeVisible();
+    await expect(page.getByRole("textbox", { name: /password/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
   });
 
   test("shows validation error when submitting empty form", async ({
     page,
   }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
     await page.addInitScript(() => {
       window.localStorage.setItem("i18nextLng", "en");
@@ -86,6 +89,7 @@ test.describe("Sign-in page", () => {
   });
 
   test("successful login redirects to dashboard", async ({ page }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
     await page.addInitScript(() => {
       window.localStorage.setItem("i18nextLng", "en");
@@ -116,7 +120,7 @@ test.describe("Sign-in page", () => {
     await page.waitForLoadState("load");
 
     await page.getByRole("textbox", { name: /username/i }).fill("admin");
-    await page.getByLabel(/password/i).fill("password123");
+    await page.getByRole("textbox", { name: /password/i }).fill("password123");
     await page.getByRole("button", { name: /sign in/i }).click();
 
     // Should redirect to console/dashboard after successful login

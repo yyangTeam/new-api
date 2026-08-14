@@ -1,8 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
+import { mockBootstrapApis } from "./bootstrap"
 
 const authStatePath = "e2e/.auth/pw-auth-state-classic.json";
 
 async function mockTokenPageApis(page: Page) {
+  await mockBootstrapApis(page)
   await page.route("**/api/status", async (route) => {
     await route.fulfill({
       json: {
@@ -68,6 +70,7 @@ async function mockTokenPageApis(page: Page) {
 }
 
 async function goToTokenPage(page: Page) {
+  await mockBootstrapApis(page)
   await mockTokenPageApis(page);
   await page.addInitScript(() => {
     window.localStorage.setItem("i18nextLng", "en");
@@ -78,6 +81,7 @@ async function goToTokenPage(page: Page) {
 }
 
 async function openBatchAddModal(page: Page) {
+  await mockBootstrapApis(page)
   await page.getByRole("button", { name: "Batch Add Tokens" }).click();
   await expect(page.getByText("Token Name List", { exact: true })).toBeVisible();
   await expect(

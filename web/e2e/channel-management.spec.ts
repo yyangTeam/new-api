@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { mockBootstrapApis } from "./bootstrap"
 
 const authStatePath = "e2e/.auth/pw-auth-state-classic.json";
 
@@ -10,6 +11,7 @@ const authStatePath = "e2e/.auth/pw-auth-state-classic.json";
  */
 
 async function mockBaseApis(page: Page) {
+  await mockBootstrapApis(page)
   await page.route("**/api/status", async (route) => {
     await route.fulfill({
       json: {

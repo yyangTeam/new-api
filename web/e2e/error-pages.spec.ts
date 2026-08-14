@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { mockBootstrapApis } from "./bootstrap"
 
 const authStatePath = "e2e/.auth/pw-auth-state-classic.json";
 
@@ -49,6 +50,7 @@ test.describe("Error pages - 404 Not Found", () => {
   test.use({ storageState: authStatePath });
 
   test("displays 404 page for non-existent route", async ({ page }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
 
     await page.route("**/api/user/self", async (route) => {
@@ -104,6 +106,7 @@ test.describe("Error pages - 404 Not Found", () => {
   test("directly accessing /404 shows the not found page", async ({
     page,
   }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
 
     await page.route("**/api/user/self", async (route) => {
@@ -150,6 +153,7 @@ test.describe("Error pages - 401 Unauthorized redirect", () => {
   test("unauthenticated user accessing protected route redirects to sign-in", async ({
     page,
   }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
 
     await page.addInitScript(() => {
@@ -168,6 +172,7 @@ test.describe("Error pages - 401 Unauthorized redirect", () => {
   test("unauthenticated user accessing channels page redirects to sign-in", async ({
     page,
   }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
 
     await page.addInitScript(() => {
@@ -185,6 +190,7 @@ test.describe("Error pages - 401 Unauthorized redirect", () => {
   test("unauthenticated user accessing keys page redirects to sign-in", async ({
     page,
   }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
 
     await page.addInitScript(() => {
@@ -205,6 +211,7 @@ test.describe("Error pages - API error handling", () => {
   test("shows error when API returns 500 on user self endpoint", async ({
     page,
   }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
 
     // Mock user/self to return 500
@@ -241,6 +248,7 @@ test.describe("Error pages - API error handling", () => {
   });
 
   test("displays 500 error page when accessed directly", async ({ page }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
 
     await page.route("**/api/user/self", async (route) => {
@@ -281,6 +289,7 @@ test.describe("Error pages - API error handling", () => {
   });
 
   test("handles API returning 401 by clearing session", async ({ page }) => {
+  await mockBootstrapApis(page)
     await mockStatusApi(page);
 
     // Mock user/self to return 401 (token expired)
