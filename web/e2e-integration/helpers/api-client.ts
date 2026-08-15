@@ -14,6 +14,10 @@ export class ApiClient {
     this.auth = auth;
   }
 
+  getToken(): string {
+    return this.auth?.token || "";
+  }
+
   private headers(): Record<string, string> {
     const h: Record<string, string> = { "Content-Type": "application/json" };
     if (this.auth) {
