@@ -48,5 +48,21 @@ globalThis.IntersectionObserver = class IntersectionObserver {
 }
 Element.prototype.scrollIntoView = function scrollIntoView() {}
 
+// Default fetch stub: components that fetch on mount (e.g. turnstile,
+// external resources) would hit real network on CI (which has internet),
+// accumulating response data until the worker heap-exhausts (>8GB).
+// Locally (no external network) these fail fast so the leak doesn't
+// manifest. Stubbing globalThis.fetch to a benign 200 Response prevents
+// any real network calls. Tests that assert on fetch MUST install their
+// own vi.spyOn(globalThis, 'fetch') or vi.mock — they override this stub.
+globalThis.fetch = vi.fn(() =>
+  Promise.resolve(
+    new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }),
+  ),
+) as typeof fetch
+
 
 afterEach(cleanup)
