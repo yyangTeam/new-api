@@ -65,4 +65,10 @@ globalThis.fetch = vi.fn(() =>
 ) as typeof fetch
 
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  // Clear any pending timers leaked by components (e.g. input-otp schedules
+  // a setTimeout internally; after the jsdom env is torn down the callback
+  // fires and references `window` → unhandled ReferenceError → CI failure.
+  vi.clearAllTimers()
+})
