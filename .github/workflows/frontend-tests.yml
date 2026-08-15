@@ -20,7 +20,7 @@ on:
 jobs:
   test:
     name: shard ${{ matrix.shard }}/16
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     
     strategy:
       fail-fast: false
