@@ -52,6 +52,14 @@ async function globalSetup() {
     JSON.stringify(auth, null, 2)
   );
 
+  // Save full login bundle for refresh mock (bypasses CriticalRateLimit)
+  if (client.lastLoginBundle) {
+    writeFileSync(
+      path.join(authDir, "login-bundle.json"),
+      JSON.stringify(client.lastLoginBundle, null, 2)
+    );
+  }
+
   const storageState = {
     cookies: auth.cookie
       ? parseCookies(auth.cookie, PORT)

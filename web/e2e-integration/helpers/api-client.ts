@@ -43,6 +43,8 @@ export class ApiClient {
     return resp.json();
   }
 
+  lastLoginBundle: any = null;
+
   async login(username: string, password: string): Promise<AuthInfo> {
     const resp = await fetch(`${this.baseUrl}/api/user/login`, {
       method: "POST",
@@ -54,6 +56,7 @@ export class ApiClient {
     if (!body.success) {
       throw new Error(`Login failed: ${body.message}`);
     }
+    this.lastLoginBundle = body.data;
     const auth: AuthInfo = {
       cookie,
       token: body.data?.access_token || body.data?.token || "",
