@@ -9,7 +9,8 @@ test.describe("个人资料与安全", () => {
     });
 
     await test.step("验证页面加载成功", async () => {
-      await page.screenshot({ path: "integration-results/profile-01-info.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/profile-01-info.png", fullPage: true });
+      await test.info().attach("profile-01-info", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/profile|sign-in/);
     });
   });
@@ -30,7 +31,8 @@ test.describe("个人资料与安全", () => {
     });
 
     await test.step("验证会话管理区域显示", async () => {
-      await page.screenshot({ path: "integration-results/profile-02-sessions.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/profile-02-sessions.png", fullPage: true });
+      await test.info().attach("profile-02-sessions", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 
@@ -54,7 +56,8 @@ test.describe("个人资料与安全", () => {
       const passwordBtn = page.locator('button:has-text("Password"), button:has-text("Change Password"), a:has-text("Password")').first();
       const hasPassword = await passwordBtn.isVisible().catch(() => false);
 
-      await page.screenshot({ path: "integration-results/profile-04-password-option.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/profile-04-password-option.png", fullPage: true });
+      await test.info().attach("profile-04-password-option", { body: screenshotBuffer, contentType: "image/png" });
 
       // The option should exist somewhere on the profile page
       expect(page.url()).toContain("/profile");

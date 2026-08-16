@@ -37,7 +37,8 @@ test.describe("系统更新与回滚", () => {
     });
 
     await test.step("验证系统信息页面加载", async () => {
-      await page.screenshot({ path: "integration-results/update-03-sysinfo.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/update-03-sysinfo.png", fullPage: true });
+      await test.info().attach("update-03-sysinfo", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/system-info");
     });
   });

@@ -9,7 +9,8 @@ test.describe("计费与日志", () => {
     });
 
     await test.step("截图并验证页面", async () => {
-      await page.screenshot({ path: "integration-results/logs-01-page.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/logs-01-page.png", fullPage: true });
+      await test.info().attach("logs-01-page", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/usage-logs|log/);
     });
   });
@@ -22,7 +23,8 @@ test.describe("计费与日志", () => {
     });
 
     await test.step("截图并验证无错误", async () => {
-      await page.screenshot({ path: "integration-results/logs-02-content.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/logs-02-content.png", fullPage: true });
+      await test.info().attach("logs-02-content", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).not.toContain("/error");
     });
   });
@@ -35,7 +37,8 @@ test.describe("计费与日志", () => {
     });
 
     await test.step("截图并验证页面", async () => {
-      await page.screenshot({ path: "integration-results/billing-03-wallet.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/billing-03-wallet.png", fullPage: true });
+      await test.info().attach("billing-03-wallet", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/wallet|topup/);
     });
   });
@@ -48,7 +51,8 @@ test.describe("计费与日志", () => {
     });
 
     await test.step("截图并验证无错误", async () => {
-      await page.screenshot({ path: "integration-results/billing-04-quota.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/billing-04-quota.png", fullPage: true });
+      await test.info().attach("billing-04-quota", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).not.toContain("/error");
     });
   });

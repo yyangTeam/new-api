@@ -15,7 +15,8 @@ test.describe("列宽调整与 UI 优化", () => {
       await page.goto("/channels");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/col-resize-01-table.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/col-resize-01-table.png", fullPage: true });
+      await test.info().attach("col-resize-01-table", { body: screenshotBuffer, contentType: "image/png" });
 
       // 页面应包含表格或卡片列表
       expect(page.url()).toMatch(/channels|sign-in/);
@@ -39,7 +40,8 @@ test.describe("列宽调整与 UI 优化", () => {
       // 查找视图切换器（网格/列表视图）
       const viewToggle = page.locator('[aria-label*="view" i], button:has-text("View"), [class*="ViewToggle"]');
       const hasToggle = await viewToggle.first().isVisible().catch(() => false);
-      await page.screenshot({ path: "integration-results/col-resize-02-view-mode.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/col-resize-02-view-mode.png", fullPage: true });
+      await test.info().attach("col-resize-02-view-mode", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 
@@ -51,7 +53,8 @@ test.describe("列宽调整与 UI 优化", () => {
     });
 
     await test.step("验证仪表盘有数据卡片", async () => {
-      await page.screenshot({ path: "integration-results/col-resize-03-dashboard-cards.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/col-resize-03-dashboard-cards.png", fullPage: true });
+      await test.info().attach("col-resize-03-dashboard-cards", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/dashboard|overview/);
     });
   });
@@ -65,7 +68,8 @@ test.describe("列宽调整与 UI 优化", () => {
     });
 
     await test.step("验证日志页面加载", async () => {
-      await page.screenshot({ path: "integration-results/col-resize-04-task-logs.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/col-resize-04-task-logs.png", fullPage: true });
+      await test.info().attach("col-resize-04-task-logs", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/usage-logs|log/);
     });
   });

@@ -14,7 +14,8 @@ test.describe("仪表盘", () => {
     });
 
     await test.step("截图并验证无关键错误", async () => {
-      await page.screenshot({ path: "integration-results/dashboard-01-full.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/dashboard-01-full.png", fullPage: true });
+      await test.info().attach("dashboard-01-full", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/dashboard");
       const criticalErrors = consoleErrors.filter(
         (e) => !e.includes("ResizeObserver") && !e.includes("Non-Error")
@@ -31,7 +32,8 @@ test.describe("仪表盘", () => {
     });
 
     await test.step("截图并验证页面", async () => {
-      await page.screenshot({ path: "integration-results/dashboard-02-stats.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/dashboard-02-stats.png", fullPage: true });
+      await test.info().attach("dashboard-02-stats", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/dashboard|overview/);
     });
   });
@@ -44,7 +46,8 @@ test.describe("仪表盘", () => {
     });
 
     await test.step("截图并验证页面", async () => {
-      await page.screenshot({ path: "integration-results/dashboard-03-profile.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/dashboard-03-profile.png", fullPage: true });
+      await test.info().attach("dashboard-03-profile", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/profile");
     });
   });
@@ -57,7 +60,8 @@ test.describe("仪表盘", () => {
     });
 
     await test.step("截图并验证页面", async () => {
-      await page.screenshot({ path: "integration-results/dashboard-04-models.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/dashboard-04-models.png", fullPage: true });
+      await test.info().attach("dashboard-04-models", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/models");
     });
   });
@@ -70,7 +74,8 @@ test.describe("仪表盘", () => {
     });
 
     await test.step("截图并验证页面", async () => {
-      await page.screenshot({ path: "integration-results/dashboard-05-system-info.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/dashboard-05-system-info.png", fullPage: true });
+      await test.info().attach("dashboard-05-system-info", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/system-info");
     });
   });

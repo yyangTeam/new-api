@@ -10,7 +10,8 @@ test.describe("兑换码管理", () => {
     });
 
     await test.step("验证页面加载成功", async () => {
-      await page.screenshot({ path: "integration-results/redeem-01-page.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/redeem-01-page.png", fullPage: true });
+      await test.info().attach("redeem-01-page", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/redemption|sign-in/);
     });
   });
@@ -35,7 +36,8 @@ test.describe("兑换码管理", () => {
       await page.goto("/redemption-codes");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/redeem-02-after-create.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/redeem-02-after-create.png", fullPage: true });
+      await test.info().attach("redeem-02-after-create", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 
@@ -59,7 +61,8 @@ test.describe("兑换码管理", () => {
       await page.goto("/redemption-codes");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/redeem-03-batch.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/redeem-03-batch.png", fullPage: true });
+      await test.info().attach("redeem-03-batch", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 
@@ -79,7 +82,8 @@ test.describe("兑换码管理", () => {
       await page.goto("/redemption-codes");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/redeem-04-after-delete.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/redeem-04-after-delete.png", fullPage: true });
+      await test.info().attach("redeem-04-after-delete", { body: screenshotBuffer, contentType: "image/png" });
     });
 
     await test.step("清理测试数据", async () => {

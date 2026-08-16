@@ -28,7 +28,8 @@ test.describe("用户管理员操作", () => {
       await page.goto("/users");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/usr-admin-01-quota-set.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/usr-admin-01-quota-set.png", fullPage: true });
+      await test.info().attach("usr-admin-01-quota-set", { body: screenshotBuffer, contentType: "image/png" });
     });
 
     await test.step("清理测试数据", async () => {
@@ -73,7 +74,8 @@ test.describe("用户管理员操作", () => {
       await page.goto("/users");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/usr-admin-02-ban-unban.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/usr-admin-02-ban-unban.png", fullPage: true });
+      await test.info().attach("usr-admin-02-ban-unban", { body: screenshotBuffer, contentType: "image/png" });
     });
 
     await test.step("清理测试数据", async () => {
@@ -112,7 +114,8 @@ test.describe("用户管理员操作", () => {
       await page.goto("/users");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/usr-admin-03-role-change.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/usr-admin-03-role-change.png", fullPage: true });
+      await test.info().attach("usr-admin-03-role-change", { body: screenshotBuffer, contentType: "image/png" });
     });
 
     await test.step("清理测试数据", async () => {
@@ -133,7 +136,8 @@ test.describe("用户管理员操作", () => {
       await page.goto("/users");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/usr-admin-04-multiple.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/usr-admin-04-multiple.png", fullPage: true });
+      await test.info().attach("usr-admin-04-multiple", { body: screenshotBuffer, contentType: "image/png" });
 
       const users = await apiClient.getUsers();
       const testUsers = users.data?.filter?.((u: any) => u.username?.startsWith("multi"));

@@ -9,7 +9,8 @@ test.describe("订阅计划管理", () => {
     });
 
     await test.step("验证页面加载成功", async () => {
-      await page.screenshot({ path: "integration-results/sub-01-page.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/sub-01-page.png", fullPage: true });
+      await test.info().attach("sub-01-page", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/subscription|sign-in/);
     });
   });
@@ -35,7 +36,8 @@ test.describe("订阅计划管理", () => {
       await page.goto("/subscriptions");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/sub-02-after-create.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/sub-02-after-create.png", fullPage: true });
+      await test.info().attach("sub-02-after-create", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 
@@ -58,7 +60,8 @@ test.describe("订阅计划管理", () => {
       await page.goto("/subscriptions");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/sub-03-status-toggled.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/sub-03-status-toggled.png", fullPage: true });
+      await test.info().attach("sub-03-status-toggled", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 
@@ -70,7 +73,8 @@ test.describe("订阅计划管理", () => {
     });
 
     await test.step("验证页面渲染正常", async () => {
-      await page.screenshot({ path: "integration-results/sub-04-plan-cards.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/sub-04-plan-cards.png", fullPage: true });
+      await test.info().attach("sub-04-plan-cards", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/subscription|sign-in/);
     });
   });

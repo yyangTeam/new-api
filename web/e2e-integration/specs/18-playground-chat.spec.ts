@@ -9,7 +9,8 @@ test.describe("Playground 聊天", () => {
     });
 
     await test.step("验证 Playground 页面加载成功", async () => {
-      await page.screenshot({ path: "integration-results/playground-01-page.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/playground-01-page.png", fullPage: true });
+      await test.info().attach("playground-01-page", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/playground");
     });
   });
@@ -25,7 +26,8 @@ test.describe("Playground 聊天", () => {
       const modelSelector = page.locator('[role="combobox"], select, [class*="model-select"], [class*="ModelSelect"], button:has-text("Model"), [aria-label*="model" i]');
       const hasSelector = await modelSelector.first().isVisible().catch(() => false);
 
-      await page.screenshot({ path: "integration-results/playground-02-model-selector.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/playground-02-model-selector.png", fullPage: true });
+      await test.info().attach("playground-02-model-selector", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/playground");
     });
   });
@@ -41,7 +43,8 @@ test.describe("Playground 聊天", () => {
       const input = page.locator('textarea, [contenteditable="true"], input[type="text"][placeholder*="message" i], input[placeholder*="send" i]');
       const hasInput = await input.first().isVisible().catch(() => false);
 
-      await page.screenshot({ path: "integration-results/playground-03-input.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/playground-03-input.png", fullPage: true });
+      await test.info().attach("playground-03-input", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/playground");
     });
   });
@@ -57,7 +60,8 @@ test.describe("Playground 聊天", () => {
     });
 
     await test.step("验证无致命 JS 错误", async () => {
-      await page.screenshot({ path: "integration-results/playground-04-no-errors.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/playground-04-no-errors.png", fullPage: true });
+      await test.info().attach("playground-04-no-errors", { body: screenshotBuffer, contentType: "image/png" });
 
       const fatalErrors = errors.filter(
         (e) => !e.includes("ResizeObserver") && !e.includes("Non-Error")

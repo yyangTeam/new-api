@@ -22,7 +22,8 @@ test.describe("导航与搜索", () => {
     await test.step("点击侧边栏链接验证导航", async () => {
       const url = page.url();
       if (url.includes("/sign-in")) {
-        await page.screenshot({ path: "integration-results/nav-01-sidebar.png", fullPage: true });
+        const screenshotBuffer = await page.screenshot({ path: "integration-results/nav-01-sidebar.png", fullPage: true });
+        await test.info().attach("nav-01-sidebar", { body: screenshotBuffer, contentType: "image/png" });
         // Auth expired — test API client still works
         expect(url).toContain("/sign-in");
         return;
@@ -38,7 +39,8 @@ test.describe("导航与搜索", () => {
         }
       }
 
-      await page.screenshot({ path: "integration-results/nav-01-sidebar.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/nav-01-sidebar.png", fullPage: true });
+      await test.info().attach("nav-01-sidebar", { body: screenshotBuffer, contentType: "image/png" });
       // Even if 0 links found (page blank), don't fail — this is a soft test
       expect(navigated).toBeGreaterThanOrEqual(0);
     });
@@ -65,7 +67,8 @@ test.describe("导航与搜索", () => {
         await page.waitForTimeout(1000);
       }
 
-      await page.screenshot({ path: "integration-results/nav-02-search.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/nav-02-search.png", fullPage: true });
+      await test.info().attach("nav-02-search", { body: screenshotBuffer, contentType: "image/png" });
     });
 
     await test.step("清理测试数据", async () => {
@@ -90,7 +93,8 @@ test.describe("导航与搜索", () => {
       const pagination = page.locator('[class*="pagination" i], [aria-label*="page" i], button:has-text("Next"), button:has-text(">")');
       const hasPagination = await pagination.first().isVisible().catch(() => false);
 
-      await page.screenshot({ path: "integration-results/nav-03-pagination.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/nav-03-pagination.png", fullPage: true });
+      await test.info().attach("nav-03-pagination", { body: screenshotBuffer, contentType: "image/png" });
     });
 
     await test.step("清理测试数据", async () => {
@@ -111,7 +115,8 @@ test.describe("导航与搜索", () => {
     });
 
     await test.step("验证顶部导航栏元素存在", async () => {
-      await page.screenshot({ path: "integration-results/nav-04-top-bar.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/nav-04-top-bar.png", fullPage: true });
+      await test.info().attach("nav-04-top-bar", { body: screenshotBuffer, contentType: "image/png" });
 
       const bodyHtml = await page.locator("body").innerHTML();
       expect(bodyHtml.length).toBeGreaterThan(50);

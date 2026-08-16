@@ -8,7 +8,8 @@ test.describe("用户管理", () => {
     });
 
     await test.step("截图并验证页面", async () => {
-      await page.screenshot({ path: "integration-results/users-01-list.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/users-01-list.png", fullPage: true });
+      await test.info().attach("users-01-list", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/users");
     });
   });
@@ -33,7 +34,8 @@ test.describe("用户管理", () => {
       await page.goto("/users");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(3000);
-      await page.screenshot({ path: "integration-results/users-02-after-create.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/users-02-after-create.png", fullPage: true });
+      await test.info().attach("users-02-after-create", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 
@@ -48,7 +50,8 @@ test.describe("用户管理", () => {
       await page.goto("/users");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/users-03-full-list.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/users-03-full-list.png", fullPage: true });
+      await test.info().attach("users-03-full-list", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/users");
     });
   });
@@ -61,7 +64,8 @@ test.describe("用户管理", () => {
     });
 
     await test.step("截图并验证页面正常", async () => {
-      await page.screenshot({ path: "integration-results/users-04-roles.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/users-04-roles.png", fullPage: true });
+      await test.info().attach("users-04-roles", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).not.toContain("/error");
       expect(page.url()).toContain("/users");
     });

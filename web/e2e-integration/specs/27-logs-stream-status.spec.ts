@@ -51,7 +51,8 @@ test.describe("日志 Stream 状态与计时", () => {
     });
 
     await test.step("验证日志页面加载成功", async () => {
-      await page.screenshot({ path: "integration-results/logs-stream-05-page.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/logs-stream-05-page.png", fullPage: true });
+      await test.info().attach("logs-stream-05-page", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/usage-logs|log/);
     });
   });

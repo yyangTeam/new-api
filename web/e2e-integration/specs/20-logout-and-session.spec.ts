@@ -16,7 +16,8 @@ test.describe("登出与会话", () => {
     });
 
     await test.step("验证重定向到登录页", async () => {
-      await page.screenshot({ path: "integration-results/session-01-no-auth.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/session-01-no-auth.png", fullPage: true });
+      await test.info().attach("session-01-no-auth", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/sign-in|dashboard/);
       await context.close();
     });
@@ -48,7 +49,8 @@ test.describe("登出与会话", () => {
     });
 
     await test.step("验证登录成功", async () => {
-      await page.screenshot({ path: "integration-results/session-02-fresh-login.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/session-02-fresh-login.png", fullPage: true });
+      await test.info().attach("session-02-fresh-login", { body: screenshotBuffer, contentType: "image/png" });
       await context.close();
     });
   });
@@ -79,7 +81,8 @@ test.describe("登出与会话", () => {
     });
 
     await test.step("验证无致命 JS 错误", async () => {
-      await page.screenshot({ path: "integration-results/session-04-stable.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/session-04-stable.png", fullPage: true });
+      await test.info().attach("session-04-stable", { body: screenshotBuffer, contentType: "image/png" });
 
       const fatalErrors = errors.filter(
         (e) => !e.includes("ResizeObserver") && !e.includes("Non-Error")

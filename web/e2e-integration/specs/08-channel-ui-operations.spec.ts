@@ -9,7 +9,8 @@ test.describe("渠道 UI 操作", () => {
     });
 
     await test.step("验证页面加载成功", async () => {
-      await page.screenshot({ path: "integration-results/ch-ui-01-page.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/ch-ui-01-page.png", fullPage: true });
+      await test.info().attach("ch-ui-01-page", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/channels|sign-in/);
     });
   });
@@ -37,7 +38,8 @@ test.describe("渠道 UI 操作", () => {
       await page.goto("/channels");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/ch-ui-02-created.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/ch-ui-02-created.png", fullPage: true });
+      await test.info().attach("ch-ui-02-created", { body: screenshotBuffer, contentType: "image/png" });
     });
 
     await test.step("清理测试数据", async () => {
@@ -99,7 +101,8 @@ test.describe("渠道 UI 操作", () => {
       await page.goto("/channels");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/ch-ui-04-deleted.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/ch-ui-04-deleted.png", fullPage: true });
+      await test.info().attach("ch-ui-04-deleted", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 });

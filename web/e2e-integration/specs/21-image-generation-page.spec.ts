@@ -23,7 +23,8 @@ test.describe("图片生成页面", () => {
     });
 
     await test.step("验证页面加载", async () => {
-      await page.screenshot({ path: "integration-results/image-gen-02-page.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/image-gen-02-page.png", fullPage: true });
+      await test.info().attach("image-gen-02-page", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/image-gen|sign-in/);
     });
   });
@@ -36,7 +37,8 @@ test.describe("图片生成页面", () => {
     });
 
     await test.step("验证设置页面加载", async () => {
-      await page.screenshot({ path: "integration-results/image-gen-03-settings.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/image-gen-03-settings.png", fullPage: true });
+      await test.info().attach("image-gen-03-settings", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/system-settings|sign-in/);
     });
   });

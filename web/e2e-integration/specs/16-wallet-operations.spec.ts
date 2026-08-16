@@ -9,7 +9,8 @@ test.describe("钱包操作", () => {
     });
 
     await test.step("验证钱包页面加载成功", async () => {
-      await page.screenshot({ path: "integration-results/wallet-01-balance.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/wallet-01-balance.png", fullPage: true });
+      await test.info().attach("wallet-01-balance", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/wallet|topup/);
     });
   });
@@ -61,7 +62,8 @@ test.describe("钱包操作", () => {
     });
 
     await test.step("验证余额更新显示", async () => {
-      await page.screenshot({ path: "integration-results/wallet-03-updated.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/wallet-03-updated.png", fullPage: true });
+      await test.info().attach("wallet-03-updated", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/wallet|topup/);
     });
   });
@@ -77,7 +79,8 @@ test.describe("钱包操作", () => {
       const rechargeSection = page.locator('input[placeholder*="code" i], input[placeholder*="redemption" i], input[placeholder*="兑换" i], button:has-text("Redeem"), button:has-text("兑换")');
       const hasRecharge = await rechargeSection.first().isVisible().catch(() => false);
 
-      await page.screenshot({ path: "integration-results/wallet-04-recharge.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/wallet-04-recharge.png", fullPage: true });
+      await test.info().attach("wallet-04-recharge", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/wallet|topup/);
     });
   });

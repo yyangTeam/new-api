@@ -9,7 +9,8 @@ test.describe("Token UI 操作", () => {
     });
 
     await test.step("验证页面加载成功", async () => {
-      await page.screenshot({ path: "integration-results/tok-ui-01-page.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/tok-ui-01-page.png", fullPage: true });
+      await test.info().attach("tok-ui-01-page", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/keys|sign-in/);
     });
   });
@@ -82,7 +83,8 @@ test.describe("Token UI 操作", () => {
       await page.goto("/keys");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/tok-ui-04-after-delete.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/tok-ui-04-after-delete.png", fullPage: true });
+      await test.info().attach("tok-ui-04-after-delete", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 });

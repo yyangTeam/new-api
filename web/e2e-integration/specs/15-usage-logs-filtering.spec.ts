@@ -9,7 +9,8 @@ test.describe("用量日志与筛选", () => {
     });
 
     await test.step("验证日志页面加载成功", async () => {
-      await page.screenshot({ path: "integration-results/logs-filter-01-page.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/logs-filter-01-page.png", fullPage: true });
+      await test.info().attach("logs-filter-01-page", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/usage-logs|log/);
     });
   });
@@ -42,7 +43,8 @@ test.describe("用量日志与筛选", () => {
       const filters = page.locator('input[type="date"], [class*="DatePicker"], [class*="date-picker"], select, [role="combobox"]');
       const filterCount = await filters.count();
 
-      await page.screenshot({ path: "integration-results/logs-filter-04-controls.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/logs-filter-04-controls.png", fullPage: true });
+      await test.info().attach("logs-filter-04-controls", { body: screenshotBuffer, contentType: "image/png" });
 
       // Page should have some filter controls
       expect(page.url()).toMatch(/usage-logs|log/);
@@ -60,7 +62,8 @@ test.describe("用量日志与筛选", () => {
       const tabs = page.locator('[role="tab"], [role="tablist"] a, nav a');
       const tabCount = await tabs.count();
 
-      await page.screenshot({ path: "integration-results/logs-filter-05-sections.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/logs-filter-05-sections.png", fullPage: true });
+      await test.info().attach("logs-filter-05-sections", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/usage-logs|log/);
     });
   });

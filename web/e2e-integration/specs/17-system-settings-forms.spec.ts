@@ -18,7 +18,8 @@ test.describe("系统设置表单", () => {
       await page.goto("/system-settings/auth");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/settings-form-01-auth.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/settings-form-01-auth.png", fullPage: true });
+      await test.info().attach("settings-form-01-auth", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 
@@ -39,7 +40,8 @@ test.describe("系统设置表单", () => {
       await page.goto("/system-settings/billing");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/settings-form-02-billing.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/settings-form-02-billing.png", fullPage: true });
+      await test.info().attach("settings-form-02-billing", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 
@@ -51,7 +53,8 @@ test.describe("系统设置表单", () => {
     });
 
     await test.step("验证内容设置页面加载成功", async () => {
-      await page.screenshot({ path: "integration-results/settings-form-03-content.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/settings-form-03-content.png", fullPage: true });
+      await test.info().attach("settings-form-03-content", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/system-settings");
     });
   });
@@ -64,7 +67,8 @@ test.describe("系统设置表单", () => {
     });
 
     await test.step("验证模型设置页面加载成功", async () => {
-      await page.screenshot({ path: "integration-results/settings-form-04-models.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/settings-form-04-models.png", fullPage: true });
+      await test.info().attach("settings-form-04-models", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/system-settings");
     });
   });
@@ -86,7 +90,8 @@ test.describe("系统设置表单", () => {
       await page.goto("/");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/settings-form-05-footer.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/settings-form-05-footer.png", fullPage: true });
+      await test.info().attach("settings-form-05-footer", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 });

@@ -37,17 +37,5 @@ export const test = base.extend<IntegrationFixtures>({
   },
 });
 
-/**
- * 等待页面渲染完成后再截图。如果页面白屏(body 内容 < 500 chars)，
- * 额外等待 3 秒让 SPA hydrate。
- */
-export async function screenshotAfterRender(page: import("@playwright/test").Page, path: string): Promise<void> {
-  const bodyLen = await page.evaluate(() => document.body.innerHTML.length).catch(() => 0);
-  if (bodyLen < 500) {
-    await page.waitForTimeout(3000);
-  }
-  await page.screenshot({ path, fullPage: true });
-}
-
 export { expect } from "@playwright/test";
 export { BASE_URL, ROOT_USER, ROOT_PASS };

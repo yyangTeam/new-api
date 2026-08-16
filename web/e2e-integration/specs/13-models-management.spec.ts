@@ -9,7 +9,8 @@ test.describe("模型管理", () => {
     });
 
     await test.step("验证页面加载成功", async () => {
-      await page.screenshot({ path: "integration-results/models-01-page.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/models-01-page.png", fullPage: true });
+      await test.info().attach("models-01-page", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toMatch(/models|sign-in/);
     });
   });
@@ -32,7 +33,8 @@ test.describe("模型管理", () => {
       await page.goto("/models");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/models-02-after-create.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/models-02-after-create.png", fullPage: true });
+      await test.info().attach("models-02-after-create", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 
@@ -46,7 +48,8 @@ test.describe("模型管理", () => {
       await page.goto("/models");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/models-03-list.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/models-03-list.png", fullPage: true });
+      await test.info().attach("models-03-list", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/models");
     });
   });
@@ -72,7 +75,8 @@ test.describe("模型管理", () => {
       await page.goto("/models");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/models-04-after-delete.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/models-04-after-delete.png", fullPage: true });
+      await test.info().attach("models-04-after-delete", { body: screenshotBuffer, contentType: "image/png" });
     });
   });
 });

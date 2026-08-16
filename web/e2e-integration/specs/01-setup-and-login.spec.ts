@@ -17,7 +17,8 @@ test.describe("初始化与登录", () => {
     });
 
     await test.step("截图并验证标题", async () => {
-      await page.screenshot({ path: "integration-results/01-home-page.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/01-home-page.png", fullPage: true });
+      await test.info().attach("01-home-page", { body: screenshotBuffer, contentType: "image/png" });
       const title = await page.title();
       expect(title).toBeTruthy();
     });
@@ -30,7 +31,8 @@ test.describe("初始化与登录", () => {
     });
 
     await test.step("验证密码输入框可见", async () => {
-      await page.screenshot({ path: "integration-results/02-login-page.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/02-login-page.png", fullPage: true });
+      await test.info().attach("02-login-page", { body: screenshotBuffer, contentType: "image/png" });
       const passwordInput = page.locator('input[type="password"]');
       await expect(passwordInput).toBeVisible({ timeout: 10_000 });
     });
@@ -47,7 +49,8 @@ test.describe("初始化与登录", () => {
       const passwordInput = page.locator('input[type="password"]');
       await usernameInput.fill(ROOT_USER);
       await passwordInput.fill(ROOT_PASS);
-      await page.screenshot({ path: "integration-results/03-login-filled.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/03-login-filled.png", fullPage: true });
+      await test.info().attach("03-login-filled", { body: screenshotBuffer, contentType: "image/png" });
     });
 
     await test.step("点击登录按钮", async () => {
@@ -62,7 +65,8 @@ test.describe("初始化与登录", () => {
     });
 
     await test.step("验证登录成功并保存认证状态", async () => {
-      await page.screenshot({ path: "integration-results/03-login-success.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/03-login-success.png", fullPage: true });
+      await test.info().attach("03-login-success", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).not.toContain("/sign-in");
 
       const authDir = path.resolve(__dirname, "../.auth");
@@ -91,7 +95,8 @@ test.describe("初始化与登录", () => {
       await page.goto("/dashboard");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(1000);
-      await page.screenshot({ path: "integration-results/04-dashboard.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/04-dashboard.png", fullPage: true });
+      await test.info().attach("04-dashboard", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/dashboard");
     });
   });

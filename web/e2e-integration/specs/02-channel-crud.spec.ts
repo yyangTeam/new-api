@@ -8,7 +8,8 @@ test.describe("渠道管理", () => {
     });
 
     await test.step("截图并验证页面", async () => {
-      await page.screenshot({ path: "integration-results/channels-01-list.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/channels-01-list.png", fullPage: true });
+      await test.info().attach("channels-01-list", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).toContain("/channels");
     });
   });
@@ -29,7 +30,8 @@ test.describe("渠道管理", () => {
       await page.goto("/channels");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-      await page.screenshot({ path: "integration-results/channels-02-after-create.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/channels-02-after-create.png", fullPage: true });
+      await test.info().attach("channels-02-after-create", { body: screenshotBuffer, contentType: "image/png" });
     });
 
     await test.step("验证渠道在列表中可见", async () => {
@@ -39,7 +41,8 @@ test.describe("渠道管理", () => {
         await page.reload();
         await page.waitForLoadState("networkidle");
         await page.waitForTimeout(1000);
-        await page.screenshot({ path: "integration-results/channels-02-after-reload.png", fullPage: true });
+        const screenshotBuffer = await page.screenshot({ path: "integration-results/channels-02-after-reload.png", fullPage: true });
+        await test.info().attach("channels-02-after-reload", { body: screenshotBuffer, contentType: "image/png" });
       }
       await expect(page.locator('text=E2E Test Channel')).toBeVisible({ timeout: 10_000 });
     });
@@ -57,9 +60,11 @@ test.describe("渠道管理", () => {
       if (await editBtn.isVisible()) {
         await editBtn.click();
         await page.waitForTimeout(1000);
-        await page.screenshot({ path: "integration-results/channels-03-detail.png", fullPage: true });
+        const screenshotBuffer = await page.screenshot({ path: "integration-results/channels-03-detail.png", fullPage: true });
+        await test.info().attach("channels-03-detail", { body: screenshotBuffer, contentType: "image/png" });
       } else {
-        await page.screenshot({ path: "integration-results/channels-03-list-detail.png", fullPage: true });
+        const screenshotBuffer = await page.screenshot({ path: "integration-results/channels-03-list-detail.png", fullPage: true });
+        await test.info().attach("channels-03-list-detail", { body: screenshotBuffer, contentType: "image/png" });
       }
     });
   });
@@ -79,7 +84,8 @@ test.describe("渠道管理", () => {
       await page.goto("/channels");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(1000);
-      await page.screenshot({ path: "integration-results/channels-04-after-delete.png", fullPage: true });
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/channels-04-after-delete.png", fullPage: true });
+      await test.info().attach("channels-04-after-delete", { body: screenshotBuffer, contentType: "image/png" });
 
       const channelName = page.getByText("E2E Test Channel");
       await expect(channelName).not.toBeVisible({ timeout: 5_000 });
