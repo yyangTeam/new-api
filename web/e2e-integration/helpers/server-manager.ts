@@ -60,6 +60,7 @@ export function startServer(port: string): ServerInfo {
       MEMORY_CACHE_ENABLED: "true",
       BATCH_UPDATE_ENABLED: "false",
       SYNC_FREQUENCY: "0",
+      CRITICAL_RATE_LIMIT_ENABLE: "false",
     },
     stdio: ["ignore", "pipe", "pipe"],
     detached: true,
