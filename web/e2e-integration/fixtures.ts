@@ -24,6 +24,14 @@ function loadApiAuth(): AuthInfo | null {
   return null;
 }
 
+function loadLoginBundle(): any | null {
+  const bundleFile = path.join(__dirname, ".auth/login-bundle.json");
+  if (existsSync(bundleFile)) {
+    return JSON.parse(readFileSync(bundleFile, "utf-8"));
+  }
+  return null;
+}
+
 export const test = base.extend<IntegrationFixtures>({
   apiClient: async ({}, use) => {
     const client = new ApiClient(BASE_URL);
@@ -34,6 +42,18 @@ export const test = base.extend<IntegrationFixtures>({
       await client.login(ROOT_USER, ROOT_PASS);
     }
     await use(client);
+  },
+
+  page: async ({ page }, use) => {
+    const bundle = loadLoginBundle();
+    if (bundle) {
+      const freshBundle = JSON.stringify({
+        ...bundle,
+        access_expires_at: Math.floor(Date.now() / 1000) + 840,
+      });
+      await page.addInitScript(`window.__E2E_AUTH_BUNDLE__ = ${freshBundle};`);
+    }
+    await use(page);
   },
 });
 

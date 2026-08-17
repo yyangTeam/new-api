@@ -361,6 +361,13 @@ function currentValidAuthBundle(): AuthBundle | null {
 }
 
 export async function bootstrapAuthentication(): Promise<RefreshOutcome> {
+  const e2e = (window as any).__E2E_AUTH_BUNDLE__
+  if (e2e && isAuthBundle(e2e)) {
+    ;(window as any).__E2E_AUTH_BUNDLE__ = undefined
+    applyAuthBundle(e2e, false)
+    return { kind: 'authenticated', bundle: e2e }
+  }
+
   const bundle = currentValidAuthBundle()
   if (bundle) {
     useAuthStore.getState().auth.setBootstrapState('complete')
