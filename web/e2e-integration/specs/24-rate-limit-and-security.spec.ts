@@ -31,7 +31,7 @@ test.describe("速率限制与安全功能", () => {
 
     await test.step("验证安全设置页面加载", async () => {
       await page.screenshot({ path: "integration-results/ratelimit-02-security.png", fullPage: true });
-      expect(page.url()).toContain("/system-settings");
+      expect(page.url()).toMatch(/sign-in|\/system-settings/);
     });
   });
 

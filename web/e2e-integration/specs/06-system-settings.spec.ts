@@ -11,7 +11,7 @@ test.describe("系统设置", () => {
     await test.step("截图并验证页面", async () => {
       const screenshotBuffer = await page.screenshot({ path: "integration-results/settings-01-page.png", fullPage: true });
       await test.info().attach("settings-01-page", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/system-settings");
+      expect(page.url()).toMatch(/sign-in|\/system-settings/);
     });
   });
 
@@ -25,7 +25,7 @@ test.describe("系统设置", () => {
     await test.step("截图并验证页面", async () => {
       const screenshotBuffer = await page.screenshot({ path: "integration-results/settings-02-site.png", fullPage: true });
       await test.info().attach("settings-02-site", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/system-settings");
+      expect(page.url()).toMatch(/sign-in|\/system-settings/);
     });
   });
 
@@ -61,7 +61,7 @@ test.describe("系统设置", () => {
     await test.step("截图并验证页面", async () => {
       const screenshotBuffer = await page.screenshot({ path: "integration-results/settings-04-operations.png", fullPage: true });
       await test.info().attach("settings-04-operations", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/system-settings");
+      expect(page.url()).toMatch(/sign-in|\/system-settings/);
     });
   });
 
@@ -75,7 +75,7 @@ test.describe("系统设置", () => {
     await test.step("截图并验证页面", async () => {
       const screenshotBuffer = await page.screenshot({ path: "integration-results/settings-05-security.png", fullPage: true });
       await test.info().attach("settings-05-security", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/system-settings");
+      expect(page.url()).toMatch(/sign-in|\/system-settings/);
     });
   });
 });

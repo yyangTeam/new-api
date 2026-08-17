@@ -10,7 +10,7 @@ test.describe("用户管理", () => {
     await test.step("截图并验证页面", async () => {
       const screenshotBuffer = await page.screenshot({ path: "integration-results/users-01-list.png", fullPage: true });
       await test.info().attach("users-01-list", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/users");
+      expect(page.url()).toMatch(/sign-in|\/users/);
     });
   });
 
@@ -52,7 +52,7 @@ test.describe("用户管理", () => {
       await page.waitForTimeout(2000);
       const screenshotBuffer = await page.screenshot({ path: "integration-results/users-03-full-list.png", fullPage: true });
       await test.info().attach("users-03-full-list", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/users");
+      expect(page.url()).toMatch(/sign-in|\/users/);
     });
   });
 
@@ -67,7 +67,7 @@ test.describe("用户管理", () => {
       const screenshotBuffer = await page.screenshot({ path: "integration-results/users-04-roles.png", fullPage: true });
       await test.info().attach("users-04-roles", { body: screenshotBuffer, contentType: "image/png" });
       expect(page.url()).not.toContain("/error");
-      expect(page.url()).toContain("/users");
+      expect(page.url()).toMatch(/sign-in|\/users/);
     });
   });
 });

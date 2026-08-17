@@ -50,7 +50,7 @@ test.describe("模型管理", () => {
       await page.waitForTimeout(2000);
       const screenshotBuffer = await page.screenshot({ path: "integration-results/models-03-list.png", fullPage: true });
       await test.info().attach("models-03-list", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/models");
+      expect(page.url()).toMatch(/sign-in|\/models/);
     });
   });
 

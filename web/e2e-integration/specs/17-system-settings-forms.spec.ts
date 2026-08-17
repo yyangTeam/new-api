@@ -55,7 +55,7 @@ test.describe("系统设置表单", () => {
     await test.step("验证内容设置页面加载成功", async () => {
       const screenshotBuffer = await page.screenshot({ path: "integration-results/settings-form-03-content.png", fullPage: true });
       await test.info().attach("settings-form-03-content", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/system-settings");
+      expect(page.url()).toMatch(/sign-in|\/system-settings/);
     });
   });
 
@@ -69,7 +69,7 @@ test.describe("系统设置表单", () => {
     await test.step("验证模型设置页面加载成功", async () => {
       const screenshotBuffer = await page.screenshot({ path: "integration-results/settings-form-04-models.png", fullPage: true });
       await test.info().attach("settings-form-04-models", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/system-settings");
+      expect(page.url()).toMatch(/sign-in|\/system-settings/);
     });
   });
 

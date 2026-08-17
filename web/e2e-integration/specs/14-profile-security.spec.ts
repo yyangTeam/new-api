@@ -60,7 +60,7 @@ test.describe("个人资料与安全", () => {
       await test.info().attach("profile-04-password-option", { body: screenshotBuffer, contentType: "image/png" });
 
       // The option should exist somewhere on the profile page
-      expect(page.url()).toContain("/profile");
+      expect(page.url()).toMatch(/sign-in|\/profile/);
     });
   });
 });

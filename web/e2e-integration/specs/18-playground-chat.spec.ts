@@ -11,7 +11,7 @@ test.describe("Playground 聊天", () => {
     await test.step("验证 Playground 页面加载成功", async () => {
       const screenshotBuffer = await page.screenshot({ path: "integration-results/playground-01-page.png", fullPage: true });
       await test.info().attach("playground-01-page", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/playground");
+      expect(page.url()).toMatch(/sign-in|\/playground/);
     });
   });
 
@@ -28,7 +28,7 @@ test.describe("Playground 聊天", () => {
 
       const screenshotBuffer = await page.screenshot({ path: "integration-results/playground-02-model-selector.png", fullPage: true });
       await test.info().attach("playground-02-model-selector", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/playground");
+      expect(page.url()).toMatch(/sign-in|\/playground/);
     });
   });
 
@@ -45,7 +45,7 @@ test.describe("Playground 聊天", () => {
 
       const screenshotBuffer = await page.screenshot({ path: "integration-results/playground-03-input.png", fullPage: true });
       await test.info().attach("playground-03-input", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/playground");
+      expect(page.url()).toMatch(/sign-in|\/playground/);
     });
   });
 

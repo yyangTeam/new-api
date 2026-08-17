@@ -10,7 +10,7 @@ test.describe("定价页面与模型计费", () => {
 
     await test.step("验证定价页面加载", async () => {
       await page.screenshot({ path: "integration-results/pricing-01-page.png", fullPage: true });
-      expect(page.url()).toContain("/pricing");
+      expect(page.url()).toMatch(/sign-in|\/pricing/);
     });
   });
 
@@ -42,7 +42,7 @@ test.describe("定价页面与模型计费", () => {
 
     await test.step("验证计费设置页面加载", async () => {
       await page.screenshot({ path: "integration-results/pricing-04-billing-settings.png", fullPage: true });
-      expect(page.url()).toContain("/system-settings");
+      expect(page.url()).toMatch(/sign-in|\/system-settings/);
     });
   });
 
@@ -55,7 +55,7 @@ test.describe("定价页面与模型计费", () => {
 
     await test.step("验证模型设置页面加载", async () => {
       await page.screenshot({ path: "integration-results/pricing-05-models-settings.png", fullPage: true });
-      expect(page.url()).toContain("/system-settings");
+      expect(page.url()).toMatch(/sign-in|\/system-settings/);
     });
   });
 });

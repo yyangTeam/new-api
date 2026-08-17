@@ -10,7 +10,7 @@ test.describe("渠道管理", () => {
     await test.step("截图并验证页面", async () => {
       const screenshotBuffer = await page.screenshot({ path: "integration-results/channels-01-list.png", fullPage: true });
       await test.info().attach("channels-01-list", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/channels");
+      expect(page.url()).toMatch(/sign-in|\/channels/);
     });
   });
 

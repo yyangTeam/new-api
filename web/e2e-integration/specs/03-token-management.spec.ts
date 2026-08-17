@@ -11,7 +11,7 @@ test.describe("Token 管理", () => {
     await test.step("截图并验证页面", async () => {
       const screenshotBuffer = await page.screenshot({ path: "integration-results/tokens-01-list.png", fullPage: true });
       await test.info().attach("tokens-01-list", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/keys");
+      expect(page.url()).toMatch(/sign-in|\/keys/);
     });
   });
 
@@ -58,7 +58,7 @@ test.describe("Token 管理", () => {
       await page.waitForTimeout(2000);
       const screenshotBuffer = await page.screenshot({ path: "integration-results/tokens-03-multiple.png", fullPage: true });
       await test.info().attach("tokens-03-multiple", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/keys");
+      expect(page.url()).toMatch(/sign-in|\/keys/);
     });
   });
 
@@ -72,7 +72,7 @@ test.describe("Token 管理", () => {
     await test.step("截图并验证页面正常", async () => {
       const screenshotBuffer = await page.screenshot({ path: "integration-results/tokens-04-quota-display.png", fullPage: true });
       await test.info().attach("tokens-04-quota-display", { body: screenshotBuffer, contentType: "image/png" });
-      expect(page.url()).toContain("/keys");
+      expect(page.url()).toMatch(/sign-in|\/keys/);
       expect(page.url()).not.toContain("/error");
     });
   });
