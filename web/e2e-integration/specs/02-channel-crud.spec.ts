@@ -52,20 +52,24 @@ test.describe("渠道管理", () => {
     await test.step("打开渠道列表页", async () => {
       await page.goto("/channels");
       await page.waitForLoadState("networkidle");
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(2000);
     });
 
-    await test.step("点击编辑按钮查看详情并截图", async () => {
-      const editBtn = page.locator('[data-testid="channel-edit"], button:has-text("Edit"), a:has-text("E2E Test Channel")').first();
-      if (await editBtn.isVisible()) {
-        await editBtn.click();
-        await page.waitForTimeout(1000);
-        const screenshotBuffer = await page.screenshot({ path: "integration-results/channels-03-detail.png", fullPage: true });
-        await test.info().attach("channels-03-detail", { body: screenshotBuffer, contentType: "image/png" });
-      } else {
-        const screenshotBuffer = await page.screenshot({ path: "integration-results/channels-03-list-detail.png", fullPage: true });
-        await test.info().attach("channels-03-list-detail", { body: screenshotBuffer, contentType: "image/png" });
+    await test.step("验证渠道卡片显示正确信息", async () => {
+      // 等待页面内容加载
+      await page.waitForTimeout(2000);
+      // 验证渠道名称在页面中可见
+      const channelVisible = await page.locator('text=E2E Test Channel').isVisible().catch(() => false);
+      if (!channelVisible) {
+        await page.reload();
+        await page.waitForLoadState("networkidle");
+        await page.waitForTimeout(2000);
       }
+
+      const screenshotBuffer = await page.screenshot({ path: "integration-results/channels-03-detail.png", fullPage: true });
+      await test.info().attach("channels-03-detail", { body: screenshotBuffer, contentType: "image/png" });
+
+      await expect(page.locator('text=E2E Test Channel')).toBeVisible({ timeout: 10_000 });
     });
   });
 
