@@ -48,7 +48,7 @@ test.describe("渠道管理", () => {
     });
   });
 
-  test("03 - 渠道详情显示正确信息", async ({ page }) => {
+  test("03 - 渠道列表卡片信息验证", async ({ page }) => {
     await test.step("打开渠道列表页", async () => {
       await page.goto("/channels");
       await page.waitForLoadState("networkidle");
