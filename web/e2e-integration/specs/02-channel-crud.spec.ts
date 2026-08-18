@@ -55,21 +55,15 @@ test.describe("渠道管理", () => {
       await page.waitForTimeout(2000);
     });
 
-    await test.step("验证渠道卡片显示正确信息", async () => {
-      // 等待页面内容加载
-      await page.waitForTimeout(2000);
-      // 验证渠道名称在页面中可见
-      const channelVisible = await page.locator('text=E2E Test Channel').isVisible().catch(() => false);
-      if (!channelVisible) {
-        await page.reload();
-        await page.waitForLoadState("networkidle");
-        await page.waitForTimeout(2000);
-      }
+    await test.step("验证渠道卡片内容正确", async () => {
+      // 等待渠道列表加载并验证名称可见
+      await expect(page.locator('text=E2E Test Channel')).toBeVisible({ timeout: 10_000 });
+      // 验证 Priority 和 Weight 数值存在（卡片上的数字按钮）
+      await expect(page.getByTitle('0').first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByTitle('1').first()).toBeVisible({ timeout: 5_000 });
 
       const screenshotBuffer = await page.screenshot({ path: "integration-results/channels-03-detail.png", fullPage: true });
       await test.info().attach("channels-03-detail", { body: screenshotBuffer, contentType: "image/png" });
-
-      await expect(page.locator('text=E2E Test Channel')).toBeVisible({ timeout: 10_000 });
     });
   });
 
