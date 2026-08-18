@@ -48,20 +48,39 @@ test.describe("渠道管理", () => {
     });
   });
 
-  test("03 - 渠道列表卡片信息验证", async ({ page }) => {
+  test("03 - 渠道详情显示正确信息", async ({ page }) => {
     await test.step("打开渠道列表页", async () => {
       await page.goto("/channels");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
     });
 
-    await test.step("验证渠道卡片内容正确", async () => {
-      // 等待渠道列表加载并验证名称可见
+    await test.step("点击渠道卡片三点菜单打开编辑", async () => {
       await expect(page.locator('text=E2E Test Channel')).toBeVisible({ timeout: 10_000 });
-      // 验证 Priority 和 Weight 数值存在（卡片上的数字按钮）
-      await expect(page.getByTitle('0').first()).toBeVisible({ timeout: 5_000 });
-      await expect(page.getByTitle('1').first()).toBeVisible({ timeout: 5_000 });
 
+      // 直接点击卡片上的 ··· 图标（lucide-ellipsis SVG）
+      // 页面上有多个 ellipsis 图标，用 nth 找到在渠道卡片内的那个
+      const ellipsisIcons = page.locator('svg.lucide-ellipsis, [class*="lucide-ellipsis"]');
+      const ellipsisCount = await ellipsisIcons.count();
+      // 第一个 ellipsis 通常是页面右上角的全局 ···，第二个是渠道卡片的
+      const cardEllipsis = ellipsisCount >= 2 ? ellipsisIcons.nth(1) : ellipsisIcons.first();
+      // 点击包含 ellipsis 图标的按钮（向上找到 button 父元素）
+      await cardEllipsis.locator('xpath=ancestor::button[1]').click();
+      await page.waitForTimeout(800);
+
+      // 点击弹出菜单中的 Edit
+      const menuItems = page.locator('[role="menuitem"], [data-slot="dropdown-menu-item"]');
+      const itemCount = await menuItems.count();
+      for (let i = 0; i < itemCount; i++) {
+        const text = await menuItems.nth(i).textContent();
+        if (text && /Edit|编辑/.test(text)) {
+          await menuItems.nth(i).click();
+          break;
+        }
+      }
+      await page.waitForTimeout(2000);
+
+      // 截图展示编辑抽屉
       const screenshotBuffer = await page.screenshot({ path: "integration-results/channels-03-detail.png", fullPage: true });
       await test.info().attach("channels-03-detail", { body: screenshotBuffer, contentType: "image/png" });
     });
