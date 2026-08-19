@@ -11,14 +11,21 @@ test.describe("列宽调整与 UI 优化", () => {
       });
     });
 
-    await test.step("打开渠道页面验证表格", async () => {
+    await test.step("打开渠道页面并切换到表格视图", async () => {
       await page.goto("/channels");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
+
+      // 点击列表/表格视图按钮（第二个视图切换图标）
+      const tableViewBtn = page.locator('button[aria-pressed="false"]').filter({ has: page.locator('svg') }).last();
+      if (await tableViewBtn.isVisible().catch(() => false)) {
+        await tableViewBtn.click();
+        await page.waitForTimeout(1000);
+      }
+
       const screenshotBuffer = await page.screenshot({ path: "integration-results/col-resize-01-table.png", fullPage: true });
       await test.info().attach("col-resize-01-table", { body: screenshotBuffer, contentType: "image/png" });
 
-      // 页面应包含表格或卡片列表
       expect(page.url()).toMatch(/channels|sign-in/);
     });
 
