@@ -36,19 +36,36 @@ test.describe("列宽调整与 UI 优化", () => {
     });
   });
 
-  test("02 - 渠道列表支持不同视图模式", async ({ page }) => {
-    await test.step("打开渠道页面", async () => {
+  test("02 - 渠道列表支持不同视图模式", async ({ page, apiClient }) => {
+    await test.step("创建测试渠道", async () => {
+      await apiClient.createChannel({
+        name: "View Mode Test",
+        type: 1,
+        key: "sk-view-test",
+        models: "gpt-3.5-turbo",
+      });
+    });
+
+    await test.step("打开渠道页面切换视图模式", async () => {
       await page.goto("/channels");
       await page.waitForLoadState("networkidle");
       await page.waitForTimeout(2000);
-    });
 
-    await test.step("查找视图切换按钮", async () => {
-      // 查找视图切换器（网格/列表视图）
-      const viewToggle = page.locator('[aria-label*="view" i], button:has-text("View"), [class*="ViewToggle"]');
-      const hasToggle = await viewToggle.first().isVisible().catch(() => false);
+      // 点击网格/表格视图切换按钮
+      const tableViewBtn = page.locator('button[aria-pressed="false"]').filter({ has: page.locator('svg') }).last();
+      if (await tableViewBtn.isVisible().catch(() => false)) {
+        await tableViewBtn.click();
+        await page.waitForTimeout(1000);
+      }
+
       const screenshotBuffer = await page.screenshot({ path: "integration-results/col-resize-02-view-mode.png", fullPage: true });
       await test.info().attach("col-resize-02-view-mode", { body: screenshotBuffer, contentType: "image/png" });
+    });
+
+    await test.step("清理数据", async () => {
+      const channels = await apiClient.getChannels();
+      const ch = channels.data?.find((c: any) => c.name === "View Mode Test");
+      if (ch) await apiClient.deleteChannel(ch.id);
     });
   });
 
