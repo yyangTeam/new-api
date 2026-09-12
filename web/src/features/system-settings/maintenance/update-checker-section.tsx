@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/ui/markdown'
 import { api } from '@/lib/api'
 import { formatTimestamp, formatTimestampToDate } from '@/lib/format'
+import { handleServerError } from '@/lib/handle-server-error'
 
 import { SettingsSection } from '../components/settings-section'
 
@@ -136,7 +137,7 @@ export function UpdateCheckerSection({
         error instanceof Error
           ? error.message
           : t('Failed to check for updates')
-      toast.error(message)
+      handleServerError(error, message)
     } finally {
       setChecking(false)
     }

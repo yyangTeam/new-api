@@ -34,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { handleServerError } from '@/lib/handle-server-error'
 import { ROLE } from '@/lib/roles'
 
 import { updateUserSettings } from '../../api'
@@ -63,6 +64,7 @@ function normalizeNotifyType(value: unknown): NotifyType {
     ? (value as NotifyType)
     : 'email'
 }
+
 
 // ============================================================================
 // Settings Tab Component
@@ -101,7 +103,10 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
 
   // Update form field helper
   const updateField = useCallback(
-    <K extends keyof UserSettings>(field: K, value: UserSettings[K]) => {
+    <K extends keyof typeof settings>(
+      field: K,
+      value: (typeof settings)[K]
+    ) => {
       setSettings((prev) => ({ ...prev, [field]: value }))
     },
     []
@@ -140,22 +145,23 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
   const handleSave = async () => {
     try {
       setLoading(true)
-      const response = await updateUserSettings(settings)
+      const { record_ip_log: _recordIpLog, ...notificationSettings } = settings
+      const response = await updateUserSettings(notificationSettings)
 
       if (response.success) {
         toast.success(t('Settings updated successfully'))
         onUpdate()
       } else {
-        toast.error(response.message || t('Failed to update settings'))
+        handleServerError(response, t('Failed to update settings'))
       }
-    } catch (_error) {
-      toast.error(t('Failed to update settings'))
+    } catch (error) {
+      handleServerError(error, t('Failed to update settings'))
     } finally {
       setLoading(false)
     }
   }
 
-  const notifyType = normalizeNotifyType(settings.notify_type)
+  const notifyType = settings.notify_type
 
   const visibleMethods = useMemo(() => {
     if (isAdmin) return ALL_METHODS
@@ -168,11 +174,10 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
       <div className='space-y-2.5'>
         <Label>{t('Notification Method')}</Label>
         <ToggleGroup
-          value={[notifyType]}
+          value={[notifyType ?? 'email']}
           onValueChange={(value) => {
             const nextValue = value.find((item) => item !== notifyType)
-            if (nextValue)
-              updateField('notify_type', normalizeNotifyType(nextValue))
+            if (nextValue) updateField('notify_type', nextValue as NotifyType)
           }}
           aria-label={t('Notification Method')}
           variant='outline'
@@ -515,22 +520,6 @@ export function NotificationTab({ profile, onUpdate }: NotificationTabProps) {
             onCheckedChange={(checked) =>
               updateField('accept_unset_model_ratio_model', checked)
             }
-          />
-        </div>
-
-        {/* Record IP Log */}
-        <div className='flex items-start justify-between gap-3 rounded-lg border p-3 sm:items-center sm:p-4'>
-          <div className='space-y-0.5'>
-            <Label htmlFor='recordIp'>{t('Record IP Address')}</Label>
-            <p className='text-muted-foreground text-xs sm:text-sm'>
-              {t('Log IP address for usage and error logs')}
-            </p>
-          </div>
-          <Switch
-            id='recordIp'
-            className='shrink-0'
-            checked={settings.record_ip_log}
-            onCheckedChange={(checked) => updateField('record_ip_log', checked)}
           />
         </div>
       </div>

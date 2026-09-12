@@ -230,12 +230,14 @@ type ModelMutateDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   currentRow?: Model | null
+  initialSection?: 'metadata' | 'pricing'
 }
 
 export function ModelMutateDrawer({
   open,
   onOpenChange,
   currentRow,
+  initialSection: _initialSection,
 }: ModelMutateDrawerProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -336,6 +338,7 @@ export function ModelMutateDrawer({
       'monitor_setting.auto_test_channel_enabled': false,
       'monitor_setting.auto_test_channel_minutes': 10,
       'monitor_setting.channel_test_mode': 'scheduled_all',
+      'monitor_setting.channel_test_concurrency': 1,
       'channel_affinity_setting.enabled': false,
       'channel_affinity_setting.switch_on_success': true,
       'channel_affinity_setting.keep_on_channel_disabled': false,

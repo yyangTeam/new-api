@@ -21,6 +21,7 @@ import axios from 'axios'
 import { t } from 'i18next'
 
 import { publishAuthSessionEvent } from '@/lib/auth-session-sync'
+import { hasSessionHint } from '@/lib/session-hint'
 import {
   useAuthStore,
   type AuthBootstrapState,
@@ -70,7 +71,8 @@ const authClient = axios.create({
   baseURL: '',
   withCredentials: true,
   headers: {
-    'Cache-Control': 'no-store',
+    // no-store forbids storage; no-cache also revalidates any older cached response.
+    'Cache-Control': 'no-cache, no-store',
   },
 })
 
@@ -368,6 +370,24 @@ export async function bootstrapAuthentication(): Promise<RefreshOutcome> {
     return { kind: 'authenticated', bundle: e2e }
   }
 
+  if (!currentValidAuthBundle() && !hasSessionHint()) {
+    const auth = useAuthStore.getState().auth
+    if (!auth.user && !auth.session) {
+      return { kind: 'anonymous' }
+    }
+  }
+  return resolveAuthentication()
+}
+
+/**
+ * Resolve authentication from memory, or from the server when memory is empty.
+ *
+ * Use this wherever the answer decides what the user sees: route guards that
+ * redirect on the result, and the sign-in page. It contacts the server on a
+ * cold cache even when no session hint is present, so a usable Refresh Cookie
+ * is always honoured.
+ */
+export async function resolveAuthentication(): Promise<RefreshOutcome> {
   const bundle = currentValidAuthBundle()
   if (bundle) {
     useAuthStore.getState().auth.setBootstrapState('complete')

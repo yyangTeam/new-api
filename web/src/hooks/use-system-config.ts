@@ -16,17 +16,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useCallback } from 'react'
 
-import { DEFAULT_SYSTEM_NAME, DEFAULT_LOGO } from '@/lib/constants'
+import { DEFAULT_LOGO } from '@/lib/constants'
 import { applyFaviconToDom } from '@/lib/dom-utils'
+import { ensureStatus } from '@/lib/status-query'
 import {
-  useSystemConfigStore,
   type CurrencyConfig,
   type CurrencyDisplayType,
   type SystemConfig,
   DEFAULT_CURRENCY_CONFIG,
+  useSystemConfigStore,
 } from '@/stores/system-config-store'
+import { DEFAULT_SYSTEM_NAME } from '@/lib/constants'
 
 interface UseSystemConfigOptions {
   /** Automatically fetch config from backend (use only in root component) */
@@ -104,18 +107,7 @@ export function mapStatusDataToConfig(
   }
 }
 
-// Fetch system config from API
-async function fetchSystemConfig(): Promise<Partial<SystemConfig>> {
-  const response = await fetch('/api/status')
-  if (!response.ok) throw new Error('Failed to fetch status')
-
-  const data: StatusApiResponse = await response.json()
-  if (!data.success) throw new Error('API returned error')
-
-  return mapStatusDataToConfig(data.data)
-}
-
-// Preload image and return cleanup function
+/** Preload an image, returning a cleanup that detaches the pending handlers. */
 function preloadImage(
   src: string,
   onLoad: () => void,
@@ -145,28 +137,24 @@ function preloadImage(
  */
 export function useSystemConfig(options: UseSystemConfigOptions = {}) {
   const { autoLoad = false } = options
-  const {
-    config,
-    loading,
-    loadedLogoUrl,
-    setConfig,
-    setLoadedLogoUrl,
-    setLoading,
-  } = useSystemConfigStore()
+  const queryClient = useQueryClient()
+  const { config, loading, loadedLogoUrl, setLoadedLogoUrl, setLoading } =
+    useSystemConfigStore()
 
-  // Load config from backend
+  // Load config from backend via the shared `/api/status` cache.
+  // `ensureStatus` writes the mapped config into this store itself, so there is
+  // no second request and no second mapping path here.
   const loadConfig = useCallback(async () => {
     try {
       setLoading(true)
-      const newConfig = await fetchSystemConfig()
-      setConfig(newConfig)
+      await ensureStatus(queryClient)
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to load system config:', error)
     } finally {
       setLoading(false)
     }
-  }, [setConfig, setLoading])
+  }, [queryClient, setLoading])
 
   useEffect(() => {
     if (autoLoad) loadConfig()
