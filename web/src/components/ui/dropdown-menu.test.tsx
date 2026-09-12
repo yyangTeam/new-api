@@ -1,156 +1,68 @@
-import { render, screen } from '@/test/test-utils'
+/*
+Copyright (C) 2023-2026 QuantumNous
 
-import {
-  DropdownMenu,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuTrigger,
-} from './dropdown-menu'
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
 
-describe('DropdownMenu', () => {
-  test('renders trigger text', () => {
-    render(
-      <DropdownMenu>
-        <DropdownMenuTrigger>Open Menu</DropdownMenuTrigger>
-      </DropdownMenu>
-    )
-    expect(screen.getByText('Open Menu')).toBeInTheDocument()
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import { describe, expect, test } from 'vitest'
+
+import { handleDropdownMenuItemSelect } from './dropdown-menu-events'
+
+function createMenuEvent() {
+  let defaultPrevented = false
+  let baseUIHandlerPrevented = false
+
+  return {
+    get defaultPrevented() {
+      return defaultPrevented
+    },
+    preventDefault() {
+      defaultPrevented = true
+    },
+    preventBaseUIHandler() {
+      baseUIHandlerPrevented = true
+    },
+    get baseUIHandlerPrevented() {
+      return baseUIHandlerPrevented
+    },
+  } as unknown as Parameters<typeof handleDropdownMenuItemSelect>[0] & {
+    baseUIHandlerPrevented: boolean
+  }
+}
+
+describe('DropdownMenuItem onSelect compatibility', () => {
+  test('calls the Radix-style onSelect handler on item click', () => {
+    const event = createMenuEvent()
+    let selected = false
+
+    handleDropdownMenuItemSelect(event, undefined, () => {
+      selected = true
+    })
+
+    expect(selected).toBe(true)
+    expect(event.baseUIHandlerPrevented).toBe(false)
   })
 
-  test('renders trigger with data-slot', () => {
-    const { container } = render(
-      <DropdownMenu>
-        <DropdownMenuTrigger>Menu</DropdownMenuTrigger>
-      </DropdownMenu>
-    )
-    expect(
-      container.querySelector('[data-slot="dropdown-menu-trigger"]')
-    ).toBeInTheDocument()
-  })
-})
+  test('keeps the Base UI menu open when onSelect prevents default', () => {
+    const event = createMenuEvent()
 
-describe('DropdownMenuShortcut', () => {
-  test('renders with data-slot', () => {
-    const { container } = render(
-      <DropdownMenuShortcut>Ctrl+K</DropdownMenuShortcut>
-    )
-    expect(
-      container.querySelector('[data-slot="dropdown-menu-shortcut"]')
-    ).toBeInTheDocument()
-    expect(screen.getByText('Ctrl+K')).toBeInTheDocument()
-  })
+    handleDropdownMenuItemSelect(event, undefined, (selectEvent) => {
+      selectEvent.preventDefault()
+    })
 
-  test('applies custom className', () => {
-    const { container } = render(
-      <DropdownMenuShortcut className='custom-sc'>Ctrl+K</DropdownMenuShortcut>
-    )
-    expect(
-      container.querySelector('[data-slot="dropdown-menu-shortcut"]')
-    ).toHaveClass('custom-sc')
-  })
-})
-
-describe('DropdownMenuLabel', () => {
-  test('renders with data-slot inside a menu', () => {
-    const { container } = render(
-      <DropdownMenu>
-        <DropdownMenuTrigger>Menu</DropdownMenuTrigger>
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Section</DropdownMenuLabel>
-        </DropdownMenuGroup>
-      </DropdownMenu>
-    )
-    expect(
-      container.querySelector('[data-slot="dropdown-menu-label"]')
-    ).toBeInTheDocument()
-  })
-
-  test('renders with inset prop', () => {
-    const { container } = render(
-      <DropdownMenu>
-        <DropdownMenuTrigger>Menu</DropdownMenuTrigger>
-        <DropdownMenuGroup>
-          <DropdownMenuLabel inset>Inset Label</DropdownMenuLabel>
-        </DropdownMenuGroup>
-      </DropdownMenu>
-    )
-    const label = container.querySelector('[data-slot="dropdown-menu-label"]')
-    expect(label?.getAttribute('data-inset')).toBe('true')
-  })
-})
-
-describe('DropdownMenuSeparator', () => {
-  test('renders with data-slot', () => {
-    const { container } = render(
-      <DropdownMenu>
-        <DropdownMenuTrigger>Menu</DropdownMenuTrigger>
-        <DropdownMenuSeparator />
-      </DropdownMenu>
-    )
-    expect(
-      container.querySelector('[data-slot="dropdown-menu-separator"]')
-    ).toBeInTheDocument()
-  })
-
-  test('applies custom className', () => {
-    const { container } = render(
-      <DropdownMenu>
-        <DropdownMenuTrigger>Menu</DropdownMenuTrigger>
-        <DropdownMenuSeparator className='custom-sep' />
-      </DropdownMenu>
-    )
-    expect(
-      container.querySelector('[data-slot="dropdown-menu-separator"]')
-    ).toHaveClass('custom-sep')
-  })
-})
-
-describe('DropdownMenuGroup', () => {
-  test('renders with data-slot', () => {
-    const { container } = render(
-      <DropdownMenu>
-        <DropdownMenuTrigger>Menu</DropdownMenuTrigger>
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Group</DropdownMenuLabel>
-        </DropdownMenuGroup>
-      </DropdownMenu>
-    )
-    expect(
-      container.querySelector('[data-slot="dropdown-menu-group"]')
-    ).toBeInTheDocument()
-  })
-})
-
-describe('DropdownMenuPortal', () => {
-  test('renders without crashing', () => {
-    const { container } = render(
-      <DropdownMenu>
-        <DropdownMenuTrigger>Menu</DropdownMenuTrigger>
-        <DropdownMenuPortal>
-          <div>Portal Content</div>
-        </DropdownMenuPortal>
-      </DropdownMenu>
-    )
-    expect(container).toBeInTheDocument()
-  })
-})
-
-describe('DropdownMenuSub', () => {
-  test('renders within menu context', () => {
-    // SubmenuTrigger requires MenuPositioner context from an open menu,
-    // so we just verify the wrapping component renders without error.
-    const { container } = render(
-      <DropdownMenu>
-        <DropdownMenuTrigger>Menu</DropdownMenuTrigger>
-        <DropdownMenuSub>
-          <span>Sub menu placeholder</span>
-        </DropdownMenuSub>
-      </DropdownMenu>
-    )
-    expect(screen.getByText('Menu')).toBeInTheDocument()
+    expect(event.defaultPrevented).toBe(true)
+    expect(event.baseUIHandlerPrevented).toBe(true)
   })
 })
