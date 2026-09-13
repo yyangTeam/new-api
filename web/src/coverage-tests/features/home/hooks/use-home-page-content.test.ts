@@ -118,7 +118,6 @@ describe('useHomePageContent', () => {
   })
 
   test('shows error toast on API failure', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.mocked(getHomePageContent).mockRejectedValue(new Error('Network error'))
 
     const { result } = renderHook(() => useHomePageContent())
@@ -127,12 +126,7 @@ describe('useHomePageContent', () => {
       expect(result.current.isLoaded).toBe(true)
     })
 
-    expect(toast.error).toHaveBeenCalled()
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Failed to load home page content:',
-      expect.any(Error)
-    )
-    consoleErrorSpy.mockRestore()
+    expect(toast.error).toHaveBeenCalledWith('Network error')
   })
 
   test('saves content to localStorage on success', async () => {
