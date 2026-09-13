@@ -16,14 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { lazy, Suspense, type ReactElement } from 'react'
+import { lazy, Suspense, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { Dialog } from '@/components/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { api } from '@/lib/api'
 import { formatTimestampToDate } from '@/lib/format'
 
 import { getSystemReleaseUrl, parseSystemVersion } from './releases'
@@ -56,6 +58,30 @@ export function SystemUpdateDialog(props: SystemUpdateDialogProps) {
     (release.prerelease ||
       (parseSystemVersion(release.tag_name)?.stage ?? 3) < 3)
   const canIgnore = release && (update.hasUpdate || update.comparison === null)
+  const [updating, setUpdating] = useState(false)
+
+  const handleUpdate = async () => {
+    setUpdating(true)
+    try {
+      const response = await api.post('/api/system/update')
+      const payload = response.data
+      if (!payload?.success) {
+        throw new Error(payload?.message || t('Update failed'))
+      }
+      toast.success(
+        t('Update to {{version}} successful. Service is restarting...', {
+          version: payload.data?.version ?? release?.tag_name,
+        })
+      )
+      props.onOpenChange(false)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t('Update failed')
+      toast.error(message)
+    } finally {
+      setUpdating(false)
+    }
+  }
   let statusText = t('Updates have not been checked yet.')
   if (update.checking) {
     statusText = t('Checking updates...')
@@ -109,6 +135,7 @@ export function SystemUpdateDialog(props: SystemUpdateDialogProps) {
             <Button
               nativeButton={false}
               role='link'
+              variant='outline'
               render={
                 <a
                   href={releaseUrl}
@@ -118,6 +145,17 @@ export function SystemUpdateDialog(props: SystemUpdateDialogProps) {
               }
             >
               {t('Go to GitHub')}
+            </Button>
+          )}
+          {update.hasUpdate && release && (
+            <Button
+              type='button'
+              onClick={handleUpdate}
+              disabled={updating}
+            >
+              {updating
+                ? t('Updating...')
+                : t('Update & Restart')}
             </Button>
           )}
         </>
