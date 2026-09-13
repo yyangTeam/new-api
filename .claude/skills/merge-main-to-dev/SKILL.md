@@ -11,9 +11,13 @@ description: >
 # Merge origin/main into dev
 
 This repo is a fork. `origin/main` receives upstream releases. `dev` carries
-fork-specific customizations (E2E tests, extra notification channels, batch token
-ops, email templates, update checker, image-gen page, etc.). The merge workflow
-brings upstream changes into dev **without losing any dev customization**.
+fork-specific customizations: image-gen embed page, batch add/edit tokens,
+channel error notifications (Feishu + QQ Bot), notification cooldown, in-panel
+system update + version rollback, email template beautification, model redirect
+display setting, automatic version numbering, and CI/test infrastructure. The
+merge workflow brings upstream changes into dev **without losing any dev
+customization**. See the full Dev Customizations Registry below for the
+authoritative list and file paths.
 
 ## Phase 0 — Pre-flight
 
@@ -267,48 +271,155 @@ git commit
 These are the fork-specific features that MUST be preserved in every merge.
 **Update this list when adding new dev-only features.**
 
-### Backend (Go)
+> Verified 2026-09-13 via `git log --oneline origin/main..origin/dev` — each
+> feature below has commits that do NOT exist on `origin/main`.
 
-| Feature | Key files | Description |
-|---|---|---|
-| Batch token create/update | `controller/token.go`, `model/token.go`, `router/api-router.go` | Bulk token CRUD APIs |
-| Styled HTML email templates | `controller/misc.go`, `common/email.go` | Gradient background verification code cards |
-| Enhanced quota notifications | `service/quota.go` | Styled HTML for quota warning emails |
-| Channel error notification system | `service/channel_error_counter.go`, `setting/operation_setting/monitor_setting.go` | ChannelErrorNotify* fields, error counting |
-| Feishu notifications | `service/feishu_notify.go` | Feishu/Lark bot integration |
-| QQ Bot notifications | `service/qqbot_notify.go` | QQ bot integration |
-| System update checker | `controller/system_update.go`, `controller/update_check.go` | Admin update reminders |
-| Enhanced user management | `controller/user.go` | Extra user fields/operations |
-| Notify DTO extensions | `relaykit/dto/notify.go`, `relaykit/dto/user_settings.go` | Extra notification types |
-| Operation settings tools | `setting/operation_setting/tools.go` | Additional settings utilities |
-| version.sh release script | `scripts/version.sh` (if exists) | Custom versioning vs main's inline git-describe |
+### 1. Image Generation Embed Page (image-gen-embed)
 
-### Frontend (React/TypeScript)
+Full-stack feature: configurable URL that embeds an external image generation
+tool in an iframe, or opens it in a new tab.
 
-| Feature | Key files | Description |
-|---|---|---|
-| Model mutate drawer extensions | `web/src/features/channels/components/drawers/model-mutate-drawer.tsx` | Pricing modes, vendor dropdown (~500 extra lines) |
-| Extra notification channels | `web/src/features/profile/components/tabs/notification-tab.tsx` | Feishu, QQ bot notification settings |
-| Routing reliability section | `web/src/features/system-settings/models/routing-reliability-section.tsx` | Channel error notification config UI |
-| Image generation page | `web/src/routes/_authenticated/image-gen/index.tsx`, `web/src/features/system-settings/content/image-gen-section.tsx` | Image gen feature and settings |
-| Enhanced system config hooks | `web/src/hooks/use-system-config.ts` | StatusApiResponse, mapStatusDataToConfig |
-| E2E auth bootstrap hook | `web/src/lib/auth-session.ts` | E2E test auth bypass |
-| Usage log details dialog | `web/src/features/usage-logs/components/dialogs/details-dialog.tsx` | Enhanced log detail view |
-| System settings types | `web/src/features/system-settings/types.ts` | Extra setting fields |
-| Profile types & constants | `web/src/features/profile/types.ts`, `web/src/features/profile/constants.ts` | Extra notification types |
-| Enhanced sidebar config | `web/src/hooks/use-sidebar-config.ts` | Extra nav items |
-| i18n batch edit token keys | `web/src/i18n/locales/*.json` | Translation keys for batch token UI |
+| Layer | Key files |
+|---|---|
+| Backend option | `controller/video_proxy_gemini.go`, `model/option.go` (ImageGenerationUrl) |
+| API exposure | `controller/misc.go` (`image_generation_url` in `/api/status`) |
+| Types | `web/default/src/features/system-settings/types.ts` (ContentSettings) |
+| Settings UI (classic) | `web/classic/src/pages/Setting/ImageGen/SettingsImageGen.jsx`, `web/classic/src/components/settings/ImageGenSetting.jsx` |
+| Settings UI (new) | `web/default/src/features/system-settings/content/image-gen-section.tsx` |
+| Page (classic) | `web/classic/src/pages/ImageGen/index.jsx` |
+| Route (new) | `web/default/src/routes/_authenticated/image-gen/index.tsx` |
+| Feature module | `web/default/src/features/image-gen/index.tsx` |
+| Sidebar | sidebar nav item + permission wiring for image-gen |
+| Open mode | embed (iframe) or new_tab (direct link) |
+
+Commits: `da3ee04ff`–`dac04ff61` (9 commits)
+
+### 2. Batch Add/Edit Tokens
+
+Bulk token creation with delimiter parsing (comma, semicolon, whitespace) and
+batch edit support.
+
+| Layer | Key files |
+|---|---|
+| Backend | `controller/token.go`, `model/token.go`, `router/api-router.go` |
+| Classic frontend | `web/classic/src/components/table/tokens/modals/BatchAddTokenModal.jsx`, `BatchEditTokenModal.jsx` |
+| New frontend | `web/default/src/features/keys/components/api-keys-batch-add-drawer.tsx`, `api-keys-batch-edit-dialog.tsx` |
+| i18n | `web/classic/src/i18n/locales/*.json` (batch token keys) |
+
+Commits: `6c90241e5`, `7e4e3a22e`
+
+### 3. Channel Error Notification (Feishu + QQ Bot)
+
+Send channel error alerts to Feishu/Lark and QQ Bot, with error counting.
+
+| Layer | Key files |
+|---|---|
+| Feishu | `service/feishu_notify.go` |
+| QQ Bot | `service/qqbot_notify.go` |
+| Error counter | `service/channel_error_counter.go` |
+| Settings | `setting/operation_setting/monitor_setting.go` (ChannelErrorNotify* fields) |
+| Classic settings UI | `web/classic/src/pages/Setting/Operation/SettingsLog.jsx` |
+| New settings UI | `web/default/src/features/system-settings/models/routing-reliability-section.tsx` |
+| Notification tab | `web/default/src/features/profile/components/tabs/notification-tab.tsx` |
+
+Commits: `fda1b0ff1`
+
+### 4. User-Configurable Notification Cooldown
+
+User-adjustable cooldown period for channel error notifications, built on top
+of the upstream notify-limit mechanism.
+
+| Layer | Key files |
+|---|---|
+| Backend | `service/notify-limit.go` (dev-only commit `b1941f107` adds user-configurable cooldown) |
+| Classic frontend | `web/classic/src/components/` (cooldown UI) |
+
+Commits: `b1941f107`, `85591505d`
+
+### 5. In-Panel System Update + Version Rollback
+
+Admin update check via backend proxy, in-place update/restart, and version
+rollback (not just in-place update).
+
+| Layer | Key files |
+|---|---|
+| System update | `controller/system_update.go` |
+| Update check | `controller/update_check.go` |
+| Version rollback | `controller/system_update.go` (rollback logic) |
+
+Commits: `54b13e17b` (update check + restart), `6347366e9` (version rollback)
+
+### 6. Email Template Beautification
+
+Styled HTML layout for verification code emails (gradient background cards).
+
+| Layer | Key files |
+|---|---|
+| Backend | `common/email.go` (+41 lines: styled HTML layout) |
+| Misc controller | `controller/misc.go` (email sending) |
+
+Commits: `e6037ff22`, `f66fdbdbc`
+
+### 7. Model Redirect Display Setting
+
+Admin setting to control whether model redirect/mapping is shown in usage logs.
+
+| Layer | Key files |
+|---|---|
+| Backend constants | `common/constants.go` (ModelMappedDisplayMode) |
+| Backend option | `model/option.go` |
+| Backend misc | `controller/misc.go` (expose in status) |
+| Classic settings | `web/classic/src/pages/Setting/Operation/SettingsLog.jsx`, `web/classic/src/components/settings/OperationSetting.jsx` |
+| Classic usage logs | `web/classic/src/components/table/usage-logs/UsageLogsColumnDefs.jsx`, `UsageLogsTable.jsx`, `web/classic/src/hooks/usage-logs/useUsageLogsData.jsx` |
+| New settings | `web/default/src/features/system-settings/maintenance/log-settings-section.tsx`, `operations/section-registry.tsx`, `types.ts` |
+| New hook | `web/default/src/features/system-settings/hooks/use-update-option.ts` |
+
+Commits: `13ee1672b` (admin setting), `1e2feb08e` (classic UI), `e320d2ef1` (refresh fix)
+
+### 8. Automatic Version Number Mechanism
+
+`scripts/version.sh` generates version numbers for all branch builds (replaces
+main's inline git-describe).
+
+| Layer | Key files |
+|---|---|
+| Script | `scripts/version.sh` |
+| CI | `.github/workflows/release.yml` (calls version.sh) |
+
+Commits: `1c8ac1cd7`
+
+### Other dev-only files (lower risk but preserve)
+
+| File | Feature |
+|---|---|
+| `setting/ratio_setting/compact_suffix.go` | Compact suffix ratio setting utility |
+| `web/default/src/features/profile/hooks/use-access-token.ts` | Access token management hook |
+| `web/default/src/features/profile/hooks/use-two-fa.ts` | Two-factor auth hook |
+| `web/default/src/hooks/use-system-config.ts` | Enhanced system config (StatusApiResponse, mapStatusDataToConfig) |
+| `web/default/src/hooks/use-sidebar-config.ts` | Extra sidebar nav items |
+| `web/default/src/lib/auth-session.ts` | E2E test auth bootstrap hook |
+| `relaykit/dto/notify.go`, `relaykit/dto/user_settings.go` | Notify DTO extensions |
 
 ### CI/Infrastructure
 
 | Feature | Key files | Description |
 |---|---|---|
-| E2E integration test job | `.github/workflows/ci.yml` | Playwright E2E job in CI |
-| E2E test suite | `web/e2e-integration/` | 84+ Playwright integration tests |
-| version.sh in release | `.github/workflows/release.yml` | Custom version extraction |
+| Backend test workflow | `.github/workflows/backend-tests.yml` | Go test CI with `-skip` for upstream races |
+| Frontend test workflow | `.github/workflows/frontend-tests.yml` | 16-shard vitest with `--exclude '**/__tests__/**'` |
+| E2E test workflow | `.github/workflows/e2e-tests.yml` | Playwright CI with screenshot/video artifact |
+| E2E test suite | `web/e2e/` | 37 Playwright tests in real Chromium |
 | Fork-aware test rules | `AGENTS.md` section "Test file organization" | Test placement conventions |
 | Frontend test infra | `web/src/test/`, `web/vitest.config.ts` | Test utils, setup, shims |
 | Coverage tests | `web/src/coverage-tests/`, `*/coverage_test.go` | Fork-specific test files |
+
+### NOT fork-specific (upstream code, do not treat as dev customizations)
+
+These exist on dev because the fork predates an upstream restructuring. They
+are **not** dev features and will be naturally replaced by upstream code
+during merge:
+
+- **AI task channel adaptors** (`relay/channel/task/{ali,doubao,gemini,hailuo,jimeng,kling,sora,suno,vertex,vidu}/`) — upstream replaced these with the JS plugin system (`relay/channel/task/jsplugin/`) in `eb48396d5`. During merge, prefer main's jsplugin system.
+- **Profile security dialogs** (`web/default/src/features/profile/components/dialogs/`) — upstream restructured these into card components (`profile-settings-card.tsx`, etc.) in `31d70fca3`. During merge, prefer main's card-based architecture.
 
 ---
 
