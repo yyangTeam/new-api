@@ -85,16 +85,7 @@ func TestEnableWorker_ReflectsWorkerUrl(t *testing.T) {
 	assert.True(t, EnableWorker(), "non-empty WorkerUrl must enable worker")
 }
 
-func TestGetPasskeySettings_DerivesRPIDFromServerAddress(t *testing.T) {
-	origServer := ServerAddress
-	origRPID := defaultPasskeySettings.RPID
-	origOrigins := defaultPasskeySettings.Origins
-	t.Cleanup(func() {
-		ServerAddress = origServer
-		defaultPasskeySettings.RPID = origRPID
-		defaultPasskeySettings.Origins = origOrigins
-	})
-
+func TestWithDefaults_DerivesRPIDFromServerAddress(t *testing.T) {
 	tests := []struct {
 		name        string
 		serverAddr  string
@@ -128,55 +119,27 @@ func TestGetPasskeySettings_DerivesRPIDFromServerAddress(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ServerAddress = tt.serverAddr
-			defaultPasskeySettings.RPID = ""
-			defaultPasskeySettings.Origins = ""
-
-			s := GetPasskeySettings()
-			require.NotNil(t, s)
+			base := PasskeySettings{RPID: "", Origins: ""}
+			s := base.WithDefaults(tt.serverAddr)
 			assert.Equal(t, tt.wantRPID, s.RPID)
 			assert.Equal(t, tt.wantOrigins, s.Origins)
 		})
 	}
 }
 
-func TestGetPasskeySettings_PreservesAdminConfiguredRPID(t *testing.T) {
-	origServer := ServerAddress
-	origRPID := defaultPasskeySettings.RPID
-	origOrigins := defaultPasskeySettings.Origins
-	t.Cleanup(func() {
-		ServerAddress = origServer
-		defaultPasskeySettings.RPID = origRPID
-		defaultPasskeySettings.Origins = origOrigins
-	})
-
-	// When the admin has already set an RPID, GetPasskeySettings must not
+func TestWithDefaults_PreservesAdminConfiguredRPID(t *testing.T) {
+	// When the admin has already set an RPID, WithDefaults must not
 	// overwrite it from ServerAddress.
-	defaultPasskeySettings.RPID = "admin.configured.example"
-	defaultPasskeySettings.Origins = ""
-	ServerAddress = "https://other.example.com"
-
-	s := GetPasskeySettings()
+	base := PasskeySettings{RPID: "admin.configured.example", Origins: ""}
+	s := base.WithDefaults("https://other.example.com")
 	assert.Equal(t, "admin.configured.example", s.RPID)
 	// Origins is still empty, so it falls back to ServerAddress.
 	assert.Equal(t, "https://other.example.com", s.Origins)
 }
 
-func TestGetPasskeySettings_BlankJSONOriginsFallsBackToServerAddress(t *testing.T) {
-	origServer := ServerAddress
-	origRPID := defaultPasskeySettings.RPID
-	origOrigins := defaultPasskeySettings.Origins
-	t.Cleanup(func() {
-		ServerAddress = origServer
-		defaultPasskeySettings.RPID = origRPID
-		defaultPasskeySettings.Origins = origOrigins
-	})
-
-	ServerAddress = "https://blankorigins.example.com"
-	defaultPasskeySettings.RPID = "preset.rpid"
-	defaultPasskeySettings.Origins = "[]"
-
-	s := GetPasskeySettings()
+func TestWithDefaults_BlankJSONOriginsFallsBackToServerAddress(t *testing.T) {
+	base := PasskeySettings{RPID: "preset.rpid", Origins: "[]"}
+	s := base.WithDefaults("https://blankorigins.example.com")
 	// The literal "[]" sentinel is treated as unset and replaced.
 	assert.Equal(t, "https://blankorigins.example.com", s.Origins)
 }

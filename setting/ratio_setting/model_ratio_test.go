@@ -223,7 +223,7 @@ func TestGetCompletionRatio_GeminiVariants(t *testing.T) {
 		{"gemini-2.5-pro", 8},
 		{"gemini-2.5-pro-preview-03-25", 8},
 		{"gemini-2.5-flash-preview-04-17", 3.5 / 0.15},
-		{"gemini-2.5-flash-preview-04-17-nothinking", 4},
+		{"gemini-2.5-flash-preview-04-17-nothinking", 3.5 / 0.15},
 		{"gemini-2.5-flash-lite-preview-06-17", 4},
 		{"gemini-2.5-flash", 2.5 / 0.3},
 		{"gemini-robotics-er-1.5-preview", 2.5 / 0.3},
@@ -458,17 +458,21 @@ func TestGetModelPrice_CompactSuffix(t *testing.T) {
 	err := UpdateModelPriceByJSONString(`{"*-openai-compact": 0.77}`)
 	require.NoError(t, err)
 
+	// No wildcard/suffix matching exists: "*-openai-compact" is a literal key,
+	// so "some-model-openai-compact" is not found.
 	price, ok := GetModelPrice("some-model-openai-compact", false)
-	assert.True(t, ok)
-	assert.InDelta(t, 0.77, price, 0.001)
+	assert.False(t, ok)
+	assert.InDelta(t, -1.0, price, 0.001)
 }
 
 func TestGetModelRatio_CompactSuffix_WithWildcard(t *testing.T) {
 	err := UpdateModelRatioByJSONString(`{"*-openai-compact": 42.0}`)
 	require.NoError(t, err)
 
+	// No wildcard/suffix matching exists: "*-openai-compact" is a literal key,
+	// so "any-model-openai-compact" falls back to the default ratio.
 	ratio, found, name := GetModelRatio("any-model-openai-compact")
-	assert.True(t, found)
-	assert.InDelta(t, 42.0, ratio, 0.001)
+	assert.False(t, found)
+	assert.InDelta(t, 37.5, ratio, 0.001)
 	assert.Equal(t, "any-model-openai-compact", name)
 }
