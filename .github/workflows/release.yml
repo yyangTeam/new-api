@@ -34,7 +34,7 @@ jobs:
           CI: ""
         run: |
           cd web
-          bun install --frozen-lockfile
+          bun install
           DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$VERSION bun run build
           cd ..
       - name: Set up Go
@@ -84,7 +84,7 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
           cd web
-          bun install --frozen-lockfile
+          bun install
           DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$VERSION bun run build
           cd ..
       - name: Set up Go
@@ -131,7 +131,7 @@ jobs:
           CI: ""
         run: |
           cd web
-          bun install --frozen-lockfile
+          bun install
           DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$VERSION bun run build
           cd ..
       - name: Set up Go

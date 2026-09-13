@@ -79,7 +79,7 @@ jobs:
           bun-version: '1.4.0'
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Check i18n keys
         run: bun run i18n:check
@@ -113,7 +113,7 @@ jobs:
           bun-version: '1.4.0'
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
