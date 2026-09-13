@@ -212,19 +212,61 @@ When a shared file (one that both dev and main modify) is auto-merged or
 the merge takes main's version, dev-specific code is **silently dropped**
 with no compile error. This phase catches those losses.
 
-**Run this audit for every file in the Dev Customizations Registry below.**
+#### Step 1: Filter — did dev actually change this file?
+
+**This is the most important step.** Most files with large deletion counts
+are NOT dev losses — they are upstream refactoring of files dev never
+touched. Before inspecting any diff, filter to only files dev changed:
 
 ```bash
-# For each dev customization key file, compare origin/dev vs HEAD:
+# For each file in the Dev Customizations Registry below:
+git log --oneline origin/main..origin/dev -- <file>
+```
+
+- If this returns **0 commits** → dev never changed this file. Any
+  deletions are upstream refactoring. **Skip — NOT a dev loss.**
+- If this returns **≥1 commit** → dev changed this file. Proceed to Step 2.
+
+**Bulk filter** (find ALL files dev changed, then check each):
+
+```bash
+# All files dev modified that are not on main
+git diff --name-only origin/main...origin/dev | grep -vE 'test|coverage|e2e|__tests__|spec\.'
+```
+
+This gives you the definitive list of files to audit. Any file NOT on
+this list is irrelevant — its deletions are upstream refactoring.
+
+#### Step 2: Verify — are dev's changes in HEAD?
+
+For each file from Step 1:
+
+```bash
+# Method A: Quick grep for dev-specific identifiers (fastest)
+grep '<dev-specific-string>' <file>   # e.g. grep 'ImageGenerationUrl' model/option.go
+
+# Method B: Full diff (slower but catches everything)
 git diff origin/dev HEAD -- <file>
 ```
 
-If the diff shows dev-specific code as REMOVED (lines starting with `-`
-that are dev additions, not just upstream refactor), the merge lost
+If grep finds the string, the feature is present. If the diff shows
+dev-specific code as REMOVED (lines starting with `-`), the merge lost
 code. Restore it.
 
-**High-risk shared files** (both sides modify, most likely to silently
-lose dev additions):
+#### Step 3: Distinguish "code lost" from "code replaced"
+
+Not every `-` line is a loss. Three patterns:
+
+| Pattern | What it looks like | Action |
+|---|---|---|
+| **Dev code silently dropped** | Dev added a function/field/registration; HEAD has no trace of it | **RESTORE** — copy from `git show origin/dev:<file>` |
+| **Dev code replaced by upstream's better version** | Dev's simple implementation replaced by upstream's more secure/sophisticated one (e.g. simplified auth → security verification, manual cache → atomic cache) | **Accept upstream** — this is the expected merge outcome |
+| **Dev code relocated** | Same code present but at different line numbers (main added code before it) | **No action needed** — verify with grep |
+
+#### High-risk shared files
+
+These files are modified by BOTH dev and main. The merge can silently
+drop dev's additions when it takes main's version:
 
 | File | What dev adds | How to verify |
 |---|---|---|
@@ -235,21 +277,21 @@ lose dev additions):
 | `web/src/hooks/use-sidebar-config.ts` | `image_gen` module config + `/image-gen` URL mapping | `grep 'image_gen' web/src/hooks/use-sidebar-config.ts` — must return ≥2 |
 | `common/constants.go` | `ImageGenerationUrl`, `ImageGenerationOpenMode`, `ModelMappedDisplayMode`, `UpdateCheckApiBase`, `UpdateCheckRepo` variables | `grep -c 'ImageGenerationUrl\|ImageGenerationOpenMode\|ModelMappedDisplayMode\|UpdateCheckApiBase\|UpdateCheckRepo' common/constants.go` — must return ≥5 |
 
-**Quick bulk audit** (catches most losses in one command):
+#### Dev-created files (lowest risk)
+
+Files created entirely by dev (not on origin/main). These survive merges
+perfectly — `git diff origin/dev HEAD` should be **empty**:
 
 ```bash
-# List all Go files that differ between dev and HEAD
-git diff --stat origin/dev HEAD -- '*.go' | head -30
-
-# List all frontend files that differ
-git diff --stat origin/dev HEAD -- 'web/src/*.ts' 'web/src/*.tsx' | head -30
+git diff origin/dev HEAD -- controller/system_update.go controller/update_check.go \
+  service/feishu_notify.go service/qqbot_notify.go service/channel_error_counter.go \
+  scripts/version.sh
 ```
 
-For any file with large deletions (many `-` lines), inspect whether dev
-customizations were dropped. Focus on files where dev had feature
-additions, not just upstream refactor adoption.
+If any of these show a non-empty diff, something modified dev's original
+files — investigate.
 
-**i18n key audit**:
+#### i18n key audit
 
 ```bash
 cd web && bun run i18n:check
@@ -534,3 +576,7 @@ during merge:
 | `test/setup.ts` type errors | Check if TypeScript upgraded DOM lib types (e.g. IntersectionObserver added `scrollMargin` in newer TS) — update mocks to match |
 | Dev feature silently lost (build passes but feature gone) | **Most common merge bug.** Main overwrote a shared file (e.g. `model/option.go`, `use-sidebar-data.ts`, `routing-reliability-section.tsx`) and dev's additions disappeared with no compile error. Run the Phase 6a audit: `git diff origin/dev HEAD -- <file>` and grep for dev-specific strings. If missing, restore from `git show origin/dev:<file>` |
 | `model/option.go` lost dev option registrations | Main's version of this file drops dev's `InitOptionMap` entries and `updateOptionMap` switch cases. After merge, grep for each dev option key: `grep -c 'ImageGenerationUrl\|ModelMappedDisplayMode\|UpdateCheckApiBase\|UpdateCheckRepo' model/option.go` — must return ≥8. If fewer, restore the missing lines from `git show origin/dev:model/option.go` |
+| Large deletion count in `git diff --stat` but no dev loss | **Most common false alarm.** A file shows 500-3700 lines deleted but dev never touched it (`git log origin/main..origin/dev -- <file>` is empty). These are upstream refactoring of shared files. Always filter with `git log` BEFORE inspecting diffs. Only files dev actually changed need inspection |
+| Dev's simpler auth/security code replaced by upstream | Dev had simplified `setupLogin`, `checkUpdatePassword`, `DeleteSelf`, etc. Upstream replaces these with security-hardened versions (`RequireSecurityProof`, `ChangeUserPassword`, `StartLoginVerification`). This is the **expected merge outcome** — accept upstream's version. Not a loss |
+| Dev-created files modified after merge | Files dev created (e.g. `system_update.go`, `feishu_notify.go`) should have `git diff origin/dev HEAD` = empty. If non-empty, something modified them during merge. Investigate with `git log --oneline origin/dev..HEAD -- <file>` |
+| In-place "Update & Restart" button missing | Dev's `update-checker-section.tsx` called `POST /api/system/update` for in-place binary updates. If upstream's `SystemUpdateDialog` replaced it with only a "Go to GitHub" link, the backend endpoint (`router/api-router.go`) still exists but no frontend calls it. Restore the button if in-place updates are desired |
