@@ -72,6 +72,7 @@ cause, and proposed resolution for each file.
 | **Project docs** | `AGENTS.md`, `CLAUDE.md` | Keep dev's fork-aware rules (test organization, etc.); append main's new rules |
 | **Backend Go — fork features** | See §Dev Customizations below | **Always keep dev's version** when the file is a fork-only feature |
 | **Backend Go — shared code** | `controller/relay.go`, `service/quota.go`, etc. | Keep dev's additions (template HTML, extra fields); adopt main's new params and refactors around them |
+| **Backend Go — `model/option.go`** | `model/option.go` | **HIGH RISK.** Both sides add option registrations to `InitOptionMap` + `updateOptionMap`. Main's version will silently drop dev's entries. After merge, verify every dev option key still has both an `InitOptionMap` line AND an `updateOptionMap` case. See Phase 6a audit. |
 | **Backend Go tests** | `*_test.go` | Keep both sides' test functions; prefer dev's TestMain |
 | **Frontend config** | `package.json`, `bun.lock`, `vitest.config.ts` | Main's newer versions + dev's extra deps; **regenerate bun.lock** (`rm web/bun.lock && cd web && bun install`) |
 | **Frontend hooks & lib** | `use-system-config.ts`, `auth-session.ts`, `use-sidebar-*.ts` | Keep dev's enhanced hooks; base on main's refactored structure if main did an architectural rewrite |
@@ -176,11 +177,69 @@ cd relaykit && GOWORK=off ~/.local/go/bin/go build ./...
 
 # 4. Frontend typecheck
 cd web && bun run typecheck
+
+# 5. i18n code→locale check (catches t() calls with no locale entry)
+cd web && bun run i18n:check
 ```
 
 If any check fails, fix the issue before continuing.
 
-### 6a — Fix Go test compilation (`go vet`)
+### 6a — Post-merge dev customization audit (CRITICAL)
+
+Builds and typechecks passing does NOT prove dev customizations survived.
+When a shared file (one that both dev and main modify) is auto-merged or
+the merge takes main's version, dev-specific code is **silently dropped**
+with no compile error. This phase catches those losses.
+
+**Run this audit for every file in the Dev Customizations Registry below.**
+
+```bash
+# For each dev customization key file, compare origin/dev vs HEAD:
+git diff origin/dev HEAD -- <file>
+```
+
+If the diff shows dev-specific code as REMOVED (lines starting with `-`
+that are dev additions, not just upstream refactor), the merge lost
+code. Restore it.
+
+**High-risk shared files** (both sides modify, most likely to silently
+lose dev additions):
+
+| File | What dev adds | How to verify |
+|---|---|---|
+| `model/option.go` | `InitOptionMap` entries + `updateOptionMap` switch cases for dev-only options | `grep -c 'ImageGenerationUrl\|ModelMappedDisplayMode\|UpdateCheckApiBase\|UpdateCheckRepo' model/option.go` — must return ≥8 (2 per option: InitOptionMap + updateOptionMap) |
+| `web/src/hooks/use-sidebar-data.ts` | Conditional nav items (e.g. Image Generation in Chat group) | `grep 'image_gen\|Image Generation' web/src/hooks/use-sidebar-data.ts` — must find the nav item |
+| `web/src/features/system-settings/models/routing-reliability-section.tsx` | "Channel error alert" UI section (~170 lines of JSX) | `grep 'Channel error alert' web/src/features/system-settings/models/routing-reliability-section.tsx` — must return ≥1 |
+| `web/src/features/system-settings/maintenance/update-checker-section.tsx` | Version rollback UI (rollback buttons, version list, restart) | `grep 'rollback\|Roll back\|Restart service' web/src/features/system-settings/maintenance/update-checker-section.tsx` — must return ≥3 |
+| `web/src/hooks/use-sidebar-config.ts` | `image_gen` module config + `/image-gen` URL mapping | `grep 'image_gen' web/src/hooks/use-sidebar-config.ts` — must return ≥2 |
+| `common/constants.go` | `ImageGenerationUrl`, `ImageGenerationOpenMode`, `ModelMappedDisplayMode`, `UpdateCheckApiBase`, `UpdateCheckRepo` variables | `grep -c 'ImageGenerationUrl\|ImageGenerationOpenMode\|ModelMappedDisplayMode\|UpdateCheckApiBase\|UpdateCheckRepo' common/constants.go` — must return ≥5 |
+
+**Quick bulk audit** (catches most losses in one command):
+
+```bash
+# List all Go files that differ between dev and HEAD
+git diff --stat origin/dev HEAD -- '*.go' | head -30
+
+# List all frontend files that differ
+git diff --stat origin/dev HEAD -- 'web/src/*.ts' 'web/src/*.tsx' | head -30
+```
+
+For any file with large deletions (many `-` lines), inspect whether dev
+customizations were dropped. Focus on files where dev had feature
+additions, not just upstream refactor adoption.
+
+**i18n key audit**:
+
+```bash
+cd web && bun run i18n:check
+```
+
+This scans source code for all `t('...')` calls and verifies each has a
+locale entry. If it reports missing keys, dev features lost their i18n
+entries during the JSON merge. Add each missing key to `en.json` (value
+= key) and `zh.json` inside the `translation` wrapper object.
+
+### 6b — Fix Go test compilation (`go vet`)
 
 Run `go vet ./...` first — it catches test compilation errors faster than `go test`.
 
@@ -199,7 +258,7 @@ Rules:
 - NEVER modify upstream test files.
 - If all tests in a file are for removed functions, delete the entire file.
 
-### 6b — Fix frontend test compilation (`bun run typecheck`)
+### 6c — Fix frontend test compilation (`bun run typecheck`)
 
 This is typically the **largest post-merge task** — upstream refactors can break
 100+ coverage test files. Use parallel agents grouped by feature area.
@@ -224,7 +283,7 @@ Common bulk patterns:
 - `React.createElement(Component, props, children)` where Component requires `children` in props → include `children` in the props object
 - ResizablePanel `direction` prop renamed to `orientation` (react-resizable-panels upgrade)
 
-### 6c — Common problems table
+### 6d — Common problems table
 
 | Problem | Fix |
 |---|---|
@@ -291,12 +350,12 @@ tool in an iframe, or opens it in a new tab.
 |---|---|
 | Backend option | `controller/video_proxy_gemini.go`, `model/option.go` (ImageGenerationUrl) |
 | API exposure | `controller/misc.go` (`image_generation_url` in `/api/status`) |
-| Types | `web/default/src/features/system-settings/types.ts` (ContentSettings) |
-| Settings UI (classic) | `web/classic/src/pages/Setting/ImageGen/SettingsImageGen.jsx`, `web/classic/src/components/settings/ImageGenSetting.jsx` |
-| Settings UI (new) | `web/default/src/features/system-settings/content/image-gen-section.tsx` |
-| Page (classic) | `web/classic/src/pages/ImageGen/index.jsx` |
-| Route (new) | `web/default/src/routes/_authenticated/image-gen/index.tsx` |
-| Feature module | `web/default/src/features/image-gen/index.tsx` |
+| Types | `web/src/features/system-settings/types.ts` (ContentSettings) |
+| Settings UI (classic) | `web/src/pages/Setting/ImageGen/SettingsImageGen.jsx`, `web/src/components/settings/ImageGenSetting.jsx` |
+| Settings UI (new) | `web/src/features/system-settings/content/image-gen-section.tsx` |
+| Page (classic) | `web/src/pages/ImageGen/index.jsx` |
+| Route (new) | `web/src/routes/_authenticated/image-gen/index.tsx` |
+| Feature module | `web/src/features/image-gen/index.tsx` |
 | Sidebar | sidebar nav item + permission wiring for image-gen |
 | Open mode | embed (iframe) or new_tab (direct link) |
 
@@ -310,9 +369,9 @@ batch edit support.
 | Layer | Key files |
 |---|---|
 | Backend | `controller/token.go`, `model/token.go`, `router/api-router.go` |
-| Classic frontend | `web/classic/src/components/table/tokens/modals/BatchAddTokenModal.jsx`, `BatchEditTokenModal.jsx` |
-| New frontend | `web/default/src/features/keys/components/api-keys-batch-add-drawer.tsx`, `api-keys-batch-edit-dialog.tsx` |
-| i18n | `web/classic/src/i18n/locales/*.json` (batch token keys) |
+| Classic frontend | `web/src/components/table/tokens/modals/BatchAddTokenModal.jsx`, `BatchEditTokenModal.jsx` |
+| New frontend | `web/src/features/keys/components/api-keys-batch-add-drawer.tsx`, `api-keys-batch-edit-dialog.tsx` |
+| i18n | `web/src/i18n/locales/*.json` (batch token keys) |
 
 Commits: `6c90241e5`, `7e4e3a22e`
 
@@ -326,9 +385,9 @@ Send channel error alerts to Feishu/Lark and QQ Bot, with error counting.
 | QQ Bot | `service/qqbot_notify.go` |
 | Error counter | `service/channel_error_counter.go` |
 | Settings | `setting/operation_setting/monitor_setting.go` (ChannelErrorNotify* fields) |
-| Classic settings UI | `web/classic/src/pages/Setting/Operation/SettingsLog.jsx` |
-| New settings UI | `web/default/src/features/system-settings/models/routing-reliability-section.tsx` |
-| Notification tab | `web/default/src/features/profile/components/tabs/notification-tab.tsx` |
+| Classic settings UI | `web/src/pages/Setting/Operation/SettingsLog.jsx` |
+| New settings UI | `web/src/features/system-settings/models/routing-reliability-section.tsx` |
+| Notification tab | `web/src/features/profile/components/tabs/notification-tab.tsx` |
 
 Commits: `fda1b0ff1`
 
@@ -340,7 +399,7 @@ of the upstream notify-limit mechanism.
 | Layer | Key files |
 |---|---|
 | Backend | `service/notify-limit.go` (dev-only commit `b1941f107` adds user-configurable cooldown) |
-| Classic frontend | `web/classic/src/components/` (cooldown UI) |
+| Classic frontend | `web/src/components/` (cooldown UI) |
 
 Commits: `b1941f107`, `85591505d`
 
@@ -377,10 +436,10 @@ Admin setting to control whether model redirect/mapping is shown in usage logs.
 | Backend constants | `common/constants.go` (ModelMappedDisplayMode) |
 | Backend option | `model/option.go` |
 | Backend misc | `controller/misc.go` (expose in status) |
-| Classic settings | `web/classic/src/pages/Setting/Operation/SettingsLog.jsx`, `web/classic/src/components/settings/OperationSetting.jsx` |
-| Classic usage logs | `web/classic/src/components/table/usage-logs/UsageLogsColumnDefs.jsx`, `UsageLogsTable.jsx`, `web/classic/src/hooks/usage-logs/useUsageLogsData.jsx` |
-| New settings | `web/default/src/features/system-settings/maintenance/log-settings-section.tsx`, `operations/section-registry.tsx`, `types.ts` |
-| New hook | `web/default/src/features/system-settings/hooks/use-update-option.ts` |
+| Classic settings | `web/src/pages/Setting/Operation/SettingsLog.jsx`, `web/src/components/settings/OperationSetting.jsx` |
+| Classic usage logs | `web/src/components/table/usage-logs/UsageLogsColumnDefs.jsx`, `UsageLogsTable.jsx`, `web/src/hooks/usage-logs/useUsageLogsData.jsx` |
+| New settings | `web/src/features/system-settings/maintenance/log-settings-section.tsx`, `operations/section-registry.tsx`, `types.ts` |
+| New hook | `web/src/features/system-settings/hooks/use-update-option.ts` |
 
 Commits: `13ee1672b` (admin setting), `1e2feb08e` (classic UI), `e320d2ef1` (refresh fix)
 
@@ -400,12 +459,11 @@ Commits: `1c8ac1cd7`
 
 | File | Feature |
 |---|---|
-| `setting/ratio_setting/compact_suffix.go` | Compact suffix ratio setting utility |
-| `web/default/src/features/profile/hooks/use-access-token.ts` | Access token management hook |
-| `web/default/src/features/profile/hooks/use-two-fa.ts` | Two-factor auth hook |
-| `web/default/src/hooks/use-system-config.ts` | Enhanced system config (StatusApiResponse, mapStatusDataToConfig) |
-| `web/default/src/hooks/use-sidebar-config.ts` | Extra sidebar nav items |
-| `web/default/src/lib/auth-session.ts` | E2E test auth bootstrap hook |
+| `web/src/features/profile/hooks/use-access-token.ts` | Access token management hook |
+| `web/src/features/profile/hooks/use-two-fa.ts` | Two-factor auth hook |
+| `web/src/hooks/use-system-config.ts` | Enhanced system config (StatusApiResponse, mapStatusDataToConfig) |
+| `web/src/hooks/use-sidebar-config.ts` | Extra sidebar nav items |
+| `web/src/lib/auth-session.ts` | E2E test auth bootstrap hook |
 | `relaykit/dto/notify.go`, `relaykit/dto/user_settings.go` | Notify DTO extensions |
 
 ### CI/Infrastructure
@@ -427,7 +485,9 @@ are **not** dev features and will be naturally replaced by upstream code
 during merge:
 
 - **AI task channel adaptors** (`relay/channel/task/{ali,doubao,gemini,hailuo,jimeng,kling,sora,suno,vertex,vidu}/`) — upstream replaced these with the JS plugin system (`relay/channel/task/jsplugin/`) in `eb48396d5`. During merge, prefer main's jsplugin system.
-- **Profile security dialogs** (`web/default/src/features/profile/components/dialogs/`) — upstream restructured these into card components (`profile-settings-card.tsx`, etc.) in `31d70fca3`. During merge, prefer main's card-based architecture.
+- **Profile security dialogs** (`web/src/features/profile/components/dialogs/`) — upstream restructured these into card components (`profile-settings-card.tsx`, etc.) in `31d70fca3`. During merge, prefer main's card-based architecture.
+- **`setting/ratio_setting/compact_suffix.go`** — upstream PR #6770 removed compact model suffix handling. Go build passes without it; only a comment in `middleware/coverage_test.go` references it. Do not restore.
+- **`controller/video_proxy_gemini.go`** — upstream replaced individual video proxy handlers. Do not restore; use main's version.
 
 ---
 
@@ -447,3 +507,5 @@ during merge:
 | 100+ TS errors after merge in coverage-tests/ | Normal — upstream refactors break fork tests at scale. Use parallel agents (§6b). Expect 1-2 hours for 400+ errors |
 | `go vet` fails but `go build` passes | Test files have compilation errors — functions removed/renamed by upstream. Fix tests first (§6a) |
 | `test/setup.ts` type errors | Check if TypeScript upgraded DOM lib types (e.g. IntersectionObserver added `scrollMargin` in newer TS) — update mocks to match |
+| Dev feature silently lost (build passes but feature gone) | **Most common merge bug.** Main overwrote a shared file (e.g. `model/option.go`, `use-sidebar-data.ts`, `routing-reliability-section.tsx`) and dev's additions disappeared with no compile error. Run the Phase 6a audit: `git diff origin/dev HEAD -- <file>` and grep for dev-specific strings. If missing, restore from `git show origin/dev:<file>` |
+| `model/option.go` lost dev option registrations | Main's version of this file drops dev's `InitOptionMap` entries and `updateOptionMap` switch cases. After merge, grep for each dev option key: `grep -c 'ImageGenerationUrl\|ModelMappedDisplayMode\|UpdateCheckApiBase\|UpdateCheckRepo' model/option.go` — must return ≥8. If fewer, restore the missing lines from `git show origin/dev:model/option.go` |
