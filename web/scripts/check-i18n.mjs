@@ -62,13 +62,6 @@ function isNoiseKey(key) {
   return false
 }
 
-async function loadLocaleKeys() {
-  const raw = await fs.readFile(path.join(LOCALES, 'en.json'), 'utf8')
-  const json = JSON.parse(raw)
-  const trans = json.translation ?? json
-  return new Set(Object.keys(trans))
-}
-
 async function loadStaticKeys() {
   const raw = await fs.readFile(STATIC_KEYS_FILE, 'utf8')
   const keys = new Set()
@@ -108,8 +101,56 @@ async function extractKeysFromFile(filePath) {
   return keys
 }
 
+async function loadLocaleData(locale) {
+  const raw = await fs.readFile(path.join(LOCALES, `${locale}.json`), 'utf8')
+  const json = JSON.parse(raw)
+  return json.translation ?? json
+}
+
+// Brand names, URLs, placeholders that should stay English in all locales
+const BRAND_LITERAL_SET = new Set([
+  'New API', 'OpenAI', 'Claude', 'Gemini', 'Anthropic', 'DeepSeek', 'Discord',
+  'GitHub', 'Telegram', 'Tencent', 'Cloudflare', 'Cohere', 'Mistral', 'Ollama',
+  'Perplexity', 'Replicate', 'SiliconFlow', 'Stripe', 'VolcEngine', 'WeChat',
+  'WeChat Pay', 'Xinference', 'Xunfei', 'Zhipu V4', 'Moonshot', 'MiniMax',
+  'MokaAI', 'FastGPT', 'OhMyGPT', 'OpenRouter', 'OpenAIMax', 'Pancake',
+  'MjProxy', 'MjProxyPlus', 'SunoAPI', 'Baidu V2', 'DoubaoVideo', 'Jimeng',
+  'LingYiWanWu', 'LinuxDO', 'ChatGPT', 'Passkey', 'QuantumNous',
+  'Vertex AI', 'Uptime Kuma', 'Uptime Kuma URL', 'CC Switch', 'AI Proxy',
+  'AIGC2D', 'API2GPT', 'API URL', 'NewAPI', 'Submodel', 'credit', '1M token',
+  'One API', 'JustSong', 'Client ID', 'Client Secret',
+  'AccessKey / SecretAccessKey', 'Well-Known URL', 'Worker URL',
+  'Webhook URL:', 'Waffo Pancake Dashboard', 'Waffo Pancake MoR',
+  'New API &lt;noreply@example.com&gt;',
+  'edit_this', 'price_xxx', 'whsec_xxx', 'new-api-key-tool', 'my-status',
+])
+
+function isLikelyBrandOrLiteral(value) {
+  const s = value.trim()
+  if (BRAND_LITERAL_SET.has(s)) return true
+  if (/^https?:\/\//.test(s)) return true
+  if (/^[\w.-]+@[\w.-]+$/.test(s)) return true // email
+  if (/^\/[\w/-]+/.test(s)) return true // path
+  if (/^[A-Z0-9_ *./:-]+$/.test(s)) return true // all caps = acronym
+  if (s.length < 6) return true
+  if (!/[A-Za-z]{3,}/.test(s)) return true
+  if (s.startsWith('{') || s.startsWith('[')) return true // JSON
+  if (s.startsWith('"')) return true // JSON example
+  if (/^smtp\./i.test(s)) return true // SMTP host
+  if (/^socks5:/i.test(s)) return true // SOCKS proxy
+  if (/^org-/.test(s)) return true // org key prefix
+  if (/^price_/.test(s)) return true // placeholder
+  if (/^whsec_/.test(s)) return true // placeholder
+  if (/^checkout\./.test(s)) return true // Stripe event
+  if (/^footer\./.test(s)) return true // footer key
+  if (s.includes('&#10;')) return true // HTML entity
+  if (s.includes('@')) return true // contains email or @-mention
+  return false
+}
+
 async function main() {
-  const localeKeys = await loadLocaleKeys()
+  const enKeys = await loadLocaleData('en')
+  const enKeySet = new Set(Object.keys(enKeys))
   const staticKeys = await loadStaticKeys()
 
   // Collect all t() keys from source code
@@ -125,47 +166,71 @@ async function main() {
     }
   }
 
-  // Check which source keys are missing from locale files
+  // 1. Check which source keys are missing from en.json (code→locale gap)
   const missing = []
   for (const [key, files] of sourceKeys) {
-    // Static keys are dynamic — they may not appear as literal t() calls,
-    // but if they do appear as literals, they should still be in locale files.
-    // Only skip the check if the key is in STATIC_I18N_KEYS AND not found as
-    // a literal in source. Since we're iterating over literal-found keys,
-    // we check all of them.
-    if (!localeKeys.has(key)) {
+    if (!enKeySet.has(key)) {
       missing.push({ key, files })
     }
   }
 
   // Also check static keys that are missing from locale files
   for (const key of staticKeys) {
-    if (!localeKeys.has(key) && !sourceKeys.has(key)) {
+    if (!enKeySet.has(key) && !sourceKeys.has(key)) {
       missing.push({ key, files: ['(static-keys.ts)'] })
     }
   }
 
-  if (missing.length === 0) {
-    console.log('✅ i18n check passed: all t() keys exist in locale files.')
+  // 2. Check for untranslated keys in zh.json (key exists but value == en value)
+  const zhKeys = await loadLocaleData('zh')
+  const untranslated = []
+  for (const [key, enVal] of Object.entries(enKeys)) {
+    const zhVal = zhKeys[key]
+    if (zhVal === enVal && typeof enVal === 'string' && !isLikelyBrandOrLiteral(enVal)) {
+      // Only report if this key is actually used in source code or static keys
+      if (sourceKeys.has(key) || staticKeys.has(key)) {
+        untranslated.push(key)
+      }
+    }
+  }
+
+  const hasMissing = missing.length > 0
+  const hasUntranslated = untranslated.length > 0
+
+  if (!hasMissing && !hasUntranslated) {
+    console.log('✅ i18n check passed: all t() keys exist in locale files and zh.json has translations.')
     process.exit(0)
   }
 
-  missing.sort((a, b) => a.key.localeCompare(b.key))
-
-  console.log(`❌ i18n check failed: ${missing.length} key(s) missing from locale files.\n`)
-  console.log('Missing keys (key → used in):')
-  for (const { key, files } of missing) {
-    console.log(`  "${key}"`)
-    for (const f of files.slice(0, 3)) {
-      console.log(`    → ${f}`)
+  if (hasMissing) {
+    missing.sort((a, b) => a.key.localeCompare(b.key))
+    console.log(`❌ i18n check failed: ${missing.length} key(s) MISSING from locale files.\n`)
+    console.log('Missing keys (key → used in):')
+    for (const { key, files } of missing) {
+      console.log(`  "${key}"`)
+      for (const f of files.slice(0, 3)) {
+        console.log(`    → ${f}`)
+      }
+      if (files.length > 3) {
+        console.log(`    ... and ${files.length - 3} more`)
+      }
     }
-    if (files.length > 3) {
-      console.log(`    ... and ${files.length - 3} more`)
-    }
+    console.log('\nTo fix: add each key to web/src/i18n/locales/en.json (value = key)')
+    console.log('and web/src/i18n/locales/zh.json (value = Chinese translation).')
   }
-  console.log('\nTo fix: add each key to web/src/i18n/locales/en.json (value = key)')
-  console.log('and web/src/i18n/locales/zh.json (value = Chinese translation).')
-  console.log('Then re-run: bun run i18n:check')
+
+  if (hasUntranslated) {
+    untranslated.sort()
+    console.log(`\n⚠️  ${untranslated.length} key(s) UNTRANSLATED in zh.json (value == English).\n`)
+    console.log('Untranslated keys:')
+    for (const key of untranslated) {
+      console.log(`  "${key}"`)
+    }
+    console.log('\nTo fix: replace the English value in web/src/i18n/locales/zh.json')
+    console.log('with the Chinese translation for each key.')
+  }
+
+  console.log('\nThen re-run: bun run i18n:check')
   process.exit(1)
 }
 

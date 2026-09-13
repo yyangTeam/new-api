@@ -155,6 +155,27 @@ key itself) and `zh.json` (Chinese translation) before proceeding. This
 check scans source code for `t('...')` calls — `i18n:sync` only compares
 locale files against each other and **cannot** detect code→locale gaps.
 
+`i18n:check` also detects **untranslated** keys (key exists in `zh.json`
+but value == English — meaning it was never translated). Fix by replacing
+the English value with the Chinese translation.
+
+**Common i18n pitfalls after merge:**
+1. **Dev feature keys missing from ALL locale files** — developer wrote
+   `t('Some String')` in code but never added the key to `en.json`/
+   `zh.json`. `i18n:sync` can't catch this; only `i18n:check` can.
+2. **Keys exist but value is English (untranslated)** — `i18n:sync` may
+   auto-create entries with English placeholder values. `i18n:check`
+   flags these as UNTRANSLATED.
+3. **Shared shadcn/ui components have hardcoded English** — files like
+   `web/src/components/ui/sidebar.tsx`, `dialog.tsx`, `sheet.tsx`,
+   `command.tsx` may have hardcoded strings ("Toggle Sidebar", "Close",
+   "Command Palette") without `t()` wrapping. These need `useTranslation()`
+   + `t()` wrapping added manually.
+4. **Legacy JSX components use Chinese as i18n key** — files like
+   `BatchAddTokenModal.jsx` use `t('批量编辑令牌')` (Chinese string as key).
+   This anti-pattern shows Chinese in ALL locales. Fix by adding the
+   Chinese string as a key to `en.json` with an English value.
+
 Stage the regenerated files:
 
 ```bash
@@ -237,7 +258,9 @@ cd web && bun run i18n:check
 This scans source code for all `t('...')` calls and verifies each has a
 locale entry. If it reports missing keys, dev features lost their i18n
 entries during the JSON merge. Add each missing key to `en.json` (value
-= key) and `zh.json` inside the `translation` wrapper object.
+= key) and `zh.json` inside the `translation` wrapper object. It also
+detects UNTRANSLATED keys (key exists in `zh.json` but value == English)
+— replace the English value with the Chinese translation.
 
 ### 6b — Fix Go test compilation (`go vet`)
 
@@ -502,6 +525,8 @@ during merge:
 | Conflict count is very large (100+) | Many are auto-resolvable (AA/DD type); focus manual effort on UU conflicts |
 | i18n JSON conflicts | Do key union: keep all keys from both sides, prefer main's value for shared keys, keep dev's value for dev-only keys. **Then run `bun run i18n:check`** — `i18n:sync` only checks locale-to-locale consistency, NOT code-to-locale. Dev features may have `t()` calls whose keys were never added to any locale file |
 | `i18n:check` reports missing keys | Add each missing key to `en.json` (value = key itself) and `zh.json` (Chinese translation). Re-run `bun run i18n:check` to confirm 0 missing. Common after merging dev features (image generation, QQ bot, model redirect, etc.) whose i18n keys were never backfilled |
+| `i18n:check` reports UNTRANSLATED keys | Key exists in `zh.json` but value == English (never translated). Replace the English value in `zh.json` with the Chinese translation. `i18n:sync` auto-creates entries with English placeholders; `i18n:check` catches these |
+| Shared UI components show English | `sidebar.tsx`, `dialog.tsx`, `sheet.tsx`, `command.tsx` have hardcoded strings without `t()`. Add `useTranslation()` + wrap strings in `t()`. Add the key to `en.json`/`zh.json` |
 | Main changed a shared type that dev extends | Accept main's base type change, re-add dev's extra fields |
 | Bun version mismatch in CI workflows | Dev's `frontend-tests.yml` and `e2e-tests.yml` have their own bun version — **must match `ci.yml`'s version** (currently 1.4.0). `--frozen-lockfile` will fail if versions differ |
 | 100+ TS errors after merge in coverage-tests/ | Normal — upstream refactors break fork tests at scale. Use parallel agents (§6b). Expect 1-2 hours for 400+ errors |
