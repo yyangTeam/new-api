@@ -22,7 +22,7 @@ vi.mock('@/components/data-table', () => {
         </div>
       )
     },
-    DataTablePagination: (props: any) => <div data-testid='pagination'>Pagination</div>,
+    DataTablePagination: () => <div data-testid='pagination'>Pagination</div>,
     DataTableRow: (props: any) => <div>{props.children}</div>,
     useDataTable: (opts: any) => {
       const rows = opts.data.map((item: any, idx: number) => ({

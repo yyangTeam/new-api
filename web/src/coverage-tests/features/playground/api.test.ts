@@ -26,7 +26,7 @@ vi.mock('@/lib/server-error-message', () => ({
     }
     return response
   },
-  createServerError: (response: unknown) => new Error('Server error'),
+  createServerError: (_response: unknown) => new Error('Server error'),
 }))
 
 describe('playground api', () => {
