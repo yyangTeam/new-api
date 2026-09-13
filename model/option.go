@@ -82,6 +82,8 @@ func InitOptionMap() {
 	common.OptionMap["Logo"] = common.Logo
 	common.OptionMap["ServerAddress"] = ""
 	common.OptionMap["TaskPublicAddress"] = system_setting.TaskPublicAddress
+	common.OptionMap["ImageGenerationUrl"] = common.ImageGenerationUrl
+	common.OptionMap["ImageGenerationOpenMode"] = common.ImageGenerationOpenMode
 	common.OptionMap["WorkerUrl"] = system_setting.WorkerUrl
 	common.OptionMap["WorkerValidKey"] = system_setting.WorkerValidKey
 	common.OptionMap["WorkerAllowHttpImageRequestEnabled"] = strconv.FormatBool(system_setting.WorkerAllowHttpImageRequestEnabled)
@@ -442,6 +444,10 @@ func updateOptionMap(key string, value string) (err error) {
 		common.SMTPFrom = value
 	case "SMTPToken":
 		common.SMTPToken = value
+	case "ImageGenerationUrl":
+		common.ImageGenerationUrl = value
+	case "ImageGenerationOpenMode":
+		common.ImageGenerationOpenMode = value
 	case "ServerAddress":
 		system_setting.ServerAddress = value
 	case "TaskPublicAddress":
