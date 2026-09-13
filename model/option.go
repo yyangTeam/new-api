@@ -84,6 +84,9 @@ func InitOptionMap() {
 	common.OptionMap["TaskPublicAddress"] = system_setting.TaskPublicAddress
 	common.OptionMap["ImageGenerationUrl"] = common.ImageGenerationUrl
 	common.OptionMap["ImageGenerationOpenMode"] = common.ImageGenerationOpenMode
+	common.OptionMap["ModelMappedDisplayMode"] = strconv.Itoa(common.ModelMappedDisplayMode)
+	common.OptionMap["UpdateCheckApiBase"] = common.UpdateCheckApiBase
+	common.OptionMap["UpdateCheckRepo"] = common.UpdateCheckRepo
 	common.OptionMap["WorkerUrl"] = system_setting.WorkerUrl
 	common.OptionMap["WorkerValidKey"] = system_setting.WorkerValidKey
 	common.OptionMap["WorkerAllowHttpImageRequestEnabled"] = strconv.FormatBool(system_setting.WorkerAllowHttpImageRequestEnabled)
@@ -322,7 +325,7 @@ func updateOptionMap(key string, value string) (err error) {
 	}
 
 	// 处理传统配置项...
-	if strings.HasSuffix(key, "Permission") {
+	if strings.HasSuffix(key, "Permission") || key == "ModelMappedDisplayMode" {
 		intValue, _ := strconv.Atoi(value)
 		switch key {
 		case "FileUploadPermission":
@@ -333,6 +336,8 @@ func updateOptionMap(key string, value string) (err error) {
 			common.ImageUploadPermission = intValue
 		case "ImageDownloadPermission":
 			common.ImageDownloadPermission = intValue
+		case "ModelMappedDisplayMode":
+			common.ModelMappedDisplayMode = intValue
 		}
 	}
 	if strings.HasSuffix(key, "Enabled") || key == "DefaultCollapseSidebar" || key == "DefaultUseAutoGroup" || key == "SMTPForceAuthLogin" || key == "SMTPInsecureSkipVerify" {
@@ -448,6 +453,10 @@ func updateOptionMap(key string, value string) (err error) {
 		common.ImageGenerationUrl = value
 	case "ImageGenerationOpenMode":
 		common.ImageGenerationOpenMode = value
+	case "UpdateCheckApiBase":
+		common.UpdateCheckApiBase = value
+	case "UpdateCheckRepo":
+		common.UpdateCheckRepo = value
 	case "ServerAddress":
 		system_setting.ServerAddress = value
 	case "TaskPublicAddress":
