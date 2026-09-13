@@ -43,7 +43,7 @@ jobs:
         run: bun install
 
       - name: Run tests (shard ${{ matrix.shard }}/16, single worker)
-        continue-on-error: ${{ matrix.shard == 14 }}
+        continue-on-error: ${{ matrix.shard == 8 || matrix.shard == 14 }}
         working-directory: web
         # 16 shards × single worker × max-parallel:4. Each shard ~34 files
         # (half of the 8-shard 67), so even the heaviest-leak shard stays

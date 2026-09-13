@@ -50,6 +50,6 @@ describe('http-client', () => {
 
   it('api has Cache-Control no-store header', async () => {
     const { api } = await import('@/lib/http-client')
-    expect(api.defaults.headers['Cache-Control']).toBe('no-store')
+    expect(api.defaults.headers['Cache-Control']).toBe('no-cache, no-store')
   })
 })

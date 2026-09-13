@@ -120,6 +120,18 @@ test.describe("Channel management", () => {
       });
     });
 
+    await page.route("**/api/group/*", async (route) => {
+      await route.fulfill({
+        json: { success: true, message: "", data: ["default"] },
+      });
+    });
+
+    await page.route("**/api/channel/ops", async (route) => {
+      await route.fulfill({
+        json: { success: true, message: "", data: {} },
+      });
+    });
+
     await page.addInitScript(() => {
       window.localStorage.setItem("i18nextLng", "en");
     });
@@ -127,11 +139,16 @@ test.describe("Channel management", () => {
     await page.goto("/channels");
     await page.waitForLoadState("load");
 
-    // Should display the channel page
-    const body = page.locator("body");
-    await expect(body).not.toBeEmpty();
+    // Wait for channel data to appear
+    await page.waitForFunction(
+      (names) => {
+        const body = document.body.textContent || "";
+        return names.some((n: string) => body.includes(n));
+      },
+      ["OpenAI Channel", "Claude Channel"],
+      { timeout: 10_000 }
+    );
 
-    // Should show channel names from mocked data
     const pageContent = await page.textContent("body");
     expect(pageContent).toContain("OpenAI Channel");
     expect(pageContent).toContain("Claude Channel");

@@ -1,42 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { render, screen, userEvent } from '@/test/test-utils'
+import { render, screen, waitFor } from '@/test/test-utils'
 
 import { OtpForm } from '@/features/auth/otp/components/otp-form'
 
-// ---------------------------------------------------------------------------
-// Mock ONLY external dependencies
-// ---------------------------------------------------------------------------
-
 const mockHandleLoginSuccess = vi.fn()
 const mockRedirectToLogin = vi.fn()
-const mockLogin2fa = vi.fn()
-const mockNavigate = vi.fn()
+const mockRequestLoginVerification = vi.fn()
+const mockCancel = vi.fn()
 
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
 }))
 
-vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => mockNavigate,
-  Link: ({
-    children,
-    to,
-  }: {
-    children: React.ReactNode
-    to: string
-  }) => <a href={to}>{children}</a>,
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+    i18n: { language: 'en', changeLanguage: vi.fn() },
+  }),
 }))
 
-vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: (selector: (state: unknown) => unknown) =>
-    selector({
-      auth: { pending2FAFlowToken: 'flow-token-123' },
-    }),
+vi.mock('@/lib/handle-server-error', () => ({
+  handleServerError: vi.fn(),
 }))
 
-vi.mock('@/features/auth/api', () => ({
-  login2fa: (...args: unknown[]) => mockLogin2fa(...args),
+vi.mock('@/lib/secure-verification', () => ({
+  AuthOperationError: {
+    from: (e: unknown) => e,
+  },
 }))
 
 vi.mock('@/features/auth/hooks/use-auth-redirect', () => ({
@@ -46,114 +37,129 @@ vi.mock('@/features/auth/hooks/use-auth-redirect', () => ({
   }),
 }))
 
-vi.mock('@/lib/server-error-message', () => ({
-  getServerErrorMessageKey: () => false,
-  safeServerErrorMessage: Symbol('safeServerErrorMessage'),
+vi.mock('@/features/auth/secure-verification', () => ({
+  useSecureVerification: () => ({
+    requestLoginVerification: mockRequestLoginVerification,
+    cancel: mockCancel,
+    isActive: false,
+    dialogProps: {
+      state: { phase: 'idle' as const },
+      passkeyDomains: null,
+      onCancel: mockCancel,
+      onRetry: vi.fn(),
+      onInputChange: vi.fn(),
+      onVerify: vi.fn(),
+    },
+  }),
+  SecureVerificationDialog: ({
+    state,
+  }: {
+    state: { phase: string }
+  }) => (state.phase !== 'idle' ? <div data-testid='sv-dialog' /> : null),
 }))
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+let authStoreState = {
+  auth: {
+    pendingLoginVerification: null as { flow_token: string; challenge: { flow_token: string }; redirectTo?: string } | null,
+    session: { sid: 'test-sid' },
+    setPendingLoginVerification: vi.fn(),
+  },
+}
+
+vi.mock('@/stores/auth-store', () => {
+  const useAuthStore = (selector: (state: typeof authStoreState) => unknown) =>
+    selector(authStoreState)
+  useAuthStore.getState = () => authStoreState
+  return { useAuthStore }
+})
 
 describe('OtpForm', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    authStoreState = {
+      auth: {
+        pendingLoginVerification: null,
+        session: { sid: 'test-sid' },
+        setPendingLoginVerification: vi.fn(),
+      },
+    }
   })
 
-  it('renders the OTP form with verification code label', () => {
+  it('redirects to login when there is no pending verification', async () => {
     render(<OtpForm />)
 
-    expect(screen.getByText('Verification Code')).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /verify and sign in/i })
-    ).toBeInTheDocument()
+    await waitFor(() => {
+      expect(mockRedirectToLogin).toHaveBeenCalled()
+    })
   })
 
-  it('renders toggle button for backup code mode', () => {
+  it('calls requestLoginVerification when pending challenge exists', async () => {
+    const challenge = { flow_token: 'flow-123' }
+    authStoreState.auth.pendingLoginVerification = {
+      flow_token: 'flow-123',
+      challenge,
+      redirectTo: '/dashboard',
+    }
+    mockRequestLoginVerification.mockResolvedValue({
+      token: 'auth-token',
+    })
+
     render(<OtpForm />)
 
-    expect(
-      screen.getByRole('button', { name: /use backup code/i })
-    ).toBeInTheDocument()
+    await waitFor(() => {
+      expect(mockRequestLoginVerification).toHaveBeenCalledWith(challenge)
+    })
   })
 
-  it('switches to backup code mode when toggle is clicked', async () => {
+  it('clears pendingLoginVerification from store on mount', async () => {
+    const challenge = { flow_token: 'flow-123' }
+    const setPending = vi.fn()
+    authStoreState.auth.pendingLoginVerification = {
+      flow_token: 'flow-123',
+      challenge,
+    }
+    authStoreState.auth.setPendingLoginVerification = setPending
+    mockRequestLoginVerification.mockResolvedValue(null)
+
     render(<OtpForm />)
-    const user = userEvent.setup()
 
-    await user.click(
-      screen.getByRole('button', { name: /use backup code/i })
-    )
-
-    expect(screen.getByText('Backup Code')).toBeInTheDocument()
-    expect(
-      screen.getByText('Each backup code can only be used once.')
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /use authenticator code/i })
-    ).toBeInTheDocument()
+    await waitFor(() => {
+      expect(setPending).toHaveBeenCalledWith(null)
+    })
   })
 
-  it('shows backup code placeholder in backup mode', async () => {
+  it('calls handleLoginSuccess when verification succeeds', async () => {
+    const challenge = { flow_token: 'flow-123' }
+    const bundle = { token: 'auth-token' }
+    authStoreState.auth.pendingLoginVerification = {
+      flow_token: 'flow-123',
+      challenge,
+      redirectTo: '/dashboard',
+    }
+    mockRequestLoginVerification.mockResolvedValue(bundle)
+
     render(<OtpForm />)
-    const user = userEvent.setup()
 
-    await user.click(
-      screen.getByRole('button', { name: /use backup code/i })
-    )
-
-    expect(
-      screen.getByPlaceholderText('Enter backup code (e.g., CAWD-OQDV)')
-    ).toBeInTheDocument()
+    await waitFor(() => {
+      expect(mockHandleLoginSuccess).toHaveBeenCalledWith(
+        bundle,
+        '/dashboard'
+      )
+    })
   })
 
-  it('renders back to login button', () => {
+  it('redirects to login when verification returns null', async () => {
+    const challenge = { flow_token: 'flow-123' }
+    authStoreState.auth.pendingLoginVerification = {
+      flow_token: 'flow-123',
+      challenge,
+    }
+    mockRequestLoginVerification.mockResolvedValue(null)
+
     render(<OtpForm />)
 
-    expect(
-      screen.getByRole('button', { name: /back to login/i })
-    ).toBeInTheDocument()
-  })
-
-  it('calls redirectToLogin when back to login is clicked', async () => {
-    render(<OtpForm />)
-    const user = userEvent.setup()
-
-    await user.click(
-      screen.getByRole('button', { name: /back to login/i })
-    )
-
-    expect(mockRedirectToLogin).toHaveBeenCalled()
-  })
-
-  it('shows description about 30-second rotation', () => {
-    render(<OtpForm />)
-
-    expect(
-      screen.getByText('Verification code updates every 30 seconds.')
-    ).toBeInTheDocument()
-  })
-
-  it('verify button is initially disabled (no OTP entered)', () => {
-    render(<OtpForm />)
-
-    expect(
-      screen.getByRole('button', { name: /verify and sign in/i })
-    ).toBeDisabled()
-  })
-
-  it('switches back from backup code mode to OTP mode', async () => {
-    render(<OtpForm />)
-    const user = userEvent.setup()
-
-    await user.click(
-      screen.getByRole('button', { name: /use backup code/i })
-    )
-    expect(screen.getByText('Backup Code')).toBeInTheDocument()
-
-    await user.click(
-      screen.getByRole('button', { name: /use authenticator code/i })
-    )
-    expect(screen.getByText('Verification Code')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(mockRedirectToLogin).toHaveBeenCalled()
+    })
   })
 })
