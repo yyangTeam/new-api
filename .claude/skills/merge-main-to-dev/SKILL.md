@@ -77,7 +77,7 @@ cause, and proposed resolution for each file.
 | **Frontend hooks & lib** | `use-system-config.ts`, `auth-session.ts`, `use-sidebar-*.ts` | Keep dev's enhanced hooks; base on main's refactored structure if main did an architectural rewrite |
 | **Frontend feature components** | `model-mutate-drawer.tsx`, `notification-tab.tsx`, `details-dialog.tsx`, `routing-reliability-section.tsx`, `types.ts` | **Most complex.** Keep dev's pricing/vendor/notification enhancements; adopt main's new fields and error handling |
 | **Frontend tests** | `*.test.tsx` under `web/src/` | Keep dev tests as primary; add AGPL license header from main if missing; merge unique test scenarios |
-| **i18n JSON** | `web/src/i18n/locales/*.json` | JSON key union — keep dev's extra keys, adopt main's new keys; **regenerate sync-report** with `cd web && bun run i18n:sync` |
+| **i18n JSON** | `web/src/i18n/locales/*.json` | JSON key union — keep dev's extra keys, adopt main's new keys; **regenerate sync-report** with `cd web && bun run i18n:sync`; then run `cd web && bun run i18n:check` to verify all source-code `t()` calls have locale entries (sync only checks locale-to-locale, not code-to-locale) |
 | **Auto-generated files** | `routeTree.gen.ts`, `bun.lock`, `_sync-report.json` | **Delete and regenerate** — never manually merge |
 
 Wait for user approval of the plan before proceeding.
@@ -144,7 +144,15 @@ cd web && bun run build  # or the specific route-gen command
 
 # i18n sync report
 cd web && bun run i18n:sync
+
+# i18n key check (source code → locale validation)
+cd web && bun run i18n:check
 ```
+
+If `i18n:check` reports missing keys, add each one to `en.json` (value =
+key itself) and `zh.json` (Chinese translation) before proceeding. This
+check scans source code for `t('...')` calls — `i18n:sync` only compares
+locale files against each other and **cannot** detect code→locale gaps.
 
 Stage the regenerated files:
 
@@ -432,7 +440,8 @@ during merge:
 | Main renamed a Go package | Update all dev-only files that import the old name |
 | Main refactored a component dev extended | Keep dev's version as base, port main's new props/features manually |
 | Conflict count is very large (100+) | Many are auto-resolvable (AA/DD type); focus manual effort on UU conflicts |
-| i18n JSON conflicts | Do key union: keep all keys from both sides, prefer main's value for shared keys, keep dev's value for dev-only keys |
+| i18n JSON conflicts | Do key union: keep all keys from both sides, prefer main's value for shared keys, keep dev's value for dev-only keys. **Then run `bun run i18n:check`** — `i18n:sync` only checks locale-to-locale consistency, NOT code-to-locale. Dev features may have `t()` calls whose keys were never added to any locale file |
+| `i18n:check` reports missing keys | Add each missing key to `en.json` (value = key itself) and `zh.json` (Chinese translation). Re-run `bun run i18n:check` to confirm 0 missing. Common after merging dev features (image generation, QQ bot, model redirect, etc.) whose i18n keys were never backfilled |
 | Main changed a shared type that dev extends | Accept main's base type change, re-add dev's extra fields |
 | Bun version mismatch in CI workflows | Dev's `frontend-tests.yml` and `e2e-tests.yml` have their own bun version — **must match `ci.yml`'s version** (currently 1.4.0). `--frozen-lockfile` will fail if versions differ |
 | 100+ TS errors after merge in coverage-tests/ | Normal — upstream refactors break fork tests at scale. Use parallel agents (§6b). Expect 1-2 hours for 400+ errors |
