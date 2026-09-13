@@ -274,7 +274,7 @@ func TestGetChannel_WeightedSelection(t *testing.T) {
 	require.NoError(t, ch2.AddAbilities(nil))
 
 	// GetChannel should return one of them (both are valid)
-	channel, err := GetChannel("default", "test-model", 0, "")
+	channel, err := GetChannel("default", "test-model", 0, nil)
 	require.NoError(t, err)
 	require.NotNil(t, channel)
 	assert.Contains(t, []int{ch1.Id, ch2.Id}, channel.Id)
@@ -284,7 +284,7 @@ func TestGetChannel_ReturnNilForNoAbilities(t *testing.T) {
 	SetupIntegrationTestDB(t)
 
 	// No channels/abilities exist
-	channel, err := GetChannel("default", "nonexistent-model", 0, "")
+	channel, err := GetChannel("default", "nonexistent-model", 0, nil)
 	assert.NoError(t, err)
 	assert.Nil(t, channel)
 }
@@ -656,28 +656,6 @@ func TestAssignDisplayLogIds_FromOffset(t *testing.T) {
 	assert.Equal(t, 7, logs[1].Id)
 }
 
-func TestBuildOpField(t *testing.T) {
-	op := buildOpField("user_delete", map[string]interface{}{"target_id": 42})
-
-	assert.Equal(t, "user_delete", op["action"])
-	params, ok := op["params"].(map[string]interface{})
-	require.True(t, ok)
-	assert.Equal(t, 42, params["target_id"])
-}
-
-func TestBuildOpField_NilParams(t *testing.T) {
-	op := buildOpField("login", nil)
-	assert.Equal(t, "login", op["action"])
-	_, hasParams := op["params"]
-	assert.False(t, hasParams, "params key should not exist when nil")
-}
-
-func TestBuildOpField_EmptyParams(t *testing.T) {
-	op := buildOpField("logout", map[string]interface{}{})
-	assert.Equal(t, "logout", op["action"])
-	_, hasParams := op["params"]
-	assert.False(t, hasParams, "params key should not exist when empty")
-}
 
 func TestEnsureLogRequestId_BackfillsEmpty(t *testing.T) {
 	log := &Log{RequestId: ""}
@@ -1064,7 +1042,7 @@ func TestGetByTaskId_EmptyTaskId(t *testing.T) {
 	assert.Nil(t, task)
 }
 
-func TestGetByTaskIds(t *testing.T) {
+func TestGetByTaskIdsForPlatforms(t *testing.T) {
 	db := SetupIntegrationTestDB(t)
 
 	user := SeedTestUser(t, db, "taskuser3", "pass12345", common.RoleCommonUser)
@@ -1083,22 +1061,20 @@ func TestGetByTaskIds(t *testing.T) {
 		require.NoError(t, task.Insert())
 	}
 
-	// Get all tasks
 	var allTasks []*Task
 	require.NoError(t, db.Where("user_id = ?", user.Id).Find(&allTasks).Error)
 	require.Len(t, allTasks, 3)
 
-	// Get by IDs
-	taskIds := []any{allTasks[0].TaskID, allTasks[1].TaskID}
-	fetched, err := GetByTaskIds(user.Id, taskIds)
+	taskIds := []string{allTasks[0].TaskID, allTasks[1].TaskID}
+	fetched, err := GetByTaskIdsForPlatforms(user.Id, []constant.TaskPlatform{"suno"}, taskIds)
 	require.NoError(t, err)
 	assert.Len(t, fetched, 2)
 }
 
-func TestGetByTaskIds_EmptyList(t *testing.T) {
+func TestGetByTaskIdsForPlatforms_EmptyList(t *testing.T) {
 	SetupIntegrationTestDB(t)
 
-	result, err := GetByTaskIds(1, []any{})
+	result, err := GetByTaskIdsForPlatforms(1, []constant.TaskPlatform{"suno"}, []string{})
 	require.NoError(t, err)
 	assert.Nil(t, result)
 }

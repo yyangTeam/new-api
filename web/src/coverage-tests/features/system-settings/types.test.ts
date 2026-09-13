@@ -5,31 +5,13 @@ import { describe, it, expect } from 'vitest'
 // the exported type structures are importable.
 import type {
   SystemOption,
-  SystemOptionsResponse,
   UpdateOptionRequest,
   UpdateOptionResponse,
-  ConfirmPaymentComplianceResponse,
   SystemTaskStatus,
   SystemTask,
-  LogCleanupTask,
-  SystemTaskResponse,
-  SystemTaskListResponse,
-  SiteSettings,
-  AuthSettings,
-  ContentSettings,
-  ModelSettings,
-  BillingSettings,
-  OperationsSettings,
-  SecuritySettings,
   UpstreamChannel,
   RatioType,
-  RatioDifference,
-  DifferencesMap,
-  UpstreamChannelsResponse,
-  UpstreamConfig,
-  FetchUpstreamRatiosRequest,
   TestResult,
-  UpstreamRatiosResponse,
 } from '@/features/system-settings/types'
 
 describe('system-settings types', () => {

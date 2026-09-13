@@ -31,13 +31,15 @@ describe('usePlaygroundConversation', () => {
     { key: 'user-1', from: 'user', versions: [{ id: 'v1', content: 'hello' }] },
     { key: 'assistant-1', from: 'assistant', versions: [{ id: 'v2', content: 'hi' }] },
   ]
-  let updateMessages: ReturnType<typeof vi.fn>
-  let sendChat: ReturnType<typeof vi.fn>
+  type UpdateMessagesFn = (updater: Message[] | ((prev: Message[]) => Message[])) => void
+  type SendChatFn = (messages: Message[]) => void
+  let updateMessages: UpdateMessagesFn
+  let sendChat: SendChatFn
 
   beforeEach(() => {
     vi.clearAllMocks()
-    updateMessages = vi.fn()
-    sendChat = vi.fn()
+    updateMessages = vi.fn<UpdateMessagesFn>()
+    sendChat = vi.fn<SendChatFn>()
   })
 
   function setup() {

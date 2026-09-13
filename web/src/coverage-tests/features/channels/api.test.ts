@@ -287,14 +287,14 @@ describe('channels/api', () => {
       mockApi.post.mockResolvedValue({
         data: { success: true, data: { id: 3 } },
       })
-      await copyChannel(1, { name: 'Copy' })
+      await copyChannel(1, { suffix: 'Copy' })
       expect(mockApi.post).toHaveBeenCalledWith(
         '/api/channel/copy/1',
         null,
         {
           skipBusinessError: true,
           skipErrorHandler: true,
-          params: { name: 'Copy' },
+          params: { suffix: 'Copy' },
         }
       )
     })
@@ -333,15 +333,15 @@ describe('channels/api', () => {
   })
 
   describe('getChannelKey', () => {
-    it('gets channel key without proof token', async () => {
+    it('gets channel key with proof token', async () => {
       mockApi.post.mockResolvedValue({
         data: { success: true, data: { key: 'sk-xxx' } },
       })
-      const result = await getChannelKey(1)
+      const result = await getChannelKey(1, 'proof-token')
       expect(mockApi.post).toHaveBeenCalledWith(
         '/api/channel/1/key',
         undefined,
-        { skipBusinessError: true, skipErrorHandler: true, headers: undefined }
+        { skipBusinessError: true, skipErrorHandler: true, headers: { 'X-Security-Proof': 'proof-token' } }
       )
       expect(result).toEqual({ success: true, data: { key: 'sk-xxx' } })
     })

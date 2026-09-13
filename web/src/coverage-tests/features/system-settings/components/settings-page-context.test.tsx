@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import React from 'react'
 
 vi.mock('react-i18next', () => ({
@@ -56,11 +56,10 @@ describe('SettingsPageProvider', () => {
     }
 
     render(
-      React.createElement(
-        SettingsPageProvider,
-        { actionsContainer: container },
-        React.createElement(TestChild)
-      )
+      React.createElement(SettingsPageProvider, {
+        actionsContainer: container,
+        children: React.createElement(TestChild),
+      })
     )
 
     expect(container.textContent).toContain('Action')
@@ -78,11 +77,11 @@ describe('SettingsPageProvider', () => {
     }
 
     render(
-      React.createElement(
-        SettingsPageProvider,
-        { actionsContainer: null, titleStatusContainer: container },
-        React.createElement(TestChild)
-      )
+      React.createElement(SettingsPageProvider, {
+        actionsContainer: null,
+        titleStatusContainer: container,
+        children: React.createElement(TestChild),
+      })
     )
 
     expect(container.textContent).toContain('Status')
@@ -100,11 +99,10 @@ describe('SettingsPageActionsPortal', () => {
     }
 
     const { container } = render(
-      React.createElement(
-        SettingsPageProvider,
-        { actionsContainer: null },
-        React.createElement(TestChild)
-      )
+      React.createElement(SettingsPageProvider, {
+        actionsContainer: null,
+        children: React.createElement(TestChild),
+      })
     )
     expect(container.textContent).toBe('')
   })
@@ -121,11 +119,11 @@ describe('SettingsPageTitleStatusPortal', () => {
     }
 
     const { container } = render(
-      React.createElement(
-        SettingsPageProvider,
-        { actionsContainer: null, titleStatusContainer: null },
-        React.createElement(TestChild)
-      )
+      React.createElement(SettingsPageProvider, {
+        actionsContainer: null,
+        titleStatusContainer: null,
+        children: React.createElement(TestChild),
+      })
     )
     expect(container.textContent).toBe('')
   })
@@ -141,11 +139,10 @@ describe('useSuppressSettingsSectionHeader', () => {
     }
 
     render(
-      React.createElement(
-        SettingsPageProvider,
-        { actionsContainer: null },
-        React.createElement(TestChild)
-      )
+      React.createElement(SettingsPageProvider, {
+        actionsContainer: null,
+        children: React.createElement(TestChild),
+      })
     )
     expect(value).toBe(true)
   })
@@ -159,11 +156,11 @@ describe('useSuppressSettingsSectionHeader', () => {
     }
 
     render(
-      React.createElement(
-        SettingsPageProvider,
-        { actionsContainer: null, suppressSectionHeader: false },
-        React.createElement(TestChild)
-      )
+      React.createElement(SettingsPageProvider, {
+        actionsContainer: null,
+        suppressSectionHeader: false,
+        children: React.createElement(TestChild),
+      })
     )
     expect(value).toBe(false)
   })
@@ -181,11 +178,10 @@ describe('SettingsPageFormActions', () => {
     }
 
     render(
-      React.createElement(
-        SettingsPageProvider,
-        { actionsContainer: container },
-        React.createElement(TestChild)
-      )
+      React.createElement(SettingsPageProvider, {
+        actionsContainer: container,
+        children: React.createElement(TestChild),
+      })
     )
     expect(container.textContent).toContain('Save Changes')
     document.body.removeChild(container)
@@ -203,11 +199,10 @@ describe('SettingsPageFormActions', () => {
     }
 
     render(
-      React.createElement(
-        SettingsPageProvider,
-        { actionsContainer: container },
-        React.createElement(TestChild)
-      )
+      React.createElement(SettingsPageProvider, {
+        actionsContainer: container,
+        children: React.createElement(TestChild),
+      })
     )
     expect(container.textContent).toContain('Reset')
     document.body.removeChild(container)
@@ -224,11 +219,10 @@ describe('SettingsPageFormActions', () => {
     }
 
     render(
-      React.createElement(
-        SettingsPageProvider,
-        { actionsContainer: container },
-        React.createElement(TestChild)
-      )
+      React.createElement(SettingsPageProvider, {
+        actionsContainer: container,
+        children: React.createElement(TestChild),
+      })
     )
     expect(container.textContent).not.toContain('Reset')
     document.body.removeChild(container)
@@ -246,11 +240,10 @@ describe('SettingsPageFormActions', () => {
     }
 
     render(
-      React.createElement(
-        SettingsPageProvider,
-        { actionsContainer: container },
-        React.createElement(TestChild)
-      )
+      React.createElement(SettingsPageProvider, {
+        actionsContainer: container,
+        children: React.createElement(TestChild),
+      })
     )
     expect(container.textContent).toContain('Saving...')
     document.body.removeChild(container)
@@ -270,11 +263,10 @@ describe('SettingsPageFormActions', () => {
     }
 
     render(
-      React.createElement(
-        SettingsPageProvider,
-        { actionsContainer: container },
-        React.createElement(TestChild)
-      )
+      React.createElement(SettingsPageProvider, {
+        actionsContainer: container,
+        children: React.createElement(TestChild),
+      })
     )
     expect(container.textContent).toContain('Apply')
     expect(container.textContent).toContain('Undo')

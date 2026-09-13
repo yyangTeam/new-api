@@ -198,20 +198,14 @@ describe('getSyncLocaleOptions', () => {
 })
 
 describe('getSyncSourceOptions', () => {
-  test('returns 2 source options', () => {
+  test('returns 1 source option', () => {
     const options = getSyncSourceOptions(t)
-    expect(options).toHaveLength(2)
+    expect(options).toHaveLength(1)
   })
 
   test('official is not disabled', () => {
     const options = getSyncSourceOptions(t)
     const official = options.find((o) => o.value === 'official')
     expect(official!.disabled).toBe(false)
-  })
-
-  test('config is disabled', () => {
-    const options = getSyncSourceOptions(t)
-    const config = options.find((o) => o.value === 'config')
-    expect(config!.disabled).toBe(true)
   })
 })

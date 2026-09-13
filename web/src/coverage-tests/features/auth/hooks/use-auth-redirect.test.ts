@@ -111,14 +111,6 @@ describe('useAuthRedirect', () => {
     })
   })
 
-  it('redirectTo2FA navigates to /otp', () => {
-    const { result } = renderHook(() => useAuthRedirect())
-
-    act(() => { result.current.redirectTo2FA() })
-
-    expect(mockNavigate).toHaveBeenCalledWith({ to: '/otp', replace: true })
-  })
-
   it('redirectToLogin navigates to /sign-in', () => {
     const { result } = renderHook(() => useAuthRedirect())
 

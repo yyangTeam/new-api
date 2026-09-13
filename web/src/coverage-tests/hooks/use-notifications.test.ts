@@ -24,7 +24,7 @@ import { useNotifications } from '@/hooks/use-notifications'
 
 const mockUseQuery = useQuery as ReturnType<typeof vi.fn>
 const mockUseStatus = useStatus as ReturnType<typeof vi.fn>
-const mockUseNotificationStore = useNotificationStore as ReturnType<typeof vi.fn>
+const mockUseNotificationStore = useNotificationStore as unknown as ReturnType<typeof vi.fn>
 
 describe('useNotifications', () => {
   const mockMarkNoticeRead = vi.fn()

@@ -5,8 +5,6 @@ import {
   handleEnableModel,
   handleDisableModel,
   handleToggleModelStatus,
-  handleDeleteModel,
-  handleBatchDeleteModels,
   handleBatchEnableModels,
   handleBatchDisableModels,
 } from '@/features/models/lib/model-actions'
@@ -20,14 +18,12 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/features/models/api', () => ({
   updateModelStatus: vi.fn(),
-  deleteModel: vi.fn(),
 }))
 
 import { toast } from 'sonner'
-import { updateModelStatus, deleteModel as deleteModelAPI } from '@/features/models/api'
+import { updateModelStatus } from '@/features/models/api'
 
 const mockUpdateModelStatus = vi.mocked(updateModelStatus)
-const mockDeleteModel = vi.mocked(deleteModelAPI)
 
 function createMockQueryClient(): QueryClient {
   return {
@@ -164,90 +160,6 @@ describe('model-actions', () => {
       await handleToggleModelStatus(5, 0, qc, onSuccess)
       expect(qc.invalidateQueries).toHaveBeenCalled()
       expect(onSuccess).toHaveBeenCalled()
-    })
-  })
-
-  describe('handleDeleteModel', () => {
-    it('calls deleteModel API with correct id', async () => {
-      mockDeleteModel.mockResolvedValue({ success: true })
-      await handleDeleteModel(10)
-      expect(mockDeleteModel).toHaveBeenCalledWith(10)
-    })
-
-    it('shows success toast on success', async () => {
-      mockDeleteModel.mockResolvedValue({ success: true })
-      await handleDeleteModel(10)
-      expect(toast.success).toHaveBeenCalledWith('Model deleted successfully')
-    })
-
-    it('invalidates query cache on success', async () => {
-      mockDeleteModel.mockResolvedValue({ success: true })
-      const qc = createMockQueryClient()
-      await handleDeleteModel(10, qc)
-      expect(qc.invalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['models', 'list'],
-      })
-    })
-
-    it('calls onSuccess callback on success', async () => {
-      mockDeleteModel.mockResolvedValue({ success: true })
-      const onSuccess = vi.fn()
-      await handleDeleteModel(10, undefined, onSuccess)
-      expect(onSuccess).toHaveBeenCalled()
-    })
-
-    it('shows error toast when API returns failure', async () => {
-      mockDeleteModel.mockResolvedValue({
-        success: false,
-        message: 'Cannot delete',
-      })
-      await handleDeleteModel(10)
-      expect(toast.error).toHaveBeenCalledWith('Cannot delete')
-    })
-
-    it('shows error toast on thrown error', async () => {
-      mockDeleteModel.mockRejectedValue(new Error('Server error'))
-      await handleDeleteModel(10)
-      expect(toast.error).toHaveBeenCalledWith('Server error')
-    })
-  })
-
-  describe('handleBatchDeleteModels', () => {
-    it('shows error toast and returns early for empty ids', async () => {
-      await handleBatchDeleteModels([])
-      expect(toast.error).toHaveBeenCalledWith(
-        'Please select at least one model'
-      )
-      expect(mockDeleteModel).not.toHaveBeenCalled()
-    })
-
-    it('deletes all models and shows success count', async () => {
-      mockDeleteModel.mockResolvedValue({ success: true })
-      const qc = createMockQueryClient()
-      const onSuccess = vi.fn()
-      await handleBatchDeleteModels([1, 2, 3], qc, onSuccess)
-      expect(mockDeleteModel).toHaveBeenCalledTimes(3)
-      expect(toast.success).toHaveBeenCalledWith(
-        'Successfully deleted 3 model(s)'
-      )
-      expect(qc.invalidateQueries).toHaveBeenCalled()
-      expect(onSuccess).toHaveBeenCalledWith(3)
-    })
-
-    it('reports partial failures', async () => {
-      mockDeleteModel
-        .mockResolvedValueOnce({ success: true })
-        .mockResolvedValueOnce({ success: false, message: 'Locked' })
-        .mockResolvedValueOnce({ success: true })
-      await handleBatchDeleteModels([1, 2, 3])
-      expect(toast.success).toHaveBeenCalled()
-      expect(toast.error).toHaveBeenCalled()
-    })
-
-    it('shows error toast on thrown error', async () => {
-      mockDeleteModel.mockRejectedValue(new Error('Connection lost'))
-      await handleBatchDeleteModels([1, 2])
-      expect(toast.error).toHaveBeenCalledWith('Connection lost')
     })
   })
 

@@ -5,12 +5,10 @@ import type {
   NotifyType,
   UpdateUserRequest,
   TwoFAStatus,
-  TwoFASetupData,
   CheckinRecord,
   CheckinStats,
   CheckinStatusResponse,
   CheckinResponse,
-  BindingItem,
 } from '@/features/profile/types'
 
 describe('profile types', () => {
@@ -111,15 +109,6 @@ describe('profile types', () => {
       backup_codes_remaining: 8,
     }
     expect(status.enabled).toBe(true)
-  })
-
-  test('TwoFASetupData structure', () => {
-    const data: TwoFASetupData = {
-      secret: 'JBSWY3DPEHPK3PXP',
-      qr_code_data: 'data:image/png;base64,...',
-      backup_codes: ['code1', 'code2'],
-    }
-    expect(data.backup_codes).toHaveLength(2)
   })
 
   test('CheckinRecord structure', () => {

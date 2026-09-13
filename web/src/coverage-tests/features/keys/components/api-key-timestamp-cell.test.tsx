@@ -40,7 +40,6 @@ describe('ApiKeyTimestampCell', () => {
 
   test('renders with custom className', () => {
     render(<ApiKeyTimestampCell {...defaultProps} className='custom-class' />)
-    const time = screen.getByRole('generic', { hidden: true })
     // The time element exists
     expect(document.querySelector('time')).toBeInTheDocument()
   })

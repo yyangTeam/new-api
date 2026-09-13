@@ -8,8 +8,8 @@ describe('ReactIconByName', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  test('renders null for null name', () => {
-    const { container } = render(<ReactIconByName name={null} />)
+  test('renders null for undefined name', () => {
+    const { container } = render(<ReactIconByName name={undefined} />)
     expect(container.firstChild).toBeNull()
   })
 

@@ -38,6 +38,7 @@ globalThis.ResizeObserver = class ResizeObserver {
 globalThis.IntersectionObserver = class IntersectionObserver {
   root = null
   rootMargin = ''
+  scrollMargin = ''
   thresholds = []
   observe() {}
   unobserve() {}

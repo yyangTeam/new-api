@@ -44,7 +44,7 @@ describe('TruncatedCell', () => {
   })
 
   test('renders with tooltip when children is text', () => {
-    const { container } = render(
+    render(
       <TruncatedCell>Long text content here</TruncatedCell>
     )
     // With text content, tooltip is rendered

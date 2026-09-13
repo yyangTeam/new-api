@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { renderHook } from '@testing-library/react'
 
 vi.mock('@tanstack/react-router', () => ({
   useBlocker: vi.fn(),
@@ -41,7 +41,7 @@ describe('useFormDirtyGuard', () => {
     // The last call to useBlocker should have the custom message via blockerFn closure
     const lastCallIdx = mockUseBlocker.mock.calls.length - 1
     const call = mockUseBlocker.mock.calls[lastCallIdx][0]
-    ;(call as { blockerFn: () => boolean }).blockerFn()
+    ;(call as unknown as { blockerFn: () => boolean }).blockerFn()
     expect(window.confirm).toHaveBeenCalledWith('Custom leave message')
   })
 
@@ -49,7 +49,7 @@ describe('useFormDirtyGuard', () => {
     window.confirm = vi.fn().mockReturnValue(false)
     renderHook(() => useFormDirtyGuard(true))
     const call = mockUseBlocker.mock.calls[0][0]
-    const result = (call as { blockerFn: () => boolean }).blockerFn()
+    const result = (call as unknown as { blockerFn: () => boolean }).blockerFn()
     expect(window.confirm).toHaveBeenCalledWith(
       'You have unsaved changes. Are you sure you want to leave?'
     )

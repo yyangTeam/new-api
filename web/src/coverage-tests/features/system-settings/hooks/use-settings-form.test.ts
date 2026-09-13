@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 
 vi.mock('sonner', () => ({
   toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() },
@@ -96,7 +96,6 @@ describe('useSettingsForm', () => {
   })
 
   it('does not reset form when defaultValues are serialization-equal', () => {
-    const resetSpy = vi.fn()
     const { rerender } = renderHook(
       ({ defaults }) =>
         useSettingsForm({

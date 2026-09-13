@@ -19,11 +19,10 @@ describe('SettingsSection', () => {
   it('renders title and children when header is not suppressed', () => {
     mockUseSuppressHeader.mockReturnValue(false)
     render(
-      React.createElement(
-        SettingsSection,
-        { title: 'Section Title' },
-        React.createElement('p', null, 'Section content')
-      )
+      React.createElement(SettingsSection, {
+        title: 'Section Title',
+        children: React.createElement('p', null, 'Section content'),
+      })
     )
     expect(screen.getByText('Section Title')).toBeInTheDocument()
     expect(screen.getByText('Section content')).toBeInTheDocument()
@@ -32,11 +31,10 @@ describe('SettingsSection', () => {
   it('hides title when header is suppressed', () => {
     mockUseSuppressHeader.mockReturnValue(true)
     render(
-      React.createElement(
-        SettingsSection,
-        { title: 'Hidden Title' },
-        React.createElement('p', null, 'Content only')
-      )
+      React.createElement(SettingsSection, {
+        title: 'Hidden Title',
+        children: React.createElement('p', null, 'Content only'),
+      })
     )
     expect(screen.queryByText('Hidden Title')).not.toBeInTheDocument()
     expect(screen.getByText('Content only')).toBeInTheDocument()
@@ -45,11 +43,11 @@ describe('SettingsSection', () => {
   it('applies className', () => {
     mockUseSuppressHeader.mockReturnValue(false)
     const { container } = render(
-      React.createElement(
-        SettingsSection,
-        { title: 'Test', className: 'extra-class' },
-        'child'
-      )
+      React.createElement(SettingsSection, {
+        title: 'Test',
+        className: 'extra-class',
+        children: 'child',
+      })
     )
     const section = container.querySelector('section')
     expect(section?.className).toContain('extra-class')
@@ -58,11 +56,11 @@ describe('SettingsSection', () => {
   it('applies titleProps to heading', () => {
     mockUseSuppressHeader.mockReturnValue(false)
     render(
-      React.createElement(
-        SettingsSection,
-        { title: 'Styled', titleProps: { className: 'title-custom' } },
-        'child'
-      )
+      React.createElement(SettingsSection, {
+        title: 'Styled',
+        titleProps: { className: 'title-custom' },
+        children: 'child',
+      })
     )
     const heading = screen.getByText('Styled')
     expect(heading.className).toContain('title-custom')

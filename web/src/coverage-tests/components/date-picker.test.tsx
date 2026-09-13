@@ -3,7 +3,7 @@ import { render, screen } from '@/test/test-utils'
 import { DatePicker } from '@/components/date-picker'
 
 vi.mock('@/components/ui/calendar', () => ({
-  Calendar: (props: any) => <div data-testid='calendar'>Calendar</div>,
+  Calendar: () => <div data-testid='calendar'>Calendar</div>,
 }))
 
 describe('DatePicker', () => {

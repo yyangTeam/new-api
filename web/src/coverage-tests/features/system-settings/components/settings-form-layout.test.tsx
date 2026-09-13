@@ -42,14 +42,14 @@ import {
 describe('SettingsFormGrid', () => {
   it('renders children', () => {
     render(
-      React.createElement(SettingsFormGrid, {}, React.createElement('span', null, 'Grid child'))
+      React.createElement(SettingsFormGrid, { children: React.createElement('span', null, 'Grid child') })
     )
     expect(screen.getByText('Grid child')).toBeInTheDocument()
   })
 
   it('applies className', () => {
     const { container } = render(
-      React.createElement(SettingsFormGrid, { className: 'custom' }, 'content')
+      React.createElement(SettingsFormGrid, { className: 'custom', children: 'content' })
     )
     expect(container.firstElementChild?.className).toContain('custom')
   })
@@ -58,14 +58,14 @@ describe('SettingsFormGrid', () => {
 describe('SettingsFormGridItem', () => {
   it('renders children', () => {
     render(
-      React.createElement(SettingsFormGridItem, {}, 'Item content')
+      React.createElement(SettingsFormGridItem, { children: 'Item content' })
     )
     expect(screen.getByText('Item content')).toBeInTheDocument()
   })
 
   it('applies full span', () => {
     const { container } = render(
-      React.createElement(SettingsFormGridItem, { span: 'full' }, 'Full')
+      React.createElement(SettingsFormGridItem, { span: 'full', children: 'Full' })
     )
     const el = container.firstElementChild as HTMLElement
     expect(el.getAttribute('data-settings-form-span')).toBe('full')
@@ -73,7 +73,7 @@ describe('SettingsFormGridItem', () => {
 
   it('does not apply full span by default', () => {
     const { container } = render(
-      React.createElement(SettingsFormGridItem, {}, 'Default')
+      React.createElement(SettingsFormGridItem, { children: 'Default' })
     )
     const el = container.firstElementChild as HTMLElement
     expect(el.getAttribute('data-settings-form-span')).toBeNull()
@@ -138,7 +138,7 @@ describe('SettingsSwitchField', () => {
 describe('SettingsSwitchContent', () => {
   it('renders children', () => {
     render(
-      React.createElement(SettingsSwitchContent, {}, 'Switch content')
+      React.createElement(SettingsSwitchContent, { children: 'Switch content' })
     )
     expect(screen.getByText('Switch content')).toBeInTheDocument()
   })

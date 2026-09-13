@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type { TFunction } from 'i18next'
 
 vi.mock('@/features/system-settings/content/announcements-section', () => ({
   AnnouncementsSection: () => 'AnnouncementsSection',
@@ -51,7 +52,7 @@ describe('content section-registry', () => {
   })
 
   it('generates nav items with path-style URLs', () => {
-    const t = (key: string) => key
+    const t = ((key: string) => key) as unknown as TFunction
     const items = getContentSectionNavItems(t)
     expect(items).toHaveLength(8)
     expect(items[0]).toEqual({

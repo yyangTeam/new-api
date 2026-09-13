@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   publishAuthSessionEvent,
   subscribeAuthSessionEvents,
-  type AuthSessionSyncEvent,
 } from '@/lib/auth-session-sync'
 
 describe('auth-session-sync', () => {

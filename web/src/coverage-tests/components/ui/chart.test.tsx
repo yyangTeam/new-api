@@ -1,4 +1,4 @@
-import { render, screen } from '@/test/test-utils'
+import { render } from '@/test/test-utils'
 import * as RechartsPrimitive from 'recharts'
 
 import {

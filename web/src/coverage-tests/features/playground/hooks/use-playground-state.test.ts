@@ -26,7 +26,7 @@ vi.mock('@/features/playground/lib', () => ({
   loadMessages: () => mockLoadMessages(),
   getInitialPlaygroundConfig: () => mockGetInitialPlaygroundConfig(),
   getInitialParameterEnabled: () => mockGetInitialParameterEnabled(),
-  applyMessageStateUpdate: (...args: unknown[]) => mockApplyMessageStateUpdate(...args),
+  applyMessageStateUpdate: (prev: unknown[], updater: unknown) => mockApplyMessageStateUpdate(prev, updater),
 }))
 
 describe('usePlaygroundState', () => {

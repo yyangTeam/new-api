@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { describe, test, expect, vi } from 'vitest'
 
 vi.mock('@/components/ui/tooltip', () => ({
@@ -36,9 +36,9 @@ describe('UptimeSparkline', () => {
 
   test('renders bars for each day in series', () => {
     const series = [
-      { date: '2024-01-01', uptime_pct: 99.99, outage_minutes: 0 },
-      { date: '2024-01-02', uptime_pct: 98.5, outage_minutes: 5 },
-      { date: '2024-01-03', uptime_pct: 100, outage_minutes: 0 },
+      { date: '2024-01-01', uptime_pct: 99.99, incidents: 0, outage_minutes: 0 },
+      { date: '2024-01-02', uptime_pct: 98.5, incidents: 1, outage_minutes: 5 },
+      { date: '2024-01-03', uptime_pct: 100, incidents: 0, outage_minutes: 0 },
     ]
     const { container } = render(<UptimeSparkline series={series} />)
     const bars = container.querySelectorAll('[role="img"] > div')
@@ -47,7 +47,7 @@ describe('UptimeSparkline', () => {
 
   test('shows overall percentage when showOverall is true (default)', () => {
     const series = [
-      { date: '2024-01-01', uptime_pct: 99.5, outage_minutes: 0 },
+      { date: '2024-01-01', uptime_pct: 99.5, incidents: 0, outage_minutes: 0 },
     ]
     const { container } = render(<UptimeSparkline series={series} />)
     expect(container.textContent).toContain('99.5%')
@@ -55,14 +55,14 @@ describe('UptimeSparkline', () => {
 
   test('hides overall percentage when showOverall is false', () => {
     const series = [
-      { date: '2024-01-01', uptime_pct: 99.5, outage_minutes: 0 },
+      { date: '2024-01-01', uptime_pct: 99.5, incidents: 0, outage_minutes: 0 },
     ]
     const { container } = render(<UptimeSparkline series={series} showOverall={false} />)
     expect(container.textContent).not.toContain('99.5%')
   })
 
   test('renders with sm size class', () => {
-    const series = [{ date: '2024-01-01', uptime_pct: 100, outage_minutes: 0 }]
+    const series = [{ date: '2024-01-01', uptime_pct: 100, incidents: 0, outage_minutes: 0 }]
     const { container } = render(<UptimeSparkline series={series} size='sm' />)
     expect(container.innerHTML).toContain('h-3.5')
   })
@@ -71,7 +71,7 @@ describe('UptimeSparkline', () => {
 describe('UptimeStatusRow', () => {
   test('renders operational status text for high uptime', () => {
     const series = [
-      { date: '2024-01-01', uptime_pct: 99.99, outage_minutes: 0 },
+      { date: '2024-01-01', uptime_pct: 99.99, incidents: 0, outage_minutes: 0 },
     ]
     const { container } = render(<UptimeStatusRow series={series} />)
     expect(container.textContent).toContain('All systems operational')
@@ -79,7 +79,7 @@ describe('UptimeStatusRow', () => {
 
   test('renders minor blips text for 99.0-99.9 uptime', () => {
     const series = [
-      { date: '2024-01-01', uptime_pct: 99.5, outage_minutes: 2 },
+      { date: '2024-01-01', uptime_pct: 99.5, incidents: 1, outage_minutes: 2 },
     ]
     const { container } = render(<UptimeStatusRow series={series} />)
     expect(container.textContent).toContain('Minor blips')
@@ -87,7 +87,7 @@ describe('UptimeStatusRow', () => {
 
   test('renders degraded text for 95-99 uptime', () => {
     const series = [
-      { date: '2024-01-01', uptime_pct: 96.0, outage_minutes: 30 },
+      { date: '2024-01-01', uptime_pct: 96.0, incidents: 1, outage_minutes: 30 },
     ]
     const { container } = render(<UptimeStatusRow series={series} />)
     expect(container.textContent).toContain('Degraded')
@@ -95,7 +95,7 @@ describe('UptimeStatusRow', () => {
 
   test('renders significant outages text for < 95 uptime', () => {
     const series = [
-      { date: '2024-01-01', uptime_pct: 90.0, outage_minutes: 60 },
+      { date: '2024-01-01', uptime_pct: 90.0, incidents: 1, outage_minutes: 60 },
     ]
     const { container } = render(<UptimeStatusRow series={series} />)
     expect(container.textContent).toContain('outages')
@@ -103,7 +103,7 @@ describe('UptimeStatusRow', () => {
 
   test('shows outage minutes', () => {
     const series = [
-      { date: '2024-01-01', uptime_pct: 98.0, outage_minutes: 15 },
+      { date: '2024-01-01', uptime_pct: 98.0, incidents: 1, outage_minutes: 15 },
     ]
     const { container } = render(<UptimeStatusRow series={series} />)
     expect(container.textContent).toContain('15')
@@ -111,8 +111,8 @@ describe('UptimeStatusRow', () => {
 
   test('shows incident count', () => {
     const series = [
-      { date: '2024-01-01', uptime_pct: 98.0, outage_minutes: 10 },
-      { date: '2024-01-02', uptime_pct: 97.0, outage_minutes: 20 },
+      { date: '2024-01-01', uptime_pct: 98.0, incidents: 1, outage_minutes: 10 },
+      { date: '2024-01-02', uptime_pct: 97.0, incidents: 1, outage_minutes: 20 },
     ]
     const { container } = render(<UptimeStatusRow series={series} />)
     expect(container.textContent).toContain('2')

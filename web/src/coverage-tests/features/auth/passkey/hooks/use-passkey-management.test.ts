@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { toast } from 'sonner'
 
 import { usePasskeyManagement } from '@/features/auth/passkey/hooks/use-passkey-management'
 
@@ -43,7 +42,6 @@ describe('usePasskeyManagement', () => {
       data: { enabled: false, last_used_at: null },
     })
     mockIsPasskeySupported.mockResolvedValue(true)
-    // Ensure navigator.credentials is defined for register tests
     Object.defineProperty(globalThis, 'navigator', {
       value: { credentials: { create: vi.fn(), get: vi.fn() } },
       writable: true,
@@ -86,7 +84,6 @@ describe('usePasskeyManagement', () => {
   })
 
   it('handles status fetch failure', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockGetPasskeyStatus.mockRejectedValue(new Error('Network'))
 
     const { result } = renderHook(() => usePasskeyManagement())
@@ -96,8 +93,7 @@ describe('usePasskeyManagement', () => {
     })
 
     expect(result.current.status).toBeNull()
-    expect(toast.error).toHaveBeenCalledWith('Failed to load Passkey status')
-    consoleSpy.mockRestore()
+    expect(result.current.statusError).toBe('Network')
   })
 
   it('handles status fetch with success false', async () => {
@@ -113,81 +109,65 @@ describe('usePasskeyManagement', () => {
     })
 
     expect(result.current.status).toBeNull()
-    expect(toast.error).toHaveBeenCalledWith('Unauthorized')
+    expect(result.current.statusError).toBe('Unauthorized')
   })
 
-  it('calls onStatusChange callback', async () => {
-    const onStatusChange = vi.fn()
-    renderHook(() => usePasskeyManagement({ onStatusChange }))
-
-    await waitFor(() => {
-      expect(onStatusChange).toHaveBeenCalledWith({ enabled: false, last_used_at: null })
-    })
-  })
-
-  it('register fails when not supported', async () => {
+  it('register throws when not supported', async () => {
     mockIsPasskeySupported.mockResolvedValue(false)
 
     const { result } = renderHook(() => usePasskeyManagement())
-
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    let success: boolean = true
     await act(async () => {
-      success = await result.current.register()
+      await expect(result.current.register('proof-token')).rejects.toThrow(
+        'This device does not support Passkey'
+      )
     })
-
-    expect(success).toBe(false)
-    expect(toast.error).toHaveBeenCalledWith('This device does not support Passkey')
   })
 
   it('register succeeds through full flow', async () => {
     const credential = { id: 'cred-id', type: 'public-key' }
     mockBeginPasskeyRegistration.mockResolvedValue({
-      success: true,
-      data: { options: { challenge: 'abc' }, flow_token: 'ft-1' },
+      options: { challenge: 'abc' },
+      flow_token: 'ft-1',
     })
     mockPrepareCredentialCreationOptions.mockReturnValue({ publicKey: {} })
     mockCreateCredential.mockResolvedValue(credential)
     mockBuildRegistrationResult.mockReturnValue({ attestation: 'data' })
-    mockFinishPasskeyRegistration.mockResolvedValue({ success: true })
+    mockFinishPasskeyRegistration.mockResolvedValue(undefined)
 
     const { result } = renderHook(() => usePasskeyManagement())
     await waitFor(() => expect(result.current.loading).toBe(false))
     await waitFor(() => expect(result.current.supported).toBe(true))
 
-    let success: boolean = false
     await act(async () => {
-      success = await result.current.register('proof-token')
+      await result.current.register('proof-token')
     })
 
-    expect(success).toBe(true)
-    expect(toast.success).toHaveBeenCalledWith('Passkey registered successfully')
+    expect(mockBeginPasskeyRegistration).toHaveBeenCalledWith(
+      'proof-token',
+      expect.any(AbortSignal)
+    )
   })
 
-  it('register handles begin failure', async () => {
-    mockBeginPasskeyRegistration.mockResolvedValue({
-      success: false,
-      message: 'Server error',
-    })
+  it('register throws on begin failure', async () => {
+    mockBeginPasskeyRegistration.mockRejectedValue(new Error('Server error'))
 
     const { result } = renderHook(() => usePasskeyManagement())
     await waitFor(() => expect(result.current.loading).toBe(false))
     await waitFor(() => expect(result.current.supported).toBe(true))
 
-    let success: boolean = true
     await act(async () => {
-      success = await result.current.register()
+      await expect(result.current.register('proof-token')).rejects.toThrow(
+        'Server error'
+      )
     })
-
-    expect(success).toBe(false)
-    expect(toast.error).toHaveBeenCalledWith('Server error')
   })
 
-  it('register handles missing flow token', async () => {
+  it('register throws on missing flow token', async () => {
     mockBeginPasskeyRegistration.mockResolvedValue({
-      success: true,
-      data: { options: {}, flow_token: undefined },
+      options: {},
+      flow_token: undefined,
     })
     mockPrepareCredentialCreationOptions.mockReturnValue({})
 
@@ -195,19 +175,17 @@ describe('usePasskeyManagement', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     await waitFor(() => expect(result.current.supported).toBe(true))
 
-    let success: boolean = true
     await act(async () => {
-      success = await result.current.register()
+      await expect(result.current.register('proof-token')).rejects.toThrow(
+        'Registration flow expired. Please try again.'
+      )
     })
-
-    expect(success).toBe(false)
-    expect(toast.error).toHaveBeenCalledWith('Registration flow expired. Please try again.')
   })
 
-  it('register handles credential creation returning null', async () => {
+  it('register throws when credential creation returns null', async () => {
     mockBeginPasskeyRegistration.mockResolvedValue({
-      success: true,
-      data: { options: {}, flow_token: 'ft' },
+      options: {},
+      flow_token: 'ft',
     })
     mockPrepareCredentialCreationOptions.mockReturnValue({})
     mockCreateCredential.mockResolvedValue(null)
@@ -216,19 +194,17 @@ describe('usePasskeyManagement', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     await waitFor(() => expect(result.current.supported).toBe(true))
 
-    let success: boolean = true
     await act(async () => {
-      success = await result.current.register()
+      await expect(result.current.register('proof-token')).rejects.toThrow(
+        'Passkey registration was cancelled'
+      )
     })
-
-    expect(success).toBe(false)
-    expect(toast.error).toHaveBeenCalledWith('Passkey registration was cancelled')
   })
 
-  it('register handles invalid attestation', async () => {
+  it('register throws on invalid attestation', async () => {
     mockBeginPasskeyRegistration.mockResolvedValue({
-      success: true,
-      data: { options: {}, flow_token: 'ft' },
+      options: {},
+      flow_token: 'ft',
     })
     mockPrepareCredentialCreationOptions.mockReturnValue({})
     mockCreateCredential.mockResolvedValue({ id: 'x' })
@@ -238,45 +214,38 @@ describe('usePasskeyManagement', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     await waitFor(() => expect(result.current.supported).toBe(true))
 
-    let success: boolean = true
     await act(async () => {
-      success = await result.current.register()
+      await expect(result.current.register('proof-token')).rejects.toThrow(
+        'Invalid Passkey registration response'
+      )
     })
-
-    expect(success).toBe(false)
-    expect(toast.error).toHaveBeenCalledWith('Invalid Passkey registration response')
   })
 
-  it('register handles finish failure', async () => {
+  it('register throws on finish failure', async () => {
     mockBeginPasskeyRegistration.mockResolvedValue({
-      success: true,
-      data: { options: {}, flow_token: 'ft' },
+      options: {},
+      flow_token: 'ft',
     })
     mockPrepareCredentialCreationOptions.mockReturnValue({})
     mockCreateCredential.mockResolvedValue({ id: 'x' })
     mockBuildRegistrationResult.mockReturnValue({ data: 'ok' })
-    mockFinishPasskeyRegistration.mockResolvedValue({
-      success: false,
-      message: 'Bad credential',
-    })
+    mockFinishPasskeyRegistration.mockRejectedValue(new Error('Bad credential'))
 
     const { result } = renderHook(() => usePasskeyManagement())
     await waitFor(() => expect(result.current.loading).toBe(false))
     await waitFor(() => expect(result.current.supported).toBe(true))
 
-    let success: boolean = true
     await act(async () => {
-      success = await result.current.register()
+      await expect(result.current.register('proof-token')).rejects.toThrow(
+        'Bad credential'
+      )
     })
-
-    expect(success).toBe(false)
-    expect(toast.error).toHaveBeenCalledWith('Bad credential')
   })
 
-  it('register handles NotAllowedError', async () => {
+  it('register throws AUTH_CANCELLED on NotAllowedError', async () => {
     mockBeginPasskeyRegistration.mockResolvedValue({
-      success: true,
-      data: { options: {}, flow_token: 'ft' },
+      options: {},
+      flow_token: 'ft',
     })
     mockPrepareCredentialCreationOptions.mockReturnValue({})
     mockCreateCredential.mockRejectedValue(
@@ -287,20 +256,17 @@ describe('usePasskeyManagement', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     await waitFor(() => expect(result.current.supported).toBe(true))
 
-    let success: boolean = true
     await act(async () => {
-      success = await result.current.register()
+      await expect(result.current.register('proof-token')).rejects.toThrow(
+        'Passkey registration was cancelled'
+      )
     })
-
-    expect(success).toBe(false)
-    expect(toast.info).toHaveBeenCalledWith('Passkey registration was cancelled')
   })
 
-  it('register handles generic error with Error instance', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('register throws on generic error', async () => {
     mockBeginPasskeyRegistration.mockResolvedValue({
-      success: true,
-      data: { options: {}, flow_token: 'ft' },
+      options: {},
+      flow_token: 'ft',
     })
     mockPrepareCredentialCreationOptions.mockReturnValue({})
     mockCreateCredential.mockRejectedValue(new Error('Unexpected'))
@@ -309,65 +275,51 @@ describe('usePasskeyManagement', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     await waitFor(() => expect(result.current.supported).toBe(true))
 
-    let success: boolean = true
     await act(async () => {
-      success = await result.current.register()
+      await expect(result.current.register('proof-token')).rejects.toThrow(
+        'Unexpected'
+      )
     })
-
-    expect(success).toBe(false)
-    expect(toast.error).toHaveBeenCalledWith('Unexpected')
-    consoleSpy.mockRestore()
   })
 
   it('remove succeeds', async () => {
-    mockDeletePasskey.mockResolvedValue({ success: true })
+    mockDeletePasskey.mockResolvedValue(undefined)
 
     const { result } = renderHook(() => usePasskeyManagement())
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    let success: boolean = false
     await act(async () => {
-      success = await result.current.remove('proof-del')
+      await result.current.remove('proof-del')
     })
 
-    expect(success).toBe(true)
-    expect(toast.success).toHaveBeenCalledWith('Passkey removed successfully')
-    expect(mockDeletePasskey).toHaveBeenCalledWith('proof-del')
+    expect(mockDeletePasskey).toHaveBeenCalledWith(
+      'proof-del',
+      expect.any(AbortSignal)
+    )
   })
 
-  it('remove handles failure', async () => {
-    mockDeletePasskey.mockResolvedValue({
-      success: false,
-      message: 'Cannot remove',
-    })
+  it('remove throws on failure', async () => {
+    mockDeletePasskey.mockRejectedValue(new Error('Cannot remove'))
 
     const { result } = renderHook(() => usePasskeyManagement())
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    let success: boolean = true
     await act(async () => {
-      success = await result.current.remove()
+      await expect(result.current.remove('proof-del')).rejects.toThrow(
+        'Cannot remove'
+      )
     })
-
-    expect(success).toBe(false)
-    expect(toast.error).toHaveBeenCalledWith('Cannot remove')
   })
 
-  it('remove handles error', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('remove throws on error', async () => {
     mockDeletePasskey.mockRejectedValue(new Error('err'))
 
     const { result } = renderHook(() => usePasskeyManagement())
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    let success: boolean = true
     await act(async () => {
-      success = await result.current.remove()
+      await expect(result.current.remove('proof-del')).rejects.toThrow('err')
     })
-
-    expect(success).toBe(false)
-    expect(toast.error).toHaveBeenCalledWith('Failed to remove Passkey')
-    consoleSpy.mockRestore()
   })
 
   it('enabled and lastUsed derived from status', async () => {

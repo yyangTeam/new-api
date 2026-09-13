@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type { TFunction } from 'i18next'
 
 vi.mock('@/features/system-settings/auth/basic-auth-section', () => ({
   BasicAuthSection: () => 'BasicAuthSection',
@@ -39,7 +40,7 @@ describe('auth section-registry', () => {
   })
 
   it('generates nav items with path-style URLs', () => {
-    const t = (key: string) => key
+    const t = ((key: string) => key) as unknown as TFunction
     const items = getAuthSectionNavItems(t)
     expect(items).toHaveLength(5)
     expect(items[0]).toEqual({

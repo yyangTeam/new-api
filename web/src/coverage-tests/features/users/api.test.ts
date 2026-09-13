@@ -226,8 +226,8 @@ describe('adminClearUserBinding', () => {
 describe('adminUnbindCustomOAuth', () => {
   test('deletes custom oauth binding', async () => {
     mockApi.delete.mockResolvedValue({ data: { success: true } })
-    const result = await adminUnbindCustomOAuth(5, 'provider-123')
-    expect(mockApi.delete).toHaveBeenCalledWith('/api/user/5/oauth/bindings/provider-123')
+    const result = await adminUnbindCustomOAuth(5, 123)
+    expect(mockApi.delete).toHaveBeenCalledWith('/api/user/5/oauth/bindings/123')
     expect(result).toEqual({ success: true })
   })
 })

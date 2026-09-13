@@ -4,16 +4,8 @@ import {
   parseHeaderNavModulesFromStatus,
   getModuleAccessFromStatus,
   getModuleAccess,
-  getFreshModuleAccess,
   isSidebarModuleEnabled,
 } from '@/lib/nav-modules'
-
-vi.mock('@/lib/api', () => ({
-  getStatus: vi.fn(),
-}))
-
-import { getStatus } from '@/lib/api'
-const mockGetStatus = getStatus as ReturnType<typeof vi.fn>
 
 describe('parseHeaderNavBoolean', () => {
   test('returns boolean value directly', () => {
@@ -218,42 +210,6 @@ describe('getModuleAccess', () => {
   test('returns defaults when cached status is invalid JSON', () => {
     localStorage.setItem('status', 'not-json')
     const result = getModuleAccess('rankings')
-    expect(result).toEqual({ enabled: true, requireAuth: false })
-  })
-})
-
-describe('getFreshModuleAccess', () => {
-  beforeEach(() => {
-    localStorage.clear()
-    vi.clearAllMocks()
-  })
-
-  test('fetches fresh status and returns access', async () => {
-    mockGetStatus.mockResolvedValue({
-      HeaderNavModules: { pricing: { enabled: false, requireAuth: true } },
-    })
-    const result = await getFreshModuleAccess('pricing')
-    expect(result).toEqual({ enabled: false, requireAuth: true })
-  })
-
-  test('caches fetched status to localStorage', async () => {
-    mockGetStatus.mockResolvedValue({
-      HeaderNavModules: { rankings: { enabled: true, requireAuth: true } },
-    })
-    await getFreshModuleAccess('rankings')
-    const cached = JSON.parse(localStorage.getItem('status')!)
-    expect(cached.HeaderNavModules.rankings).toEqual({ enabled: true, requireAuth: true })
-  })
-
-  test('returns disabled access on fetch error', async () => {
-    mockGetStatus.mockRejectedValue(new Error('Network'))
-    const result = await getFreshModuleAccess('pricing')
-    expect(result).toEqual({ enabled: false, requireAuth: true })
-  })
-
-  test('returns defaults when status is null', async () => {
-    mockGetStatus.mockResolvedValue(null)
-    const result = await getFreshModuleAccess('pricing')
     expect(result).toEqual({ enabled: true, requireAuth: false })
   })
 })

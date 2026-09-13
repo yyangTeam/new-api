@@ -36,7 +36,7 @@ vi.mock('@/features/home/hooks', () => ({
 }))
 
 vi.mock('@/features/home/components', () => ({
-  CTA: (props: any) => <div data-testid='cta' />,
+  CTA: (_props: any) => <div data-testid='cta' />,
   Features: () => <div data-testid='features' />,
   Hero: (props: any) => <div data-testid='hero' data-auth={String(props.isAuthenticated)} />,
   HowItWorks: () => <div data-testid='how-it-works' />,

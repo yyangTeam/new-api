@@ -20,44 +20,45 @@ import { SettingsAccordion } from '@/features/system-settings/components/setting
 describe('SettingsAccordion', () => {
   it('renders title in trigger', () => {
     render(
-      React.createElement(
-        SettingsAccordion,
-        { value: 'test', title: 'Test Section' },
-        'Content'
-      )
+      React.createElement(SettingsAccordion, {
+        value: 'test',
+        title: 'Test Section',
+        children: 'Content',
+      })
     )
     expect(screen.getByText('Test Section')).toBeInTheDocument()
   })
 
   it('renders children in content area', () => {
     render(
-      React.createElement(
-        SettingsAccordion,
-        { value: 'item1', title: 'Title' },
-        React.createElement('span', null, 'Inner content')
-      )
+      React.createElement(SettingsAccordion, {
+        value: 'item1',
+        title: 'Title',
+        children: React.createElement('span', null, 'Inner content'),
+      })
     )
     expect(screen.getByText('Inner content')).toBeInTheDocument()
   })
 
   it('uses value prop for accordion item', () => {
     render(
-      React.createElement(
-        SettingsAccordion,
-        { value: 'my-section', title: 'My Section' },
-        'content'
-      )
+      React.createElement(SettingsAccordion, {
+        value: 'my-section',
+        title: 'My Section',
+        children: 'content',
+      })
     )
     expect(screen.getByTestId('accordion-item-my-section')).toBeInTheDocument()
   })
 
   it('passes className to accordion item', () => {
     render(
-      React.createElement(
-        SettingsAccordion,
-        { value: 'v', title: 'T', className: 'extra' },
-        'c'
-      )
+      React.createElement(SettingsAccordion, {
+        value: 'v',
+        title: 'T',
+        className: 'extra',
+        children: 'c',
+      })
     )
     expect(screen.getByTestId('accordion-item-v').className).toContain('extra')
   })

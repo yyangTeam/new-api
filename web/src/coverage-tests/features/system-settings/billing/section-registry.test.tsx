@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type { TFunction } from 'i18next'
 
 vi.mock('@/lib/currency', () => ({
   parseCurrencyDisplayType: (v: string) => v,
@@ -43,7 +44,7 @@ describe('billing section-registry', () => {
   })
 
   it('generates nav items with path-style URLs', () => {
-    const t = (key: string) => key
+    const t = ((key: string) => key) as unknown as TFunction
     const items = getBillingSectionNavItems(t)
     expect(items).toHaveLength(6)
     expect(items[0]).toEqual({

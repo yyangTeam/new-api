@@ -1,7 +1,6 @@
 package constant
 
 import (
-	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -77,31 +76,6 @@ func TestPath2RelayModeMidjourney(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := Path2RelayModeMidjourney(tt.path)
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
-func TestPath2RelaySuno(t *testing.T) {
-	tests := []struct {
-		name   string
-		method string
-		path   string
-		want   int
-	}{
-		{"POST fetch", http.MethodPost, "/suno/fetch", RelayModeSunoFetch},
-		{"GET fetch by id", http.MethodGet, "/suno/fetch/123", RelayModeSunoFetchByID},
-		{"submit", http.MethodPost, "/suno/submit/music", RelayModeSunoSubmit},
-		{"GET submit also matches", http.MethodGet, "/suno/submit/lyrics", RelayModeSunoSubmit},
-		{"GET fetch no id (not contains /fetch/)", http.MethodGet, "/suno/fetch", RelayModeUnknown},
-		{"POST fetch with id (suffix still /fetch)", http.MethodPost, "/suno/task/fetch", RelayModeSunoFetch},
-		{"unknown path", http.MethodGet, "/suno/unknown", RelayModeUnknown},
-		{"empty path", http.MethodGet, "", RelayModeUnknown},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := Path2RelaySuno(tt.method, tt.path)
 			assert.Equal(t, tt.want, got)
 		})
 	}

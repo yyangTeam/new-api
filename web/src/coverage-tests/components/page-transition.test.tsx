@@ -13,17 +13,17 @@ import {
 
 vi.mock('motion/react', () => ({
   motion: {
-    div: ({ children, className, ...props }: any) => (
+    div: ({ children, className }: any) => (
       <div className={className} data-testid='motion-div'>
         {children}
       </div>
     ),
-    tbody: ({ children, className, ...props }: any) => (
+    tbody: ({ children, className }: any) => (
       <tbody className={className} data-testid='motion-tbody'>
         {children}
       </tbody>
     ),
-    tr: ({ children, className, ...props }: any) => (
+    tr: ({ children, className }: any) => (
       <tr className={className} data-testid='motion-tr'>
         {children}
       </tr>
@@ -184,7 +184,7 @@ describe('with reduced motion', () => {
   })
 
   test('PageTransition renders children without motion', async () => {
-    const { useReducedMotion } = await import('motion/react')
+    await import('motion/react')
     // With reduced motion mocked to true, PageTransition renders a plain div
     // This test confirms functionality works regardless of motion preference
     render(

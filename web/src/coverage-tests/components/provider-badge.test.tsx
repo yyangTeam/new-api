@@ -14,7 +14,7 @@ vi.mock('@/lib/colors', () => ({
 }))
 
 vi.mock('@/lib/lobe-icon', () => ({
-  getLobeIcon: (key: string, size: number) =>
+  getLobeIcon: (key: string) =>
     key ? <span data-testid='lobe-icon'>{key}</span> : null,
 }))
 

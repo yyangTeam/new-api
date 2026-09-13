@@ -45,19 +45,19 @@ describe('GroupBadge', () => {
   })
 
   test('applies warning color for ratio > 1', () => {
-    const { container } = render(<GroupBadge group='admin' ratio={2} />)
+    render(<GroupBadge group='admin' ratio={2} />)
     const ratioEl = screen.getByText('2x').parentElement!
     expect(ratioEl.className).toContain('text-warning')
   })
 
   test('applies info color for ratio < 1', () => {
-    const { container } = render(<GroupBadge group='admin' ratio={0.5} />)
+    render(<GroupBadge group='admin' ratio={0.5} />)
     const ratioEl = screen.getByText('0.5x').parentElement!
     expect(ratioEl.className).toContain('text-info')
   })
 
   test('applies muted color for ratio = 1', () => {
-    const { container } = render(<GroupBadge group='admin' ratio={1} />)
+    render(<GroupBadge group='admin' ratio={1} />)
     const ratioEl = screen.getByText('1x').parentElement!
     expect(ratioEl.className).toContain('text-muted-foreground')
   })

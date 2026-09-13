@@ -1,4 +1,4 @@
-import { render, screen } from '@/test/test-utils'
+import { render } from '@/test/test-utils'
 
 import { Calendar } from '@/components/ui/calendar'
 

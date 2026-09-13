@@ -1,13 +1,9 @@
 import {
-  getTierCacheMode,
-  normalizeVisualTier,
   createDefaultVisualConfig,
-  normalizeVisualConfig,
   generateExprFromVisualConfig,
   tryParseVisualConfig,
   evalExprLocally,
   exprUsesExtraVars,
-  CACHE_MODE_TIMED,
   CACHE_MODE_GENERIC,
   type VisualTier,
   type VisualConfig,
@@ -19,97 +15,22 @@ const ZERO_EXTRAS: ExtraTokenValues = {
   cacheCreateTokens: 0,
   cacheCreate1hTokens: 0,
   imageTokens: 0,
+  imageCacheTokens: 0,
   imageOutputTokens: 0,
   audioInputTokens: 0,
   audioOutputTokens: 0,
 }
 
 function makeTier(overrides: Partial<VisualTier> = {}): VisualTier {
-  return normalizeVisualTier(overrides)
+  return {
+    label: '',
+    input_unit_cost: 0,
+    output_unit_cost: 0,
+    cache_mode: CACHE_MODE_GENERIC,
+    conditions: [],
+    ...overrides,
+  }
 }
-
-describe('getTierCacheMode', () => {
-  test('returns timed when cache_mode is timed', () => {
-    expect(getTierCacheMode({ cache_mode: CACHE_MODE_TIMED })).toBe(CACHE_MODE_TIMED)
-  })
-
-  test('returns generic when cache_mode is generic', () => {
-    expect(getTierCacheMode({ cache_mode: CACHE_MODE_GENERIC })).toBe(CACHE_MODE_GENERIC)
-  })
-
-  test('returns timed when cache_create_1h_unit_cost > 0 and no explicit mode', () => {
-    expect(getTierCacheMode({ cache_create_1h_unit_cost: 5 })).toBe(CACHE_MODE_TIMED)
-  })
-
-  test('returns generic when cache_create_1h_unit_cost is 0', () => {
-    expect(getTierCacheMode({ cache_create_1h_unit_cost: 0 })).toBe(CACHE_MODE_GENERIC)
-  })
-
-  test('returns generic for null tier', () => {
-    expect(getTierCacheMode(null)).toBe(CACHE_MODE_GENERIC)
-  })
-
-  test('returns generic for undefined tier', () => {
-    expect(getTierCacheMode(undefined)).toBe(CACHE_MODE_GENERIC)
-  })
-
-  test('returns generic for empty object', () => {
-    expect(getTierCacheMode({})).toBe(CACHE_MODE_GENERIC)
-  })
-})
-
-describe('normalizeVisualTier', () => {
-  test('fills defaults for empty input', () => {
-    const tier = normalizeVisualTier({})
-    expect(tier.label).toBe('')
-    expect(tier.input_unit_cost).toBe(0)
-    expect(tier.output_unit_cost).toBe(0)
-    expect(tier.cache_mode).toBe(CACHE_MODE_GENERIC)
-    expect(tier.conditions).toEqual([])
-    expect(tier.cache_read_unit_cost).toBe(0)
-    expect(tier.cache_create_unit_cost).toBe(0)
-    expect(tier.cache_create_1h_unit_cost).toBe(0)
-    expect(tier.image_unit_cost).toBe(0)
-    expect(tier.image_output_unit_cost).toBe(0)
-    expect(tier.audio_input_unit_cost).toBe(0)
-    expect(tier.audio_output_unit_cost).toBe(0)
-  })
-
-  test('preserves provided values', () => {
-    const tier = normalizeVisualTier({
-      label: 'premium',
-      input_unit_cost: 10,
-      output_unit_cost: 20,
-      cache_read_unit_cost: 5,
-    })
-    expect(tier.label).toBe('premium')
-    expect(tier.input_unit_cost).toBe(10)
-    expect(tier.output_unit_cost).toBe(20)
-    expect(tier.cache_read_unit_cost).toBe(5)
-  })
-
-  test('converts non-numeric cache values to 0', () => {
-    const tier = normalizeVisualTier({
-      cache_read_unit_cost: 'abc' as unknown as number,
-    })
-    expect(tier.cache_read_unit_cost).toBe(0)
-  })
-
-  test('preserves original input values through spread', () => {
-    const tier = normalizeVisualTier({
-      input_unit_cost: 42,
-      conditions: [{ var: 'p', op: '>=' as const, value: 100 }],
-    })
-    expect(tier.input_unit_cost).toBe(42)
-    expect(tier.conditions).toHaveLength(1)
-  })
-
-  test('uses no arguments default', () => {
-    const tier = normalizeVisualTier()
-    expect(tier.label).toBe('')
-    expect(tier.input_unit_cost).toBe(0)
-  })
-})
 
 describe('createDefaultVisualConfig', () => {
   test('returns config with one base tier', () => {
@@ -120,35 +41,6 @@ describe('createDefaultVisualConfig', () => {
     expect(config.tiers[0].output_unit_cost).toBe(0)
     expect(config.tiers[0].cache_mode).toBe(CACHE_MODE_GENERIC)
     expect(config.tiers[0].conditions).toEqual([])
-  })
-})
-
-describe('normalizeVisualConfig', () => {
-  test('returns default config for null', () => {
-    const config = normalizeVisualConfig(null)
-    expect(config.tiers).toHaveLength(1)
-    expect(config.tiers[0].label).toBe('base')
-  })
-
-  test('returns default config for undefined', () => {
-    const config = normalizeVisualConfig(undefined)
-    expect(config.tiers).toHaveLength(1)
-  })
-
-  test('returns default config for empty tiers array', () => {
-    const config = normalizeVisualConfig({ tiers: [] })
-    expect(config.tiers).toHaveLength(1)
-  })
-
-  test('normalizes each tier in the config', () => {
-    const config = normalizeVisualConfig({
-      tiers: [
-        { label: 'a', input_unit_cost: 5 } as Partial<VisualTier> as VisualTier,
-      ],
-    })
-    expect(config.tiers).toHaveLength(1)
-    expect(config.tiers[0].label).toBe('a')
-    expect(config.tiers[0].output_unit_cost).toBe(0)
   })
 })
 

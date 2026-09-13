@@ -355,14 +355,14 @@ describe('SidebarGroup', () => {
 
 describe('SidebarGroupLabel', () => {
   test('renders with correct data attributes', () => {
-    const { container } = renderWithProvider(
+    renderWithProvider(
       <SidebarGroupLabel>Settings</SidebarGroupLabel>
     )
     expect(screen.getByText('Settings')).toBeInTheDocument()
   })
 
   test('applies custom className', () => {
-    const { container } = renderWithProvider(
+    renderWithProvider(
       <SidebarGroupLabel className='custom-label'>Label</SidebarGroupLabel>
     )
     expect(screen.getByText('Label')).toBeInTheDocument()
@@ -430,7 +430,7 @@ describe('SidebarMenuButton', () => {
   })
 
   test('renders with isActive data attribute', () => {
-    const { container } = renderWithProvider(
+    renderWithProvider(
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton isActive>Active Item</SidebarMenuButton>

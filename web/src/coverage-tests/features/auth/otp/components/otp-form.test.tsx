@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { toast } from 'sonner'
 
-import { render, screen, userEvent, waitFor } from '@/test/test-utils'
+import { render, screen, userEvent } from '@/test/test-utils'
 
 import { OtpForm } from '@/features/auth/otp/components/otp-form'
 

@@ -2,7 +2,6 @@ import {
   getChannelTypeConfig,
   requiresOrganization,
   requiresRegion,
-  getDefaultBaseUrl,
   validateKeyFormat,
   getChannelTypeHints,
 } from '@/features/channels/lib/channel-type-config'
@@ -12,14 +11,12 @@ describe('getChannelTypeConfig', () => {
     const config = getChannelTypeConfig(1)
     expect(config.id).toBe(1)
     expect(config.name).toBe('OpenAI')
-    expect(config.defaultBaseUrl).toBe('https://api.openai.com')
   })
 
   test('returns config for Anthropic', () => {
     const config = getChannelTypeConfig(14)
     expect(config.id).toBe(14)
     expect(config.name).toBe('Anthropic')
-    expect(config.defaultBaseUrl).toBe('https://api.anthropic.com')
   })
 
   test('returns config for Azure', () => {
@@ -38,7 +35,6 @@ describe('getChannelTypeConfig', () => {
   test('returns config for DeepSeek', () => {
     const config = getChannelTypeConfig(43)
     expect(config.id).toBe(43)
-    expect(config.defaultBaseUrl).toBe('https://api.deepseek.com')
   })
 
   test('returns config for Vertex AI', () => {
@@ -73,33 +69,6 @@ describe('requiresRegion', () => {
     expect(requiresRegion(1)).toBe(false)
     expect(requiresRegion(14)).toBe(false)
     expect(requiresRegion(999)).toBe(false)
-  })
-})
-
-describe('getDefaultBaseUrl', () => {
-  test('returns default URL for OpenAI', () => {
-    expect(getDefaultBaseUrl(1)).toBe('https://api.openai.com')
-  })
-
-  test('returns default URL for Anthropic', () => {
-    expect(getDefaultBaseUrl(14)).toBe('https://api.anthropic.com')
-  })
-
-  test('returns default URL for DeepSeek', () => {
-    expect(getDefaultBaseUrl(43)).toBe('https://api.deepseek.com')
-  })
-
-  test('returns default URL for OpenRouter', () => {
-    expect(getDefaultBaseUrl(20)).toBe('https://openrouter.ai/api')
-  })
-
-  test('returns default URL for Replicate', () => {
-    expect(getDefaultBaseUrl(56)).toBe('https://api.replicate.com')
-  })
-
-  test('returns empty string for types without default URL', () => {
-    expect(getDefaultBaseUrl(3)).toBe('')
-    expect(getDefaultBaseUrl(999)).toBe('')
   })
 })
 

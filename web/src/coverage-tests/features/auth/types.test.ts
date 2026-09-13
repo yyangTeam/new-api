@@ -83,13 +83,13 @@ describe('auth/types', () => {
     expect(payload.email).toBe('user@test.com')
   })
 
-  it('BindEmailPayload requires email and code', () => {
+  it('BindEmailPayload requires flow_token and new_code', () => {
     const payload: BindEmailPayload = {
-      email: 'user@test.com',
-      code: '123456',
+      flow_token: 'flow-abc',
+      new_code: '123456',
     }
-    expect(payload.email).toBe('user@test.com')
-    expect(payload.code).toBe('123456')
+    expect(payload.flow_token).toBe('flow-abc')
+    expect(payload.new_code).toBe('123456')
   })
 
   it('LoginResponse can indicate success with auth data', () => {
@@ -101,17 +101,18 @@ describe('auth/types', () => {
     expect(response.success).toBe(true)
   })
 
-  it('LoginResponse can indicate 2FA required', () => {
+  it('LoginResponse can indicate verification required', () => {
     const response: LoginResponse = {
       success: true,
-      message: '2FA required',
+      message: 'Verification required',
       data: {
-        require_2fa: true,
+        require_verification: true,
         flow_token: 'flow123',
         expires_at: 999,
+        methods: [],
       },
     }
-    expect(response.data).toHaveProperty('require_2fa', true)
+    expect(response.data).toHaveProperty('require_verification', true)
     expect(response.data).toHaveProperty('flow_token', 'flow123')
   })
 

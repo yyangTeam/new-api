@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 
 import { useChatHandler } from '@/features/playground/hooks/use-chat-handler'
 import type { Message, PlaygroundConfig, ParameterEnabled } from '@/features/playground/types'
-import { DEFAULT_CONFIG, DEFAULT_PARAMETER_ENABLED, ERROR_MESSAGES } from '@/features/playground/constants'
+import { DEFAULT_CONFIG, DEFAULT_PARAMETER_ENABLED } from '@/features/playground/constants'
 
 const mockSendStreamRequest = vi.fn()
 const mockStopStream = vi.fn()
@@ -61,8 +61,10 @@ vi.mock('@/features/playground/lib', () => ({
   isAssistantMessagePending: vi.fn(() => true),
 }))
 
+type OnMessageUpdateFn = (updater: (prev: Message[]) => Message[]) => void
+
 describe('useChatHandler', () => {
-  let onMessageUpdate: ReturnType<typeof vi.fn>
+  let onMessageUpdate: OnMessageUpdateFn
   const config: PlaygroundConfig = { ...DEFAULT_CONFIG, stream: true }
   const parameterEnabled: ParameterEnabled = { ...DEFAULT_PARAMETER_ENABLED }
   const messages: Message[] = [
@@ -73,7 +75,7 @@ describe('useChatHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useFakeTimers()
-    onMessageUpdate = vi.fn()
+    onMessageUpdate = vi.fn<OnMessageUpdateFn>()
   })
 
   afterEach(() => {

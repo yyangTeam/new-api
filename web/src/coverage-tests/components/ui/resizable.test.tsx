@@ -5,7 +5,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 describe('ResizablePanelGroup', () => {
   test('renders with data-slot', () => {
     const { container } = render(
-      <ResizablePanelGroup direction='horizontal'>
+      <ResizablePanelGroup orientation='horizontal'>
         <ResizablePanel>Panel 1</ResizablePanel>
         <ResizableHandle />
         <ResizablePanel>Panel 2</ResizablePanel>
@@ -18,7 +18,7 @@ describe('ResizablePanelGroup', () => {
 
   test('applies custom className', () => {
     const { container } = render(
-      <ResizablePanelGroup direction='horizontal' className='custom-rpg'>
+      <ResizablePanelGroup orientation='horizontal' className='custom-rpg'>
         <ResizablePanel>P1</ResizablePanel>
       </ResizablePanelGroup>
     )
@@ -31,7 +31,7 @@ describe('ResizablePanelGroup', () => {
 describe('ResizablePanel', () => {
   test('renders with data-slot', () => {
     const { container } = render(
-      <ResizablePanelGroup direction='horizontal'>
+      <ResizablePanelGroup orientation='horizontal'>
         <ResizablePanel>Content</ResizablePanel>
       </ResizablePanelGroup>
     )
@@ -44,7 +44,7 @@ describe('ResizablePanel', () => {
 describe('ResizableHandle', () => {
   test('renders with data-slot', () => {
     const { container } = render(
-      <ResizablePanelGroup direction='horizontal'>
+      <ResizablePanelGroup orientation='horizontal'>
         <ResizablePanel>P1</ResizablePanel>
         <ResizableHandle />
         <ResizablePanel>P2</ResizablePanel>
@@ -57,7 +57,7 @@ describe('ResizableHandle', () => {
 
   test('renders handle element when withHandle is true', () => {
     const { container } = render(
-      <ResizablePanelGroup direction='horizontal'>
+      <ResizablePanelGroup orientation='horizontal'>
         <ResizablePanel>P1</ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel>P2</ResizablePanel>
@@ -69,7 +69,7 @@ describe('ResizableHandle', () => {
 
   test('does not render handle element by default', () => {
     const { container } = render(
-      <ResizablePanelGroup direction='horizontal'>
+      <ResizablePanelGroup orientation='horizontal'>
         <ResizablePanel>P1</ResizablePanel>
         <ResizableHandle />
         <ResizablePanel>P2</ResizablePanel>

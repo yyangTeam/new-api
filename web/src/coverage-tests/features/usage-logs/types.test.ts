@@ -158,6 +158,8 @@ describe('usage-logs/types', () => {
         task_id: 'task-123',
         action: 'MUSIC',
         channel_id: 5,
+        group: 'default',
+        quota: 100,
         submit_time: 1700000000,
         status: 'SUCCESS',
       }

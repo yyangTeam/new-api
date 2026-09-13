@@ -6,7 +6,6 @@ import {
   updateUserSettings,
   updateUserLanguage,
   deleteUserAccount,
-  generateAccessToken,
   sendEmailVerification,
   bindEmail,
   bindWeChat,
@@ -32,6 +31,12 @@ vi.mock('@/lib/api', () => ({
     put: (...args: unknown[]) => mockPut(...args),
     delete: (...args: unknown[]) => mockDelete(...args),
   },
+}))
+
+vi.mock('@/lib/secure-verification', () => ({
+  authRequestOptions: {},
+  authResult: (promise: Promise<unknown>) =>
+    promise.then((res: unknown) => (res as { data: unknown }).data),
 }))
 
 describe('profile api', () => {
@@ -105,34 +110,20 @@ describe('profile api', () => {
   })
 
   describe('deleteUserAccount', () => {
-    it('deletes account without password', async () => {
+    it('deletes account with proof token', async () => {
       const data = { success: true }
       mockDelete.mockResolvedValue({ data })
+      const controller = new AbortController()
 
-      const result = await deleteUserAccount()
+      const result = await deleteUserAccount('proof-token', controller.signal)
 
-      expect(mockDelete).toHaveBeenCalledWith('/api/user/self', { data: undefined })
-      expect(result).toEqual(data)
-    })
-
-    it('deletes account with password', async () => {
-      const data = { success: true }
-      mockDelete.mockResolvedValue({ data })
-
-      await deleteUserAccount({ password: 'mypass' })
-
-      expect(mockDelete).toHaveBeenCalledWith('/api/user/self', { data: { password: 'mypass' } })
-    })
-  })
-
-  describe('generateAccessToken', () => {
-    it('generates token', async () => {
-      const data = { success: true, data: 'sk-abc123' }
-      mockGet.mockResolvedValue({ data })
-
-      const result = await generateAccessToken()
-
-      expect(mockGet).toHaveBeenCalledWith('/api/user/token')
+      expect(mockDelete).toHaveBeenCalledWith(
+        '/api/user/self',
+        expect.objectContaining({
+          headers: { 'X-Security-Proof': 'proof-token' },
+          signal: controller.signal,
+        })
+      )
       expect(result).toEqual(data)
     })
   })
@@ -163,31 +154,37 @@ describe('profile api', () => {
   })
 
   describe('bindEmail', () => {
-    it('binds email', async () => {
+    it('binds email with flow token and codes', async () => {
       const data = { success: true }
       mockPost.mockResolvedValue({ data })
+      const controller = new AbortController()
 
-      const result = await bindEmail('test@example.com', '123456')
+      const result = await bindEmail('flow-token', 'new-code', 'old-code', controller.signal)
 
-      expect(mockPost).toHaveBeenCalledWith('/api/oauth/email/bind', {
-        email: 'test@example.com',
-        code: '123456',
-      })
+      expect(mockPost).toHaveBeenCalledWith(
+        '/api/oauth/email/bind',
+        { flow_token: 'flow-token', new_code: 'new-code', old_code: 'old-code' },
+        expect.objectContaining({ signal: controller.signal })
+      )
       expect(result).toEqual(data)
     })
   })
 
   describe('bindWeChat', () => {
-    it('binds wechat', async () => {
+    it('binds wechat with proof token', async () => {
       const data = { success: true }
       mockPost.mockResolvedValue({ data })
+      const controller = new AbortController()
 
-      const result = await bindWeChat('wechat-code')
+      const result = await bindWeChat('wechat-code', 'proof-token', controller.signal)
 
       expect(mockPost).toHaveBeenCalledWith(
         '/api/oauth/wechat/bind',
         { code: 'wechat-code' },
-        { skipBusinessError: true, skipErrorHandler: true }
+        expect.objectContaining({
+          headers: { 'X-Security-Proof': 'proof-token' },
+          signal: controller.signal,
+        })
       )
       expect(result).toEqual(data)
     })
@@ -263,13 +260,20 @@ describe('profile api', () => {
   })
 
   describe('unbindCustomOAuth', () => {
-    it('unbinds custom oauth', async () => {
+    it('unbinds custom oauth with proof token', async () => {
       const data = { success: true }
       mockDelete.mockResolvedValue({ data })
+      const controller = new AbortController()
 
-      const result = await unbindCustomOAuth('github')
+      const result = await unbindCustomOAuth(1, 'proof-token', controller.signal)
 
-      expect(mockDelete).toHaveBeenCalledWith('/api/user/oauth/bindings/github')
+      expect(mockDelete).toHaveBeenCalledWith(
+        '/api/user/oauth/bindings/1',
+        expect.objectContaining({
+          headers: { 'X-Security-Proof': 'proof-token' },
+          signal: controller.signal,
+        })
+      )
       expect(result).toEqual(data)
     })
   })

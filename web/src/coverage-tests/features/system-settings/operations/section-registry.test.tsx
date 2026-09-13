@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type { TFunction } from 'i18next'
 
 vi.mock('@/features/system-settings/general/system-behavior-section', () => ({
   SystemBehaviorSection: () => 'SystemBehaviorSection',
@@ -47,7 +48,7 @@ describe('operations section-registry', () => {
   })
 
   it('generates nav items with path-style URLs', () => {
-    const t = (key: string) => key
+    const t = ((key: string) => key) as unknown as TFunction
     const items = getOperationsSectionNavItems(t)
     expect(items).toHaveLength(7)
     expect(items[0]).toEqual({

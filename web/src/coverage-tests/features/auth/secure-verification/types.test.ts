@@ -4,10 +4,10 @@ import type {
   VerificationMethod,
   SecurityProofScope,
   SecurityProof,
-  VerificationMethods,
   SecureVerificationState,
-  UseSecureVerificationOptions,
-  StartVerificationOptions,
+  VerificationRequirements,
+  VerificationInput,
+  RequestVerificationOptions,
 } from '@/features/auth/secure-verification/types'
 
 describe('secure-verification/types', () => {
@@ -49,79 +49,74 @@ describe('secure-verification/types', () => {
     expect(proof.scope).toBe('channel.key.read')
   })
 
-  it('VerificationMethods has correct shape', () => {
-    const methods: VerificationMethods = {
-      has2FA: true,
-      hasPasskey: false,
-      passkeySupported: true,
-    }
-    expect(methods.has2FA).toBe(true)
-    expect(methods.hasPasskey).toBe(false)
-    expect(methods.passkeySupported).toBe(true)
+  it('SecureVerificationState idle phase has no extra fields', () => {
+    const state: SecureVerificationState = { phase: 'idle' }
+    expect(state.phase).toBe('idle')
   })
 
-  it('SecureVerificationState has correct shape', () => {
-    const state: SecureVerificationState = {
-      method: '2fa',
-      loading: false,
-      code: '123456',
-    }
-    expect(state.method).toBe('2fa')
-    expect(state.loading).toBe(false)
-    expect(state.code).toBe('123456')
-  })
-
-  it('SecureVerificationState supports optional fields', () => {
-    const state: SecureVerificationState = {
-      method: 'passkey',
-      scope: 'passkey.register',
-      loading: true,
-      code: '',
-      title: 'Custom title',
-      description: 'Custom desc',
-    }
-    expect(state.scope).toBe('passkey.register')
-    expect(state.title).toBe('Custom title')
-    expect(state.description).toBe('Custom desc')
-  })
-
-  it('SecureVerificationState allows null method', () => {
-    const state: SecureVerificationState = {
-      method: null,
-      loading: false,
-      code: '',
-    }
-    expect(state.method).toBeNull()
-  })
-
-  it('UseSecureVerificationOptions has correct shape', () => {
-    const options: UseSecureVerificationOptions = {
-      onSuccess: () => {},
-      onError: () => {},
-      successMessage: 'Done!',
-      autoReset: true,
-    }
-    expect(options.successMessage).toBe('Done!')
-    expect(options.autoReset).toBe(true)
-  })
-
-  it('StartVerificationOptions has correct shape', () => {
-    const options: StartVerificationOptions = {
+  it('SecureVerificationState loading phase carries the request', () => {
+    const request: RequestVerificationOptions = {
       scope: 'channel.key.read',
-      preferredMethod: 'passkey',
-      title: 'Verify',
-      description: 'Please verify',
+      context: { channel_id: 1 },
     }
-    expect(options.scope).toBe('channel.key.read')
-    expect(options.preferredMethod).toBe('passkey')
+    const state: SecureVerificationState = { phase: 'loading', request }
+    expect(state.phase).toBe('loading')
+    expect(state.request).toBe(request)
   })
 
-  it('StartVerificationOptions requires only scope', () => {
-    const options: StartVerificationOptions = {
+  it('SecureVerificationState error phase carries request and error', () => {
+    const request: RequestVerificationOptions = {
+      scope: 'passkey.register',
+    }
+    const state: SecureVerificationState = {
+      phase: 'error',
+      request,
+      error: 'Something went wrong',
+    }
+    expect(state.phase).toBe('error')
+    expect(state.error).toBe('Something went wrong')
+    expect(state.request).toBe(request)
+  })
+
+  it('SecureVerificationState ready phase carries requirements and input', () => {
+    const request: RequestVerificationOptions = {
+      scope: 'channel.key.read',
+      context: { channel_id: 1 },
+    }
+    const requirements: VerificationRequirements = {
+      scope: 'channel.key.read',
+      methods: [{ method: '2fa', available: true }],
+      oauth_providers: [],
+      password_encryption_enabled: false,
+    }
+    const input: VerificationInput = { method: '2fa', code: '123456' }
+    const state: SecureVerificationState = {
+      phase: 'ready',
+      request,
+      requirements,
+      input,
+    }
+    expect(state.phase).toBe('ready')
+    expect(state.requirements.methods).toHaveLength(1)
+    expect(state.input).toEqual(input)
+  })
+
+  it('SecureVerificationState ready phase allows null input', () => {
+    const request: RequestVerificationOptions = {
       scope: 'passkey.delete',
     }
-    expect(options.scope).toBe('passkey.delete')
-    expect(options.preferredMethod).toBeUndefined()
-    expect(options.title).toBeUndefined()
+    const requirements: VerificationRequirements = {
+      scope: 'passkey.delete',
+      methods: [],
+      oauth_providers: [],
+      password_encryption_enabled: false,
+    }
+    const state: SecureVerificationState = {
+      phase: 'ready',
+      request,
+      requirements,
+      input: null,
+    }
+    expect(state.input).toBeNull()
   })
 })

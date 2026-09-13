@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { toast } from 'sonner'
 
 import { useOAuthLogin } from '@/features/auth/hooks/use-oauth-login'
 
 const mockHandleLoginSuccess = vi.fn()
-const mockNavigate = vi.fn()
 const mockCreateOAuthFlow = vi.fn()
 const mockLogout = vi.fn()
 const mockTelegramLogin = vi.fn()
@@ -227,16 +226,6 @@ describe('useOAuthLogin', () => {
     expect(mockCreateOAuthFlow).not.toHaveBeenCalled()
   })
 
-  it('handleTelegramLogin opens dialog', async () => {
-    const { result } = renderHook(() => useOAuthLogin(baseStatus as any))
-
-    await act(async () => {
-      await result.current.handleTelegramLogin()
-    })
-
-    expect(result.current.isTelegramDialogOpen).toBe(true)
-  })
-
   it('handleTelegramLogin shows error without bot name', async () => {
     const { result } = renderHook(() =>
       useOAuthLogin({ ...baseStatus, telegram_bot_name: '  ' } as any)
@@ -244,50 +233,6 @@ describe('useOAuthLogin', () => {
 
     await act(async () => {
       await result.current.handleTelegramLogin()
-    })
-
-    expect(toast.error).toHaveBeenCalledWith('Login failed')
-  })
-
-  it('handleTelegramAuthorization succeeds', async () => {
-    const authData = { id: 123, first_name: 'Test' }
-    mockPickTelegramAuthorization.mockReturnValue(authData)
-    mockTelegramLogin.mockResolvedValue({ success: true, data: { user: {}, token: 'tk' } })
-    mockIsAuthBundle.mockReturnValue(true)
-    mockHandleLoginSuccess.mockResolvedValue(undefined)
-
-    const { result } = renderHook(() => useOAuthLogin(baseStatus as any))
-
-    await act(async () => {
-      await result.current.handleTelegramAuthorization({ id: 123 })
-    })
-
-    expect(mockTelegramLogin).toHaveBeenCalledWith(authData)
-    expect(mockHandleLoginSuccess).toHaveBeenCalled()
-    expect(toast.success).toHaveBeenCalledWith('Welcome back!')
-  })
-
-  it('handleTelegramAuthorization fails with null authorization', async () => {
-    mockPickTelegramAuthorization.mockReturnValue(null)
-
-    const { result } = renderHook(() => useOAuthLogin(baseStatus as any))
-
-    await act(async () => {
-      await result.current.handleTelegramAuthorization(null)
-    })
-
-    expect(toast.error).toHaveBeenCalledWith('Login failed')
-  })
-
-  it('handleTelegramAuthorization handles unsuccessful response', async () => {
-    mockPickTelegramAuthorization.mockReturnValue({ id: 1 })
-    mockTelegramLogin.mockResolvedValue({ success: false })
-    mockIsAuthBundle.mockReturnValue(false)
-
-    const { result } = renderHook(() => useOAuthLogin(baseStatus as any))
-
-    await act(async () => {
-      await result.current.handleTelegramAuthorization({ id: 1 })
     })
 
     expect(toast.error).toHaveBeenCalledWith('Login failed')

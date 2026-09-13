@@ -53,19 +53,6 @@ func TestChannelBaseURLs_LengthCoversAllChannelTypes(t *testing.T) {
 		"ChannelBaseURLs must have at least ChannelTypeDummy entries to cover all channel types")
 }
 
-func TestSunoModel2Action(t *testing.T) {
-	action, ok := SunoModel2Action["suno_music"]
-	assert.True(t, ok)
-	assert.Equal(t, SunoActionMusic, action)
-
-	action, ok = SunoModel2Action["suno_lyrics"]
-	assert.True(t, ok)
-	assert.Equal(t, SunoActionLyrics, action)
-
-	_, ok = SunoModel2Action["nonexistent"]
-	assert.False(t, ok)
-}
-
 func TestDefaultWaffoPayMethods(t *testing.T) {
 	assert.Len(t, DefaultWaffoPayMethods, 3)
 	assert.Equal(t, "Card", DefaultWaffoPayMethods[0].Name)

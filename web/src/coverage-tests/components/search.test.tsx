@@ -3,7 +3,7 @@ import { render, screen } from '@/test/test-utils'
 import { Search } from '@/components/search'
 
 vi.mock('@/context/search-provider', () => ({
-  useSearch: () => ({ open: false, setOpen: vi.fn() }),
+  useSearch: vi.fn(() => ({ open: false, setOpen: vi.fn() })),
 }))
 
 describe('Search', () => {
@@ -34,10 +34,8 @@ describe('Search', () => {
 
   test('calls setOpen on click', async () => {
     const setOpen = vi.fn()
-    vi.mocked(await import('@/context/search-provider')).useSearch = () => ({
-      open: false,
-      setOpen,
-    })
+    const { useSearch } = await import('@/context/search-provider')
+    vi.mocked(useSearch).mockReturnValue({ open: false, setOpen })
     const { default: userEvent } = await import('@testing-library/user-event')
     const user = userEvent.setup()
     render(<Search />)

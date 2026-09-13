@@ -1,7 +1,7 @@
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { describe, test, expect, vi } from 'vitest'
 
-import { ModelLimitsCell, IpRestrictionsCell, UnlimitedQuotaBadge } from '@/features/keys/components/api-keys-cells'
+import { ModelLimitsCell, IpRestrictionsCell } from '@/features/keys/components/api-keys-cells'
 
 vi.mock('@/features/keys/components/api-keys-provider', () => ({
   useApiKeys: () => ({
@@ -12,22 +12,6 @@ vi.mock('@/features/keys/components/api-keys-provider', () => ({
     markKeyCopied: vi.fn(),
   }),
 }))
-
-vi.mock('@/lib/format', () => ({
-  formatQuota: (v: number) => `$${v}`,
-}))
-
-describe('UnlimitedQuotaBadge', () => {
-  test('renders without crashing', () => {
-    const { container } = render(<UnlimitedQuotaBadge used={500} />)
-    expect(container.firstChild).not.toBeNull()
-  })
-
-  test('renders Unlimited text', () => {
-    const { container } = render(<UnlimitedQuotaBadge used={1000} />)
-    expect(container.textContent).toContain('Unlimited')
-  })
-})
 
 describe('ModelLimitsCell', () => {
   test('renders unlimited-style badge when model_limits_enabled is false', () => {

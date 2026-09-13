@@ -1,6 +1,6 @@
 import { render, screen } from '@/test/test-utils'
 
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
+import { HoverCard, HoverCardTrigger } from '@/components/ui/hover-card'
 
 describe('HoverCard', () => {
   test('renders trigger with data-slot', () => {

@@ -19,7 +19,6 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
-	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -258,29 +257,24 @@ func TestValidateChannel(t *testing.T) {
 
 func TestNormalizeChannelTestEndpoint(t *testing.T) {
 	t.Run("explicit endpoint is trimmed but otherwise preserved", func(t *testing.T) {
-		assert.Equal(t, "openai", normalizeChannelTestEndpoint(&model.Channel{}, "model", "openai"))
+		assert.Equal(t, "openai", normalizeChannelTestEndpoint(&model.Channel{}, "openai"))
 		// leading/trailing whitespace is trimmed by normalizeChannelTestEndpoint
-		assert.Equal(t, "anthropic", normalizeChannelTestEndpoint(&model.Channel{}, "model", "  anthropic "))
-	})
-
-	t.Run("compact model suffix yields compact endpoint", func(t *testing.T) {
-		got := normalizeChannelTestEndpoint(&model.Channel{}, "gpt-4"+ratio_setting.CompactModelSuffix, "")
-		assert.Equal(t, string(constant.EndpointTypeOpenAIResponseCompact), got)
+		assert.Equal(t, "anthropic", normalizeChannelTestEndpoint(&model.Channel{}, "  anthropic "))
 	})
 
 	t.Run("Codex channel yields responses endpoint", func(t *testing.T) {
 		ch := &model.Channel{Type: constant.ChannelTypeCodex}
-		got := normalizeChannelTestEndpoint(ch, "codex-1", "")
+		got := normalizeChannelTestEndpoint(ch, "")
 		assert.Equal(t, string(constant.EndpointTypeOpenAIResponse), got)
 	})
 
 	t.Run("non-Codex channel with no suffix yields empty", func(t *testing.T) {
 		ch := &model.Channel{Type: 1}
-		assert.Equal(t, "", normalizeChannelTestEndpoint(ch, "gpt-4", ""))
+		assert.Equal(t, "", normalizeChannelTestEndpoint(ch, ""))
 	})
 
 	t.Run("nil channel with plain model yields empty", func(t *testing.T) {
-		assert.Equal(t, "", normalizeChannelTestEndpoint(nil, "gpt-4", ""))
+		assert.Equal(t, "", normalizeChannelTestEndpoint(nil, ""))
 	})
 }
 
@@ -457,12 +451,6 @@ func TestBuildTestRequest(t *testing.T) {
 
 	t.Run("bge substring triggers embedding", func(t *testing.T) {
 		_, ok := buildTestRequest("my-bge-model", "", &model.Channel{Type: 1}, false).(*dto.EmbeddingRequest)
-		assert.True(t, ok)
-	})
-
-	t.Run("compact suffix triggers compaction request", func(t *testing.T) {
-		modelName := "gpt-4" + ratio_setting.CompactModelSuffix
-		_, ok := buildTestRequest(modelName, "", &model.Channel{Type: 1}, false).(*dto.OpenAIResponsesCompactionRequest)
 		assert.True(t, ok)
 	})
 
@@ -993,58 +981,6 @@ func TestLoginMethodFromContext(t *testing.T) {
 	}
 }
 
-func TestCheckUpdatePassword(t *testing.T) {
-	db := setupIntegrationDB(t)
-
-	hashed, err := common.Password2Hash("correct-password-1")
-	require.NoError(t, err)
-	user := &model.User{
-		Username: "pwuser",
-		Password: hashed,
-		Role:     common.RoleCommonUser,
-		Status:   common.UserStatusEnabled,
-		Group:    "default",
-		AffCode:  common.GetRandomString(4),
-	}
-	require.NoError(t, db.Create(user).Error)
-
-	t.Run("empty new password returns false no error", func(t *testing.T) {
-		// newPassword == "" short-circuits before any password validation.
-		update, err := checkUpdatePassword("ignored-original", "", user.Id)
-		require.NoError(t, err)
-		assert.False(t, update)
-	})
-
-	t.Run("unset current password returns errUserPasswordUnset", func(t *testing.T) {
-		// user with empty password hash
-		empty := &model.User{
-			Username: "nopw",
-			Role:     common.RoleCommonUser,
-			Status:   common.UserStatusEnabled,
-			Group:    "default",
-			AffCode:  common.GetRandomString(4),
-		}
-		require.NoError(t, db.Create(empty).Error)
-		_, err := checkUpdatePassword("old", "new", empty.Id)
-		assert.ErrorIs(t, err, errUserPasswordUnset)
-	})
-
-	t.Run("wrong original password returns errOriginalPasswordFail", func(t *testing.T) {
-		_, err := checkUpdatePassword("wrong", "newpass", user.Id)
-		assert.ErrorIs(t, err, errOriginalPasswordFail)
-	})
-
-	t.Run("correct original password returns true", func(t *testing.T) {
-		update, err := checkUpdatePassword("correct-password-1", "newpass", user.Id)
-		require.NoError(t, err)
-		assert.True(t, update)
-	})
-
-	t.Run("nonexistent user returns error", func(t *testing.T) {
-		_, err := checkUpdatePassword("x", "y", 999999)
-		assert.Error(t, err)
-	})
-}
 
 // ---------------------------------------------------------------------------
 // channel.go DB-backed helpers (status filter applied to a real query)

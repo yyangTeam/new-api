@@ -35,7 +35,6 @@ describe('ModelsPrimaryButtons', () => {
   })
 
   test('dropdown menu shows expected items when opened', async () => {
-    const user = userEvent.setup()
     renderInProvider()
 
     // Click the more button (last button). Base UI's DropdownMenu trigger

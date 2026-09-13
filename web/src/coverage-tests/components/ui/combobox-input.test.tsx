@@ -148,7 +148,7 @@ describe('ComboboxInput', () => {
 
   test('shows check icon for selected option', async () => {
     const user = userEvent.setup()
-    const { container } = render(
+    render(
       <ComboboxInput
         options={options}
         value='apple'

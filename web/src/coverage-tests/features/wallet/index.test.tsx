@@ -17,15 +17,10 @@ vi.mock('@/features/wallet/components/recharge-form-card', () => ({
   RechargeFormCard: ({
     topupAmount,
     paymentAmount,
-    calculating,
-    paymentLoading,
-    redemptionCode,
-    redeeming,
     loading,
     onSelectPreset,
     onTopupAmountChange,
     onPaymentMethodSelect,
-    onRedemptionCodeChange,
     onRedeem,
     onOpenBilling,
     onCreemProductSelect,
@@ -101,7 +96,7 @@ vi.mock('@/features/wallet/components/subscription-plans-card', () => ({
 }))
 
 vi.mock('@/features/wallet/components/affiliate-rewards-card', () => ({
-  AffiliateRewardsCard: ({ user, onTransfer, loading }: any) => (
+  AffiliateRewardsCard: ({ onTransfer, loading }: any) => (
     <div data-testid="affiliate-card" data-loading={loading}>
       <button data-testid="transfer-btn" onClick={onTransfer}>
         Transfer
@@ -143,7 +138,7 @@ vi.mock('@/features/wallet/components/dialogs/payment-confirm-dialog', () => ({
 }))
 
 vi.mock('@/features/wallet/components/dialogs/transfer-dialog', () => ({
-  TransferDialog: ({ open, onConfirm, onOpenChange }: any) =>
+  TransferDialog: ({ open, onConfirm }: any) =>
     open ? (
       <div data-testid="transfer-dialog">
         <button

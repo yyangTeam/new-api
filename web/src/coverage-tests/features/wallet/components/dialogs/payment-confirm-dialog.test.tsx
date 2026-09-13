@@ -41,7 +41,7 @@ vi.mock('@/features/wallet/lib', () => ({
     typeof amount === 'number' && Number.isFinite(amount)
       ? `$${amount.toFixed(2)}`
       : '-',
-  getPaymentIcon: (type: string | undefined, className?: string) => (
+  getPaymentIcon: (type: string | undefined, _className?: string) => (
     <span data-testid="payment-icon" data-type={type} />
   ),
 }))

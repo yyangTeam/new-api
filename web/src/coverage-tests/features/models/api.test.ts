@@ -16,7 +16,6 @@ import {
   deleteVendor,
   syncUpstream,
   previewUpstreamDiff,
-  applyUpstreamOverwrite,
   getMissingModels,
   getPrefillGroups,
   createPrefillGroup,
@@ -173,16 +172,9 @@ describe('Models API', () => {
 
   describe('syncUpstream', () => {
     it('calls POST /api/models/sync_upstream', async () => {
-      await syncUpstream({ locale: 'en', source: 'official' })
-      expect(mockPost).toHaveBeenCalledWith('/api/models/sync_upstream', {
-        locale: 'en',
-        source: 'official',
-      })
-    })
-
-    it('sends without params', async () => {
-      await syncUpstream()
-      expect(mockPost).toHaveBeenCalledWith('/api/models/sync_upstream', undefined)
+      const request = { locale: 'en' as const, source_version: 'v1', selections: [] }
+      await syncUpstream(request)
+      expect(mockPost).toHaveBeenCalledWith('/api/models/sync_upstream', request)
     })
   })
 
@@ -202,19 +194,6 @@ describe('Models API', () => {
     it('calls GET with locale only', async () => {
       await previewUpstreamDiff({ locale: 'en' })
       expect(mockGet).toHaveBeenCalledWith('/api/models/sync_upstream/preview?locale=en')
-    })
-  })
-
-  describe('applyUpstreamOverwrite', () => {
-    it('delegates to syncUpstream', async () => {
-      await applyUpstreamOverwrite({
-        overwrite: [{ model_name: 'gpt-4', fields: ['description'] }],
-        locale: 'en',
-      })
-      expect(mockPost).toHaveBeenCalledWith('/api/models/sync_upstream', {
-        overwrite: [{ model_name: 'gpt-4', fields: ['description'] }],
-        locale: 'en',
-      })
     })
   })
 

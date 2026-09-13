@@ -22,11 +22,11 @@ vi.mock('@/hooks/use-status', () => ({
 }))
 
 vi.mock('@lobehub/icons', () => ({
-  CherryStudio: { Color: (props: any) => <span data-testid='cherry-icon' /> },
+  CherryStudio: { Color: (_props: any) => <span data-testid='cherry-icon' /> },
 }))
 
 vi.mock('@/features/home/components/hero-terminal-demo', () => ({
-  HeroTerminalDemo: (props: any) => <div data-testid='hero-terminal' />,
+  HeroTerminalDemo: (_props: any) => <div data-testid='hero-terminal' />,
 }))
 
 import { useStatus } from '@/hooks/use-status'

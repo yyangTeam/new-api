@@ -53,8 +53,10 @@ describe('useAuthStore', () => {
       expect(useAuthStore.getState().auth.session).toBeNull()
     })
 
-    test('pending2FAFlowToken is null', () => {
-      expect(useAuthStore.getState().auth.pending2FAFlowToken).toBeNull()
+    test('pendingLoginVerification is null', () => {
+      expect(
+        useAuthStore.getState().auth.pendingLoginVerification
+      ).toBeNull()
     })
 
     test('bootstrapState is complete after reset', () => {
@@ -83,10 +85,11 @@ describe('useAuthStore', () => {
       expect(useAuthStore.getState().auth.session).toEqual(testSession)
     })
 
-    test('clears pending2FAFlowToken', () => {
-      useAuthStore.getState().auth.setPending2FAFlowToken('flow_xyz')
+    test('clears pendingLoginVerification', () => {
       useAuthStore.getState().auth.setBundle(testBundle)
-      expect(useAuthStore.getState().auth.pending2FAFlowToken).toBeNull()
+      expect(
+        useAuthStore.getState().auth.pendingLoginVerification
+      ).toBeNull()
     })
 
     test('sets bootstrapState to complete', () => {
@@ -117,21 +120,6 @@ describe('useAuthStore', () => {
     })
   })
 
-  describe('setPending2FAFlowToken', () => {
-    test('sets flow token', () => {
-      useAuthStore.getState().auth.setPending2FAFlowToken('2fa_token')
-      expect(useAuthStore.getState().auth.pending2FAFlowToken).toBe(
-        '2fa_token'
-      )
-    })
-
-    test('clears flow token with null', () => {
-      useAuthStore.getState().auth.setPending2FAFlowToken('2fa_token')
-      useAuthStore.getState().auth.setPending2FAFlowToken(null)
-      expect(useAuthStore.getState().auth.pending2FAFlowToken).toBeNull()
-    })
-  })
-
   describe('setBootstrapState', () => {
     test('sets to idle', () => {
       useAuthStore.getState().auth.setBootstrapState('idle')
@@ -159,7 +147,7 @@ describe('useAuthStore', () => {
       expect(auth.accessToken).toBeNull()
       expect(auth.accessExpiresAt).toBeNull()
       expect(auth.session).toBeNull()
-      expect(auth.pending2FAFlowToken).toBeNull()
+      expect(auth.pendingLoginVerification).toBeNull()
     })
 
     test('defaults bootstrapState to complete', () => {

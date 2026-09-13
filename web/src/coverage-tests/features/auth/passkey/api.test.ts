@@ -41,100 +41,80 @@ describe('passkey api', () => {
   })
 
   describe('beginPasskeyRegistration', () => {
-    it('calls begin registration without proof token', async () => {
-      const data = { success: true, data: { flow_token: 'ft1' } }
-      mockPost.mockResolvedValue({ data })
+    it('sends proof token header and returns unwrapped data', async () => {
+      mockPost.mockResolvedValue({
+        data: { success: true, data: { flow_token: 'ft1' } },
+      })
 
-      const result = await beginPasskeyRegistration()
-
-      expect(mockPost).toHaveBeenCalledWith(
-        '/api/user/passkey/register/begin',
-        undefined,
-        { headers: undefined }
-      )
-      expect(result).toEqual(data)
-    })
-
-    it('calls begin registration with proof token', async () => {
-      const data = { success: true, data: { flow_token: 'ft2' } }
-      mockPost.mockResolvedValue({ data })
-
-      await beginPasskeyRegistration('proof-abc')
+      const result = await beginPasskeyRegistration('proof-abc')
 
       expect(mockPost).toHaveBeenCalledWith(
         '/api/user/passkey/register/begin',
         undefined,
-        { headers: { 'X-Security-Proof': 'proof-abc' } }
+        expect.objectContaining({
+          headers: { 'X-Security-Proof': 'proof-abc' },
+        })
       )
+      expect(result).toEqual({ flow_token: 'ft1' })
     })
   })
 
   describe('finishPasskeyRegistration', () => {
     it('sends flow token and credential', async () => {
-      const data = { success: true }
-      mockPost.mockResolvedValue({ data })
+      mockPost.mockResolvedValue({
+        data: { success: true, data: {} },
+      })
 
       const payload = { id: 'cred-1', type: 'public-key' }
-      const result = await finishPasskeyRegistration('flow-1', payload, 'proof-1')
+      const result = await finishPasskeyRegistration('flow-1', payload)
 
       expect(mockPost).toHaveBeenCalledWith(
         '/api/user/passkey/register/finish',
         { flow_token: 'flow-1', credential: payload },
-        { headers: { 'X-Security-Proof': 'proof-1' }, acceptAuthRotation: true }
+        expect.objectContaining({
+          acceptAuthRotation: true,
+          singleUseAuthorization: true,
+        })
       )
-      expect(result).toEqual(data)
-    })
-
-    it('sends without proof token', async () => {
-      const data = { success: true }
-      mockPost.mockResolvedValue({ data })
-
-      await finishPasskeyRegistration('flow-1', { id: 'x' })
-
-      expect(mockPost).toHaveBeenCalledWith(
-        '/api/user/passkey/register/finish',
-        expect.any(Object),
-        { headers: undefined, acceptAuthRotation: true }
-      )
+      expect(result).toEqual({})
     })
   })
 
   describe('deletePasskey', () => {
     it('deletes passkey with proof token', async () => {
-      const data = { success: true }
-      mockDelete.mockResolvedValue({ data })
+      mockDelete.mockResolvedValue({
+        data: { success: true, data: {} },
+      })
 
       const result = await deletePasskey('proof-x')
 
-      expect(mockDelete).toHaveBeenCalledWith('/api/user/passkey', {
-        headers: { 'X-Security-Proof': 'proof-x' },
-        acceptAuthRotation: true,
-      })
-      expect(result).toEqual(data)
-    })
-
-    it('deletes passkey without proof token', async () => {
-      const data = { success: true }
-      mockDelete.mockResolvedValue({ data })
-
-      await deletePasskey()
-
-      expect(mockDelete).toHaveBeenCalledWith('/api/user/passkey', {
-        headers: undefined,
-        acceptAuthRotation: true,
-      })
+      expect(mockDelete).toHaveBeenCalledWith(
+        '/api/user/passkey',
+        expect.objectContaining({
+          headers: { 'X-Security-Proof': 'proof-x' },
+          acceptAuthRotation: true,
+        })
+      )
+      expect(result).toEqual({})
     })
   })
 
   describe('beginPasskeyLogin', () => {
     it('calls login begin', async () => {
-      const data = { success: true, data: { flow_token: 'login-ft' } }
-      mockPost.mockResolvedValue({ data })
+      mockPost.mockResolvedValue({
+        data: { success: true, data: { flow_token: 'login-ft' } },
+      })
 
       const result = await beginPasskeyLogin()
 
-      expect(mockPost).toHaveBeenCalledWith('/api/user/passkey/login/begin')
-      expect(result).toEqual(data)
+      expect(mockPost).toHaveBeenCalledWith(
+        '/api/user/passkey/login/begin',
+        undefined,
+        expect.objectContaining({
+          skipAuthRefresh: true,
+        })
+      )
+      expect(result).toEqual({ flow_token: 'login-ft' })
     })
   })
 
@@ -148,39 +128,55 @@ describe('passkey api', () => {
       expect(mockPost).toHaveBeenCalledWith(
         '/api/user/passkey/login/finish',
         { flow_token: 'flow-login', credential: { id: 'cred' } },
-        { skipAuthRefresh: true }
+        expect.objectContaining({ skipAuthRefresh: true })
       )
       expect(result).toEqual(data)
     })
   })
 
   describe('beginPasskeyVerification', () => {
-    it('sends verification begin with scope', async () => {
-      const data = { success: true, data: { flow_token: 'verify-ft' } }
-      mockPost.mockResolvedValue({ data })
+    it('sends verification begin with operation', async () => {
+      mockPost.mockResolvedValue({
+        data: { success: true, data: { flow_token: 'verify-ft' } },
+      })
 
-      const result = await beginPasskeyVerification('channel.key.read')
+      const operation = {
+        scope: 'channel.key.read' as const,
+        context: { channel_id: 1 },
+      }
+      const result = await beginPasskeyVerification(operation)
 
       expect(mockPost).toHaveBeenCalledWith(
         '/api/user/passkey/verify/begin',
-        { scope: 'channel.key.read' }
+        { scope: 'channel.key.read', context: { channel_id: 1 } },
+        expect.objectContaining({
+          skipBusinessError: true,
+          skipErrorHandler: true,
+        })
       )
-      expect(result).toEqual(data)
+      expect(result).toEqual({ flow_token: 'verify-ft' })
     })
   })
 
   describe('finishPasskeyVerification', () => {
     it('sends verification finish', async () => {
-      const data = { success: true, data: { proof_token: 'pt', expires_at: 123 } }
-      mockPost.mockResolvedValue({ data })
+      mockPost.mockResolvedValue({
+        data: {
+          success: true,
+          data: { proof_token: 'pt', expires_at: 123 },
+        },
+      })
 
       const result = await finishPasskeyVerification('flow-v', { id: 'cred' })
 
       expect(mockPost).toHaveBeenCalledWith(
         '/api/user/passkey/verify/finish',
-        { flow_token: 'flow-v', credential: { id: 'cred' } }
+        { flow_token: 'flow-v', credential: { id: 'cred' } },
+        expect.objectContaining({
+          singleUseAuthorization: true,
+        })
       )
-      expect(result).toEqual(data)
+      expect(result).toEqual({ proof_token: 'pt', expires_at: 123 })
     })
   })
 })

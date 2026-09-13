@@ -29,9 +29,6 @@ import {
   getUserGroups,
   getStatus,
   getNotice,
-  get2FAStatus,
-  setup2FA,
-  enable2FA,
   disable2FA,
   regenerate2FABackupCodes,
 } from '@/lib/api'
@@ -89,37 +86,6 @@ describe('api', () => {
       const result = await getNotice()
       expect(mockGet).toHaveBeenCalledWith('/api/notice')
       expect(result).toEqual({ success: true, data: 'Hello' })
-    })
-  })
-
-  describe('get2FAStatus', () => {
-    it('calls GET /api/user/2fa/status', async () => {
-      mockGet.mockResolvedValue({ data: { enabled: true } })
-      const result = await get2FAStatus()
-      expect(mockGet).toHaveBeenCalledWith('/api/user/2fa/status')
-      expect(result).toEqual({ enabled: true })
-    })
-  })
-
-  describe('setup2FA', () => {
-    it('calls POST /api/user/2fa/setup', async () => {
-      mockPost.mockResolvedValue({ data: { qr: 'data:...' } })
-      const result = await setup2FA()
-      expect(mockPost).toHaveBeenCalledWith('/api/user/2fa/setup')
-      expect(result).toEqual({ qr: 'data:...' })
-    })
-  })
-
-  describe('enable2FA', () => {
-    it('calls POST /api/user/2fa/enable with code and acceptAuthRotation', async () => {
-      mockPost.mockResolvedValue({ data: { success: true } })
-      const result = await enable2FA('123456')
-      expect(mockPost).toHaveBeenCalledWith(
-        '/api/user/2fa/enable',
-        { code: '123456' },
-        { acceptAuthRotation: true }
-      )
-      expect(result).toEqual({ success: true })
     })
   })
 

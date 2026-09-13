@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import type { TFunction } from 'i18next'
 import type { ReactNode } from 'react'
 
 import { createSectionRegistry } from '@/features/system-settings/utils/section-registry'
@@ -47,7 +48,7 @@ describe('createSectionRegistry', () => {
 
   describe('getSectionNavItems', () => {
     it('generates navigation items with query-style URLs by default', () => {
-      const t = (key: string) => key
+      const t = ((key: string) => key) as unknown as TFunction
       const items = registry.getSectionNavItems(t)
       expect(items).toEqual([
         { title: 'General Settings', url: '/settings?section=general' },
@@ -57,8 +58,8 @@ describe('createSectionRegistry', () => {
     })
 
     it('translates title keys', () => {
-      const t = (key: string) =>
-        key === 'General Settings' ? 'Translated General' : key
+      const t = ((key: string) =>
+        key === 'General Settings' ? 'Translated General' : key) as unknown as TFunction
       const items = registry.getSectionNavItems(t)
       expect(items[0].title).toBe('Translated General')
     })
@@ -76,7 +77,7 @@ describe('createSectionRegistry', () => {
         urlStyle: 'path',
       })
 
-      const t = (key: string) => key
+      const t = ((key: string) => key) as unknown as TFunction
       const items = pathRegistry.getSectionNavItems(t)
       expect(items).toEqual([
         { title: 'General Settings', url: '/admin/settings/general' },

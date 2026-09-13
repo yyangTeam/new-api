@@ -5,7 +5,6 @@ import { RechargeFormCard } from '@/features/wallet/components/recharge-form-car
 import type {
   TopupInfo,
   PresetAmount,
-  PaymentMethod,
   CreemProduct,
   WaffoPayMethod,
 } from '@/features/wallet/types'

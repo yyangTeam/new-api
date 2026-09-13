@@ -27,29 +27,28 @@ import { SettingsCard } from '@/features/system-settings/components/settings-car
 describe('SettingsCard', () => {
   it('renders title', () => {
     render(
-      React.createElement(SettingsCard, { title: 'My Title' }, 'content')
+      React.createElement(SettingsCard, { title: 'My Title', children: 'content' })
     )
     expect(screen.getByTestId('card-title')).toHaveTextContent('My Title')
   })
 
   it('renders children in card content', () => {
     render(
-      React.createElement(
-        SettingsCard,
-        { title: 'Title' },
-        React.createElement('span', null, 'Child content')
-      )
+      React.createElement(SettingsCard, {
+        title: 'Title',
+        children: React.createElement('span', null, 'Child content'),
+      })
     )
     expect(screen.getByText('Child content')).toBeInTheDocument()
   })
 
   it('renders description when provided', () => {
     render(
-      React.createElement(
-        SettingsCard,
-        { title: 'Title', description: 'A description' },
-        'content'
-      )
+      React.createElement(SettingsCard, {
+        title: 'Title',
+        description: 'A description',
+        children: 'content',
+      })
     )
     expect(screen.getByTestId('card-description')).toHaveTextContent(
       'A description'
@@ -58,18 +57,18 @@ describe('SettingsCard', () => {
 
   it('does not render description when not provided', () => {
     render(
-      React.createElement(SettingsCard, { title: 'Title' }, 'content')
+      React.createElement(SettingsCard, { title: 'Title', children: 'content' })
     )
     expect(screen.queryByTestId('card-description')).not.toBeInTheDocument()
   })
 
   it('passes className to Card', () => {
     render(
-      React.createElement(
-        SettingsCard,
-        { title: 'Title', className: 'custom-class' },
-        'content'
-      )
+      React.createElement(SettingsCard, {
+        title: 'Title',
+        className: 'custom-class',
+        children: 'content',
+      })
     )
     expect(screen.getByTestId('card')).toHaveClass('custom-class')
   })

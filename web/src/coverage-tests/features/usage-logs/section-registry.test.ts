@@ -11,10 +11,10 @@ vi.mock('@/features/system-settings/utils/section-registry', () => ({
   createSectionRegistry: vi.fn(({ sections, defaultSection }) => ({
     sectionIds: sections.map((s: { id: string }) => s.id),
     defaultSection,
-    getSectionNavItems: vi.fn(() =>
+    getSectionNavItems: vi.fn((t: (key: string) => string) =>
       sections.map((s: { id: string; titleKey: string }) => ({
         id: s.id,
-        title: s.titleKey,
+        title: t(s.titleKey),
       }))
     ),
   })),
@@ -49,7 +49,8 @@ describe('usage-logs/section-registry', () => {
 
   describe('getUsageLogsSectionNavItems', () => {
     it('returns nav items for all sections', () => {
-      const items = getUsageLogsSectionNavItems()
+      const mockT = vi.fn((key: string) => key) as unknown as Parameters<typeof getUsageLogsSectionNavItems>[0]
+      const items = getUsageLogsSectionNavItems(mockT)
       expect(items).toHaveLength(3)
       expect(items[0]).toEqual({ id: 'common', title: 'Common Logs' })
       expect(items[1]).toEqual({ id: 'drawing', title: 'Drawing Logs' })

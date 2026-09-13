@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@/test/test-utils'
+import { render, screen } from '@/test/test-utils'
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, ...props }: any) => <a {...props}>{children}</a>,

@@ -11,7 +11,6 @@ import {
   handleUpdateTagField,
   handleTestChannel,
   handleCopyChannel,
-  handleUpdateChannelBalance,
   handleBatchDelete,
   handleBatchEnable,
   handleBatchDisable,
@@ -44,7 +43,6 @@ vi.mock('@/features/channels/api', () => ({
   editTagChannels: vi.fn(),
   testAllChannels: vi.fn(),
   updateAllChannelsBalance: vi.fn(),
-  updateChannelBalance: vi.fn(),
 }))
 
 vi.mock('@/lib/currency', () => ({
@@ -67,7 +65,6 @@ import {
   editTagChannels,
   testAllChannels,
   updateAllChannelsBalance,
-  updateChannelBalance,
 } from '@/features/channels/api'
 
 const mockUpdateChannelStatus = updateChannelStatus as ReturnType<typeof vi.fn>
@@ -75,7 +72,6 @@ const mockDeleteChannel = deleteChannel as ReturnType<typeof vi.fn>
 const mockUpdateChannel = updateChannel as ReturnType<typeof vi.fn>
 const mockTestChannel = testChannel as ReturnType<typeof vi.fn>
 const mockCopyChannel = copyChannel as ReturnType<typeof vi.fn>
-const mockUpdateChannelBalance = updateChannelBalance as ReturnType<typeof vi.fn>
 const mockBatchDeleteChannels = batchDeleteChannels as ReturnType<typeof vi.fn>
 const mockBatchUpdateChannelStatus = batchUpdateChannelStatus as ReturnType<typeof vi.fn>
 const mockBatchSetChannelTag = batchSetChannelTag as ReturnType<typeof vi.fn>
@@ -373,47 +369,6 @@ describe('handleCopyChannel', () => {
   it('handles exception', async () => {
     mockCopyChannel.mockRejectedValue(new Error('x'))
     await handleCopyChannel(1, {})
-    expect(toast.error).toHaveBeenCalled()
-  })
-})
-
-describe('handleUpdateChannelBalance', () => {
-  it('updates balance on success', async () => {
-    mockUpdateChannelBalance.mockResolvedValue({
-      success: true,
-      balance: 50.5,
-    })
-    const queryClient = { invalidateQueries: vi.fn() }
-    const onSuccess = vi.fn()
-    await handleUpdateChannelBalance(1, queryClient as any, onSuccess)
-    expect(toast.success).toHaveBeenCalled()
-    expect(onSuccess).toHaveBeenCalledWith(50.5)
-  })
-
-  it('shows error when balance undefined', async () => {
-    mockUpdateChannelBalance.mockResolvedValue({ success: true })
-    await handleUpdateChannelBalance(1)
-    expect(toast.error).toHaveBeenCalled()
-  })
-
-  it('shows error on failure response', async () => {
-    mockUpdateChannelBalance.mockResolvedValue({
-      success: false,
-      message: 'err',
-    })
-    await handleUpdateChannelBalance(1)
-    expect(toast.error).toHaveBeenCalled()
-  })
-
-  it('handles Error instance', async () => {
-    mockUpdateChannelBalance.mockRejectedValue(new Error('fail'))
-    await handleUpdateChannelBalance(1)
-    expect(toast.error).toHaveBeenCalled()
-  })
-
-  it('handles non-Error exception', async () => {
-    mockUpdateChannelBalance.mockRejectedValue('unexpected')
-    await handleUpdateChannelBalance(1)
     expect(toast.error).toHaveBeenCalled()
   })
 })

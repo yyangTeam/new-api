@@ -36,7 +36,6 @@ describe('useModels', () => {
     expect(result.current.currentVendor).toBeNull()
     expect(result.current.selectedVendor).toBeNull()
     expect(result.current.descriptionData).toBeNull()
-    expect(result.current.upstreamConflicts).toEqual([])
     expect(result.current.syncWizardOptions).toEqual({
       locale: 'zh',
       source: 'official',
@@ -117,28 +116,14 @@ describe('useModels', () => {
     })
   })
 
-  test('setUpstreamConflicts updates conflicts', () => {
-    const { result } = renderHook(() => useModels(), { wrapper })
-    const conflicts = [
-      {
-        model_name: 'gpt-4',
-        fields: [{ field: 'description', local: 'a', upstream: 'b' }],
-      },
-    ]
-    act(() => {
-      result.current.setUpstreamConflicts(conflicts)
-    })
-    expect(result.current.upstreamConflicts).toEqual(conflicts)
-  })
-
   test('setSyncWizardOptions updates sync options', () => {
     const { result } = renderHook(() => useModels(), { wrapper })
     act(() => {
-      result.current.setSyncWizardOptions({ locale: 'en', source: 'config' })
+      result.current.setSyncWizardOptions({ locale: 'en', source: 'official' })
     })
     expect(result.current.syncWizardOptions).toEqual({
       locale: 'en',
-      source: 'config',
+      source: 'official',
     })
   })
 
@@ -155,11 +140,13 @@ describe('useModels', () => {
     const dialogTypes = [
       'create-model',
       'update-model',
+      'price-model',
       'create-vendor',
+      'vendors',
+      'price-sync',
       'update-vendor',
       'missing-models',
       'sync-wizard',
-      'upstream-conflict',
       'prefill-groups',
       'description',
     ] as const

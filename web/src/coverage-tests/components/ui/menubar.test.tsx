@@ -156,7 +156,7 @@ describe('MenubarSub', () => {
   test('renders within menubar context', () => {
     // SubmenuTrigger requires MenuPositioner context from an open menu.
     // We verify the wrapping component renders without error.
-    const { container } = render(
+    render(
       <Menubar>
         <MenubarMenu>
           <MenubarTrigger>Menu</MenubarTrigger>

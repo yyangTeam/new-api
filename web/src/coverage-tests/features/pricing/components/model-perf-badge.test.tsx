@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { describe, test, expect, vi } from 'vitest'
 
 vi.mock('@/features/performance-metrics/lib/format', () => ({
@@ -79,7 +79,11 @@ describe('ModelPerfBadge', () => {
       avg_latency_ms: 100,
       success_rate: 95,
       avg_tps: 10,
-      recent_success_rates: [99, 98, 97],
+      recent_success_series: [
+        { ts: 1, success_rate: 99 },
+        { ts: 2, success_rate: 98 },
+        { ts: 3, success_rate: 97 },
+      ],
     }
     const { container } = render(<ModelPerfBadge perf={perf} />)
     const bars = container.querySelectorAll('.rounded-full')

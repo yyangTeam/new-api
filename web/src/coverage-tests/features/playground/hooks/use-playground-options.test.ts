@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { usePlaygroundOptions } from '@/features/playground/hooks/use-playground-options'
+import type { GroupOption, ModelOption, PlaygroundConfig } from '@/features/playground/types'
 
 const mockGetUserModels = vi.fn()
 const mockGetUserGroups = vi.fn()
@@ -41,16 +42,20 @@ function createWrapper() {
     React.createElement(QueryClientProvider, { client: queryClient }, children)
 }
 
+type SetGroupsFn = (groups: GroupOption[]) => void
+type SetModelsFn = (models: ModelOption[]) => void
+type UpdateConfigFn = <K extends keyof PlaygroundConfig>(key: K, value: PlaygroundConfig[K]) => void
+
 describe('usePlaygroundOptions', () => {
-  let setGroups: ReturnType<typeof vi.fn>
-  let setModels: ReturnType<typeof vi.fn>
-  let updateConfig: ReturnType<typeof vi.fn>
+  let setGroups: SetGroupsFn
+  let setModels: SetModelsFn
+  let updateConfig: UpdateConfigFn
 
   beforeEach(() => {
     vi.clearAllMocks()
-    setGroups = vi.fn()
-    setModels = vi.fn()
-    updateConfig = vi.fn()
+    setGroups = vi.fn<SetGroupsFn>()
+    setModels = vi.fn<SetModelsFn>()
+    updateConfig = vi.fn() as unknown as UpdateConfigFn
     mockGetUserModels.mockResolvedValue([
       { label: 'gpt-4o', value: 'gpt-4o' },
     ])
@@ -64,7 +69,7 @@ describe('usePlaygroundOptions', () => {
   })
 
   it('fetches models and groups', async () => {
-    const { result } = renderHook(
+    renderHook(
       () =>
         usePlaygroundOptions({
           currentGroup: 'default',

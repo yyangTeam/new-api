@@ -6,16 +6,12 @@ import {
   ComboboxChips,
   ComboboxChipsInput,
   ComboboxCollection,
-  ComboboxContent,
   ComboboxEmpty,
   ComboboxGroup,
   ComboboxInput,
   ComboboxItem,
   ComboboxLabel,
-  ComboboxList,
   ComboboxSeparator,
-  ComboboxTrigger,
-  ComboboxValue,
   useComboboxAnchor,
 } from '@/components/ui/combobox'
 
@@ -141,7 +137,7 @@ describe('Combobox', () => {
 
 describe('ComboboxInput', () => {
   test('renders with showTrigger=true (default)', () => {
-    const { container } = render(
+    render(
       <Combobox>
         <ComboboxInput placeholder='Search...' />
       </Combobox>
@@ -177,7 +173,7 @@ describe('ComboboxInput', () => {
   })
 
   test('renders children (like dropdown content)', () => {
-    const { container } = render(
+    render(
       <Combobox>
         <ComboboxInput placeholder='With children'>
           <div data-testid='child-content'>Child</div>

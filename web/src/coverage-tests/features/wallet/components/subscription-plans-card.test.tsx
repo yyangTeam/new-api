@@ -56,7 +56,7 @@ vi.mock('@/components/ui/progress', () => ({
 }))
 
 vi.mock('@/components/ui/select', () => ({
-  Select: ({ children, onValueChange }: any) => (
+  Select: ({ children }: any) => (
     <div data-testid="select">{children}</div>
   ),
   SelectContent: ({ children }: any) => <div>{children}</div>,

@@ -166,7 +166,53 @@ cd relaykit && GOWORK=off ~/.local/go/bin/go build ./...
 cd web && bun run typecheck
 ```
 
-If any check fails, fix the issue before continuing. Common problems:
+If any check fails, fix the issue before continuing.
+
+### 6a — Fix Go test compilation (`go vet`)
+
+Run `go vet ./...` first — it catches test compilation errors faster than `go test`.
+
+Common Go test breakage patterns after a merge:
+
+| Pattern | Fix |
+|---|---|
+| Test calls a function that main removed | Delete the test function(s) |
+| Test calls a function that main renamed | Update the call to the new name |
+| Function signature changed (new/removed/reordered args) | Read the new signature and update the test call |
+| Test references a removed constant/type | Delete the test or update to the replacement |
+| Unused import after test deletions | Remove the import |
+
+Rules:
+- Only modify fork-added test files (`coverage_test.go`, files under `web/src/coverage-tests/`).
+- NEVER modify upstream test files.
+- If all tests in a file are for removed functions, delete the entire file.
+
+### 6b — Fix frontend test compilation (`bun run typecheck`)
+
+This is typically the **largest post-merge task** — upstream refactors can break
+100+ coverage test files. Use parallel agents grouped by feature area.
+
+Error triage strategy (most efficient order):
+
+1. **TS2307 — Can't find module**: The tested module was deleted → delete the test file
+2. **TS2305/TS2724 — Module has no exported member**: The export was removed/renamed → delete tests for removed exports, rename for renamed ones
+3. **TS6133/TS6196 — Declared but never read**: Unused import/var after upstream removed usage → remove the unused declaration
+4. **TS2554 — Wrong number of arguments**: Function signature changed → read the new signature, update the call
+5. **TS2322/TS2769 — Type mismatch / No overload**: Type restructured → read the new type definition, update mock data
+6. **TS2339 — Property does not exist**: Field removed from type → delete the test assertions or update to new field names
+7. **TS2345 — Argument type mismatch**: Often mock types (e.g. `vi.fn()` vs branded types like `TFunction`) → cast with `as unknown as ExpectedType`
+
+Parallel agent grouping (dispatch 4-6 agents simultaneously):
+- Group by feature directory (auth/, system-settings/, models+channels+pricing/, playground/, components/, misc)
+- Each agent: read error list → read test file → read production module → fix or delete
+
+Common bulk patterns:
+- `const { container } = render(...)` where container is unused → change to `render(...)`
+- `vi.fn()` mock type incompatible → use `vi.fn<TypedFn>()` or cast
+- `React.createElement(Component, props, children)` where Component requires `children` in props → include `children` in the props object
+- ResizablePanel `direction` prop renamed to `orientation` (react-resizable-panels upgrade)
+
+### 6c — Common problems table
 
 | Problem | Fix |
 |---|---|
@@ -277,3 +323,7 @@ These are the fork-specific features that MUST be preserved in every merge.
 | Conflict count is very large (100+) | Many are auto-resolvable (AA/DD type); focus manual effort on UU conflicts |
 | i18n JSON conflicts | Do key union: keep all keys from both sides, prefer main's value for shared keys, keep dev's value for dev-only keys |
 | Main changed a shared type that dev extends | Accept main's base type change, re-add dev's extra fields |
+| Bun version mismatch in CI workflows | Dev's `frontend-tests.yml` and `e2e-tests.yml` have their own bun version — **must match `ci.yml`'s version** (currently 1.4.0). `--frozen-lockfile` will fail if versions differ |
+| 100+ TS errors after merge in coverage-tests/ | Normal — upstream refactors break fork tests at scale. Use parallel agents (§6b). Expect 1-2 hours for 400+ errors |
+| `go vet` fails but `go build` passes | Test files have compilation errors — functions removed/renamed by upstream. Fix tests first (§6a) |
+| `test/setup.ts` type errors | Check if TypeScript upgraded DOM lib types (e.g. IntersectionObserver added `scrollMargin` in newer TS) — update mocks to match |

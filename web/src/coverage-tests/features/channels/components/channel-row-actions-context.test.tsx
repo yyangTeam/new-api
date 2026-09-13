@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import React, { useContext } from 'react'
+import { render, screen } from '@testing-library/react'
+import { useContext } from 'react'
 
 import {
   ChannelRowActionsLayoutContext,
