@@ -561,7 +561,7 @@ func TestTaskModel2Dto(t *testing.T) {
 	assert.Equal(t, "default", dto.Group)
 	assert.Equal(t, 3, dto.ChannelId)
 	assert.Equal(t, 500, dto.Quota)
-	assert.Equal(t, "generate", dto.Action)
+	assert.Equal(t, "image_to_video", dto.Action)
 	assert.Equal(t, "SUCCESS", dto.Status)
 	assert.Equal(t, "", dto.FailReason)
 	assert.Equal(t, int64(1700000100), dto.SubmitTime)

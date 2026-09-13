@@ -12,6 +12,10 @@ vi.mock('@/lib/currency', () => ({
     if (value == null || Number.isNaN(value)) return '-'
     return `$${value}`
   },
+  formatBillingCurrencyFromUSD: vi.fn((value: number, _opts?: unknown) => {
+    if (value == null || Number.isNaN(value)) return '-'
+    return `$${value}`
+  }),
 }))
 
 function makeModel(overrides: Partial<PricingModel> = {}): PricingModel {

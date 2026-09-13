@@ -5,10 +5,11 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 
 describe('useMediaQuery', () => {
   let listeners: Array<() => void>
+  let matchMediaMock: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     listeners = []
-    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
+    matchMediaMock = vi.fn().mockImplementation((query: string) => ({
       matches: false,
       media: query,
       onchange: null,
@@ -20,6 +21,11 @@ describe('useMediaQuery', () => {
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
     }))
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: matchMediaMock,
+    })
   })
 
   it('returns false when media query does not match', () => {
@@ -28,7 +34,7 @@ describe('useMediaQuery', () => {
   })
 
   it('returns true when media query matches', () => {
-    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
+    matchMediaMock.mockImplementation((query: string) => ({
       matches: true,
       media: query,
       onchange: null,
@@ -45,7 +51,7 @@ describe('useMediaQuery', () => {
 
   it('updates when media query changes', () => {
     let currentMatches = false
-    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
+    matchMediaMock.mockImplementation((query: string) => ({
       matches: currentMatches,
       media: query,
       onchange: null,
@@ -71,7 +77,7 @@ describe('useMediaQuery', () => {
 
   it('removes event listener on unmount', () => {
     const removeEventListener = vi.fn()
-    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
+    matchMediaMock.mockImplementation((query: string) => ({
       matches: false,
       media: query,
       onchange: null,

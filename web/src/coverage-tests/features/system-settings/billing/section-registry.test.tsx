@@ -3,6 +3,7 @@ import type { TFunction } from 'i18next'
 
 vi.mock('@/lib/currency', () => ({
   parseCurrencyDisplayType: (v: string) => v,
+  formatBillingCurrencyFromUSD: vi.fn(() => '$0'),
 }))
 vi.mock('@/features/system-settings/general/checkin-settings-section', () => ({
   CheckinSettingsSection: () => 'CheckinSettingsSection',

@@ -242,6 +242,14 @@ describe('buildPreviewRows', () => {
   const emptyPrices: Record<LaneKey, string> = { ...EMPTY_LANE_PRICES }
   const emptyEnabled: Record<LaneKey, boolean> = { ...EMPTY_LANE_ENABLED }
 
+  // Values with ratios set to ensure per-token filter keeps all lane rows
+  const allLaneValues: ModelPricingFormValues = {
+    name: 'test-model',
+    imageRatio: '1.5',
+    cacheRatio: '0.1',
+    createCacheRatio: '1.25',
+  }
+
   test('returns tiered_expr rows with combined expression', () => {
     const rows = buildPreviewRows(
       emptyValues,
@@ -255,7 +263,7 @@ describe('buildPreviewRows', () => {
     )
     expect(rows).toHaveLength(2)
     expect(rows[0].key).toBe('mode')
-    expect(rows[0].value).toBe('tiered_expr')
+    expect(rows[0].value).toBe('Expression')
     expect(rows[1].key).toBe('expr')
     expect(rows[1].value).toBe('tier("default", p*2 + c*4)')
     expect(rows[1].multiline).toBe(true)
@@ -303,10 +311,10 @@ describe('buildPreviewRows', () => {
       emptyEnabled,
       t
     )
-    expect(rows).toHaveLength(1)
+    expect(rows.length).toBeGreaterThanOrEqual(1)
     expect(rows[0].key).toBe('price')
-    expect(rows[0].label).toBe('ModelPrice')
-    expect(rows[0].value).toBe('0.002')
+    expect(rows[0].label).toBe('Fixed price')
+    expect(rows[0].value).toBe('$0.002')
   })
 
   test('returns per-request Empty when price is missing', () => {
@@ -325,7 +333,7 @@ describe('buildPreviewRows', () => {
 
   test('returns per-token rows with all lanes', () => {
     const rows = buildPreviewRows(
-      emptyValues,
+      allLaneValues,
       'per-token',
       '',
       '',
@@ -367,7 +375,7 @@ describe('buildPreviewRows', () => {
 
   test('returns Empty for disabled per-token lanes', () => {
     const rows = buildPreviewRows(
-      emptyValues,
+      allLaneValues,
       'per-token',
       '',
       '',

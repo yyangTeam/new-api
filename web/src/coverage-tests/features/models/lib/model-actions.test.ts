@@ -20,10 +20,22 @@ vi.mock('@/features/models/api', () => ({
   updateModelStatus: vi.fn(),
 }))
 
+vi.mock('@/lib/handle-server-error', () => ({
+  handleServerError: vi.fn(),
+}))
+
+vi.mock('@/features/models/vendor-api', () => ({
+  invalidateVendorData: vi.fn(),
+}))
+
 import { toast } from 'sonner'
 import { updateModelStatus } from '@/features/models/api'
+import { handleServerError } from '@/lib/handle-server-error'
+import { invalidateVendorData } from '@/features/models/vendor-api'
 
 const mockUpdateModelStatus = vi.mocked(updateModelStatus)
+const mockHandleServerError = vi.mocked(handleServerError)
+const mockInvalidateVendorData = vi.mocked(invalidateVendorData)
 
 function createMockQueryClient(): QueryClient {
   return {
@@ -46,16 +58,16 @@ describe('model-actions', () => {
     it('shows success toast on success', async () => {
       mockUpdateModelStatus.mockResolvedValue({ success: true })
       await handleEnableModel(1)
-      expect(toast.success).toHaveBeenCalledWith('Model enabled successfully')
+      expect(toast.success).toHaveBeenCalledWith(
+        'Model shown in model square'
+      )
     })
 
-    it('invalidates query cache on success', async () => {
+    it('invalidates vendor data on success', async () => {
       mockUpdateModelStatus.mockResolvedValue({ success: true })
       const qc = createMockQueryClient()
       await handleEnableModel(1, qc)
-      expect(qc.invalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['models', 'list'],
-      })
+      expect(mockInvalidateVendorData).toHaveBeenCalledWith(qc)
     })
 
     it('calls onSuccess callback on success', async () => {
@@ -65,33 +77,35 @@ describe('model-actions', () => {
       expect(onSuccess).toHaveBeenCalled()
     })
 
-    it('shows error toast when API returns success=false', async () => {
-      mockUpdateModelStatus.mockResolvedValue({
+    it('calls handleServerError when API returns success=false', async () => {
+      const response = {
         success: false,
         message: 'Permission denied',
-      })
+      }
+      mockUpdateModelStatus.mockResolvedValue(response)
       await handleEnableModel(1)
-      expect(toast.error).toHaveBeenCalledWith('Permission denied')
+      expect(mockHandleServerError).toHaveBeenCalledWith(
+        response,
+        'Failed to show model in model square'
+      )
       expect(toast.success).not.toHaveBeenCalled()
     })
 
-    it('shows fallback error message when API returns no message', async () => {
-      mockUpdateModelStatus.mockResolvedValue({ success: false })
+    it('calls handleServerError on network/throw error', async () => {
+      const error = new Error('Network error')
+      mockUpdateModelStatus.mockRejectedValue(error)
       await handleEnableModel(1)
-      expect(toast.error).toHaveBeenCalledWith('Failed to enable model')
+      expect(mockHandleServerError).toHaveBeenCalledWith(
+        error,
+        'Failed to show model in model square'
+      )
     })
 
-    it('shows error toast on network/throw error', async () => {
-      mockUpdateModelStatus.mockRejectedValue(new Error('Network error'))
-      await handleEnableModel(1)
-      expect(toast.error).toHaveBeenCalledWith('Network error')
-    })
-
-    it('does not invalidate queries on failure', async () => {
+    it('does not invalidate vendor data on failure', async () => {
       mockUpdateModelStatus.mockResolvedValue({ success: false })
       const qc = createMockQueryClient()
       await handleEnableModel(1, qc)
-      expect(qc.invalidateQueries).not.toHaveBeenCalled()
+      expect(mockInvalidateVendorData).not.toHaveBeenCalled()
     })
 
     it('does not call onSuccess on failure', async () => {
@@ -112,31 +126,39 @@ describe('model-actions', () => {
     it('shows success toast on success', async () => {
       mockUpdateModelStatus.mockResolvedValue({ success: true })
       await handleDisableModel(1)
-      expect(toast.success).toHaveBeenCalledWith('Model disabled successfully')
+      expect(toast.success).toHaveBeenCalledWith(
+        'Model hidden from model square'
+      )
     })
 
-    it('invalidates query cache on success', async () => {
+    it('invalidates vendor data on success', async () => {
       mockUpdateModelStatus.mockResolvedValue({ success: true })
       const qc = createMockQueryClient()
       await handleDisableModel(1, qc)
-      expect(qc.invalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['models', 'list'],
-      })
+      expect(mockInvalidateVendorData).toHaveBeenCalledWith(qc)
     })
 
-    it('shows error toast when API returns success=false', async () => {
-      mockUpdateModelStatus.mockResolvedValue({
+    it('calls handleServerError when API returns success=false', async () => {
+      const response = {
         success: false,
         message: 'Model not found',
-      })
+      }
+      mockUpdateModelStatus.mockResolvedValue(response)
       await handleDisableModel(1)
-      expect(toast.error).toHaveBeenCalledWith('Model not found')
+      expect(mockHandleServerError).toHaveBeenCalledWith(
+        response,
+        'Failed to hide model from model square'
+      )
     })
 
-    it('shows error toast on thrown error', async () => {
-      mockUpdateModelStatus.mockRejectedValue(new Error('Timeout'))
+    it('calls handleServerError on thrown error', async () => {
+      const error = new Error('Timeout')
+      mockUpdateModelStatus.mockRejectedValue(error)
       await handleDisableModel(1)
-      expect(toast.error).toHaveBeenCalledWith('Timeout')
+      expect(mockHandleServerError).toHaveBeenCalledWith(
+        error,
+        'Failed to hide model from model square'
+      )
     })
   })
 
@@ -158,7 +180,7 @@ describe('model-actions', () => {
       const qc = createMockQueryClient()
       const onSuccess = vi.fn()
       await handleToggleModelStatus(5, 0, qc, onSuccess)
-      expect(qc.invalidateQueries).toHaveBeenCalled()
+      expect(mockInvalidateVendorData).toHaveBeenCalledWith(qc)
       expect(onSuccess).toHaveBeenCalled()
     })
   })
@@ -180,7 +202,7 @@ describe('model-actions', () => {
       expect(mockUpdateModelStatus).toHaveBeenCalledWith(1, 1)
       expect(mockUpdateModelStatus).toHaveBeenCalledWith(2, 1)
       expect(toast.success).toHaveBeenCalled()
-      expect(qc.invalidateQueries).toHaveBeenCalled()
+      expect(mockInvalidateVendorData).toHaveBeenCalledWith(qc)
       expect(onSuccess).toHaveBeenCalled()
     })
 
@@ -193,10 +215,14 @@ describe('model-actions', () => {
       expect(toast.error).toHaveBeenCalled()
     })
 
-    it('shows error toast on thrown error', async () => {
-      mockUpdateModelStatus.mockRejectedValue(new Error('Batch failed'))
+    it('calls handleServerError on thrown error', async () => {
+      const error = new Error('Batch failed')
+      mockUpdateModelStatus.mockRejectedValue(error)
       await handleBatchEnableModels([1])
-      expect(toast.error).toHaveBeenCalledWith('Batch failed')
+      expect(mockHandleServerError).toHaveBeenCalledWith(
+        error,
+        'Batch enable failed'
+      )
     })
   })
 
@@ -217,7 +243,7 @@ describe('model-actions', () => {
       expect(mockUpdateModelStatus).toHaveBeenCalledWith(3, 0)
       expect(mockUpdateModelStatus).toHaveBeenCalledWith(4, 0)
       expect(toast.success).toHaveBeenCalled()
-      expect(qc.invalidateQueries).toHaveBeenCalled()
+      expect(mockInvalidateVendorData).toHaveBeenCalledWith(qc)
       expect(onSuccess).toHaveBeenCalled()
     })
 
@@ -230,10 +256,14 @@ describe('model-actions', () => {
       expect(toast.error).toHaveBeenCalled()
     })
 
-    it('shows error toast on thrown error', async () => {
-      mockUpdateModelStatus.mockRejectedValue(new Error('Timeout'))
+    it('calls handleServerError on thrown error', async () => {
+      const error = new Error('Timeout')
+      mockUpdateModelStatus.mockRejectedValue(error)
       await handleBatchDisableModels([1])
-      expect(toast.error).toHaveBeenCalledWith('Timeout')
+      expect(mockHandleServerError).toHaveBeenCalledWith(
+        error,
+        'Batch disable failed'
+      )
     })
   })
 })

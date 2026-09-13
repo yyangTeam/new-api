@@ -96,6 +96,7 @@ vi.mock('@/hooks/use-copy-to-clipboard', () => ({
 
 vi.mock('@/lib/currency', () => ({
   formatCurrencyFromUSD: (amount: number) => `$${amount.toFixed(2)}`,
+  formatBillingCurrencyFromUSD: vi.fn((amount: number) => `$${amount.toFixed(2)}`),
 }))
 
 vi.mock('@/lib/format', () => ({

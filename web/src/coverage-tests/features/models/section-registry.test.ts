@@ -5,10 +5,11 @@ import {
 } from '@/features/models/section-registry'
 
 describe('models section-registry', () => {
-  test('MODELS_SECTION_IDS contains metadata and deployments', () => {
+  test('MODELS_SECTION_IDS contains metadata, vendors, and deployments', () => {
     expect(MODELS_SECTION_IDS).toContain('metadata')
+    expect(MODELS_SECTION_IDS).toContain('vendors')
     expect(MODELS_SECTION_IDS).toContain('deployments')
-    expect(MODELS_SECTION_IDS).toHaveLength(2)
+    expect(MODELS_SECTION_IDS).toHaveLength(3)
   })
 
   test('MODELS_DEFAULT_SECTION is metadata', () => {
@@ -20,7 +21,7 @@ describe('models section-registry', () => {
     const items = getModelsSectionNavItems(t)
     expect(items).toBeDefined()
     expect(Array.isArray(items)).toBe(true)
-    expect(items.length).toBe(2)
+    expect(items.length).toBe(3)
   })
 
   test('nav items have expected shape', () => {

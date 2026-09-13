@@ -1286,7 +1286,7 @@ func TestTaskStatusToVideoStatus(t *testing.T) {
 		{"in_progress", TaskStatusInProgress, dto.VideoStatusInProgress},
 		{"success", TaskStatusSuccess, dto.VideoStatusCompleted},
 		{"failure", TaskStatusFailure, dto.VideoStatusFailed},
-		{"not_start", TaskStatusNotStart, dto.VideoStatusUnknown},
+		{"not_start", TaskStatusNotStart, dto.VideoStatusQueued},
 		{"unknown", TaskStatusUnknown, dto.VideoStatusUnknown},
 		{"arbitrary", TaskStatus("WHATEVER"), dto.VideoStatusUnknown},
 	}

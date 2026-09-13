@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { buildAuthBundle, mockBootstrapApis } from "./bootstrap"
+import { buildAuthBundle, mockBootstrapApis } from "./bootstrap";
 
 /**
  * Full user journey E2E tests.
@@ -48,21 +48,16 @@ test.describe("User journey - registration and setup", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test("registers a new account successfully", async ({ page }) => {
-  await mockBootstrapApis(page)
+    await mockBootstrapApis(page, { authed: false });
     await mockStatusApi(page);
 
     // Mock the register API
-    await page.route("**/api/user/register", async (route) => {
+    await page.route("**/api/user/register*", async (route) => {
       await route.fulfill({
         json: {
           success: true,
           message: "Registration successful",
-          data: {
-            token:
-              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJ1c2VybmFtZSI6Im5ld3VzZXIiLCJyb2xlIjoxLCJleHAiOjk5OTk5OTk5OTl9.fake-sig",
-            username: "newuser",
-            role: 1,
-          },
+          data: buildAuthBundle({ id: 2, username: "newuser", role: 1 }),
         },
       });
     });
@@ -143,8 +138,8 @@ test.describe("User journey - registration and setup", () => {
       const url = page.url();
       const isRedirected =
         url.includes("/dashboard") ||
-        url.includes("/dashboard") ||
-        url.includes("/sign-in");
+        url.includes("/sign-in") ||
+        url.includes("/panel");
       expect(isRedirected).toBe(true);
     }
   });

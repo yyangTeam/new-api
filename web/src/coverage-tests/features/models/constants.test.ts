@@ -71,9 +71,9 @@ describe('getModelStatusOptions', () => {
     expect(options).toHaveLength(3)
   })
 
-  test('includes All Status, Enabled, and Disabled', () => {
+  test('includes All Status, Shown, and Not shown', () => {
     const options = getModelStatusOptions(t)
-    expect(options.map((o) => o.label)).toEqual(['All Status', 'Enabled', 'Disabled'])
+    expect(options.map((o) => o.label)).toEqual(['All Status', 'Shown', 'Not shown'])
   })
 
   test('values are all, enabled, disabled', () => {
@@ -85,8 +85,8 @@ describe('getModelStatusOptions', () => {
 describe('getModelStatusConfig', () => {
   test('returns config for status 0 and 1', () => {
     const config = getModelStatusConfig(t)
-    expect(config[1]).toEqual({ label: 'Enabled', variant: 'success' })
-    expect(config[0]).toEqual({ label: 'Disabled', variant: 'neutral' })
+    expect(config[1]).toEqual({ label: 'Shown', variant: 'success' })
+    expect(config[0]).toEqual({ label: 'Not shown', variant: 'neutral' })
   })
 })
 

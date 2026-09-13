@@ -11,6 +11,7 @@ vi.mock('@/features/performance-metrics/lib/format', () => ({
   formatUptimePct: (v: number) => `${v.toFixed(2)}%`,
   getSuccessRateDotClass: (rate: number) => rate >= 99 ? 'bg-green' : 'bg-red',
   getSuccessRateTextClass: (rate: number) => rate >= 99 ? 'text-green' : 'text-red',
+  formatLatency: vi.fn((ms: number) => `${ms}ms`),
 }))
 
 vi.mock('@/features/pricing/lib/mock-stats', () => ({

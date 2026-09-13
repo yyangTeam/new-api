@@ -114,7 +114,7 @@ describe('OAuthCallbackScreen', () => {
 
     expect(
       screen.getByText(
-        /You can close this tab once the binding completes/
+        /Return to the original window to continue/
       )
     ).toBeInTheDocument()
   })

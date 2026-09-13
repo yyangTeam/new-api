@@ -15,11 +15,27 @@ vi.mock('@/features/system-settings/api', () => ({
   updateSystemOption: vi.fn(),
 }))
 
+vi.mock('@/lib/handle-server-error', () => ({
+  handleServerError: vi.fn(),
+}))
+
+vi.mock('@/lib/server-error-message', () => ({
+  requireServerSuccess: vi.fn((response: any) => {
+    if (response && response.success === false) {
+      throw new Error(response.message || 'Operation failed')
+    }
+    return response
+  }),
+  createServerError: vi.fn(),
+}))
+
 import { toast } from 'sonner'
 import { updateSystemOption } from '@/features/system-settings/api'
+import { handleServerError } from '@/lib/handle-server-error'
 import { useUpdateOption } from '@/features/system-settings/hooks/use-update-option'
 
 const mockUpdateSystemOption = vi.mocked(updateSystemOption)
+const mockHandleServerError = vi.mocked(handleServerError)
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -63,7 +79,7 @@ describe('useUpdateOption', () => {
     expect(toast.success).toHaveBeenCalledWith('Setting updated successfully')
   })
 
-  it('shows error toast when response success is false', async () => {
+  it('calls handleServerError when response success is false', async () => {
     mockUpdateSystemOption.mockResolvedValue({
       success: false,
       message: 'Permission denied',
@@ -75,11 +91,11 @@ describe('useUpdateOption', () => {
 
     result.current.mutate({ key: 'SomeKey', value: 'val' })
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(toast.error).toHaveBeenCalledWith('Permission denied')
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(mockHandleServerError).toHaveBeenCalled()
   })
 
-  it('shows fallback error toast when response message is empty', async () => {
+  it('calls handleServerError when response message is empty', async () => {
     mockUpdateSystemOption.mockResolvedValue({ success: false, message: '' })
 
     const { result } = renderHook(() => useUpdateOption(), {
@@ -88,11 +104,11 @@ describe('useUpdateOption', () => {
 
     result.current.mutate({ key: 'SomeKey', value: 'val' })
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(toast.error).toHaveBeenCalledWith('Failed to update setting')
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(mockHandleServerError).toHaveBeenCalled()
   })
 
-  it('shows error toast on network error', async () => {
+  it('calls handleServerError on network error', async () => {
     mockUpdateSystemOption.mockRejectedValue(new Error('Network error'))
 
     const { result } = renderHook(() => useUpdateOption(), {
@@ -102,15 +118,11 @@ describe('useUpdateOption', () => {
     result.current.mutate({ key: 'SomeKey', value: 'val' })
 
     await waitFor(() => expect(result.current.isError).toBe(true))
-    expect(toast.error).toHaveBeenCalledWith('Network error')
+    expect(mockHandleServerError).toHaveBeenCalled()
   })
 
   it('invalidates status query for status-related keys', async () => {
     mockUpdateSystemOption.mockResolvedValue({ success: true, message: '' })
-    // Spy on Storage.prototype.removeItem (not the window.localStorage
-    // instance): under jsdom the instance spy doesn't intercept calls the
-    // hook makes via window.localStorage.removeItem, so removeItem('status')
-    // bypassed it. Spying at the prototype level catches all instances.
     const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem')
 
     const queryClient = new QueryClient({
@@ -123,8 +135,8 @@ describe('useUpdateOption', () => {
 
     const { result } = renderHook(() => useUpdateOption(), { wrapper })
 
-    // Use a key from STATUS_RELATED_KEYS
-    result.current.mutate({ key: 'theme.frontend', value: 'dark' })
+    // Use a key from the current STATUS_RELATED_KEYS set
+    result.current.mutate({ key: 'Notice', value: 'test' })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['system-options'] })

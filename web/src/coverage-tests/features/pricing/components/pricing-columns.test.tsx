@@ -8,6 +8,8 @@ vi.mock('@/features/pricing/lib/dynamic-price', () => ({
   getDynamicDisplayGroupRatio: () => 1,
   getDynamicPricingSummary: vi.fn().mockReturnValue(null),
   isDynamicPricingModel: () => false,
+  isUnconfiguredTaskUsageModel: vi.fn(() => false),
+  hasTaskUsageSchema: vi.fn(() => false),
 }))
 
 vi.mock('@/features/pricing/lib/filters', () => ({

@@ -98,14 +98,20 @@ describe('Models API', () => {
   describe('createModel', () => {
     it('calls POST /api/models/', async () => {
       await createModel({ model_name: 'gpt-4' })
-      expect(mockPost).toHaveBeenCalledWith('/api/models/', { model_name: 'gpt-4' })
+      expect(mockPost).toHaveBeenCalledWith('/api/models/', { model_name: 'gpt-4' }, {
+        skipBusinessError: true,
+        skipErrorHandler: true,
+      })
     })
   })
 
   describe('updateModel', () => {
     it('calls PUT /api/models/', async () => {
       await updateModel({ id: 1, model_name: 'gpt-4-updated' })
-      expect(mockPut).toHaveBeenCalledWith('/api/models/', { id: 1, model_name: 'gpt-4-updated' })
+      expect(mockPut).toHaveBeenCalledWith('/api/models/', { id: 1, model_name: 'gpt-4-updated' }, {
+        skipBusinessError: true,
+        skipErrorHandler: true,
+      })
     })
   })
 
@@ -119,7 +125,12 @@ describe('Models API', () => {
   describe('deleteModel', () => {
     it('calls DELETE /api/models/:id', async () => {
       await deleteModel(7)
-      expect(mockDelete).toHaveBeenCalledWith('/api/models/7')
+      expect(mockDelete).toHaveBeenCalledWith('/api/models/7', {
+        params: {
+          remove_from_channels: false,
+          remove_pricing: false,
+        },
+      })
     })
   })
 

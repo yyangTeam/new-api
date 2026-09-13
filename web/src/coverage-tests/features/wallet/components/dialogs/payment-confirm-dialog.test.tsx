@@ -34,6 +34,7 @@ vi.mock('@/components/ui/skeleton', () => ({
 
 vi.mock('@/lib/currency', () => ({
   formatLocalCurrencyAmount: (amount: number) => `$${amount.toFixed(2)}`,
+  formatBillingCurrencyFromUSD: vi.fn(() => '$0.00'),
 }))
 
 vi.mock('@/features/wallet/lib', () => ({

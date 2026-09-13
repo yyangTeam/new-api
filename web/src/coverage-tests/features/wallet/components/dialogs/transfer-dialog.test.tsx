@@ -134,7 +134,7 @@ describe('TransferDialog', () => {
     expect(input).toBeInTheDocument()
   })
 
-  it('shows minimum amount label', () => {
+  it('shows minimum amount hint text', () => {
     render(
       <TransferDialog
         open={true}
@@ -144,7 +144,8 @@ describe('TransferDialog', () => {
         transferring={false}
       />
     )
-    expect(screen.getByText(/Minimum:/)).toBeInTheDocument()
+    // The paragraph contains the formatted minimum quota amount
+    expect(screen.getByText('$1.00')).toBeInTheDocument()
   })
 
   it('calls onOpenChange(false) when cancel is clicked', () => {

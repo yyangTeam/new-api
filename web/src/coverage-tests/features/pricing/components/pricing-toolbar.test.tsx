@@ -8,6 +8,20 @@ vi.mock('@/features/pricing/lib/filters', () => ({
   parseTags: (tags?: string) => (tags ? tags.split(',') : []),
 }))
 
+vi.mock('@/components/data-table', () => ({
+  DataTableViewModeToggle: () => <div data-testid='view-mode-toggle' />,
+}))
+
+vi.mock('@/features/pricing/components/pricing-sidebar', () => ({
+  PricingSidebar: () => <div data-testid='pricing-sidebar' />,
+}))
+
+vi.mock('@/components/drawer-layout', () => ({
+  sideDrawerContentClassName: () => '',
+  sideDrawerFormClassName: () => '',
+  sideDrawerHeaderClassName: () => '',
+}))
+
 import { PricingToolbar, type PricingToolbarProps } from '@/features/pricing/components/pricing-toolbar'
 import type { PricingModel } from '@/features/pricing/types'
 
@@ -74,19 +88,19 @@ describe('PricingToolbar', () => {
     expect(screen.getByText('models')).toBeInTheDocument()
   })
 
-  test('shows total count when active filters', () => {
+  test('shows total count when filteredCount differs from totalCount', () => {
     render(
       <PricingToolbar
-        {...createProps({ hasActiveFilters: true, totalCount: 100 })}
+        {...createProps({ filteredCount: 42, totalCount: 100 })}
       />
     )
     expect(screen.getByText('/ 100')).toBeInTheDocument()
   })
 
-  test('hides total count when no active filters', () => {
+  test('hides total count when filteredCount equals totalCount', () => {
     render(
       <PricingToolbar
-        {...createProps({ hasActiveFilters: false, totalCount: 100 })}
+        {...createProps({ filteredCount: 100, totalCount: 100 })}
       />
     )
     expect(screen.queryByText('/ 100')).not.toBeInTheDocument()

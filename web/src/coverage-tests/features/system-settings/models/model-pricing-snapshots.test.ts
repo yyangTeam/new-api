@@ -24,28 +24,28 @@ describe('hasPricingValue', () => {
 })
 
 describe('getModeLabel', () => {
-  test('returns Per-request for per-request mode', () => {
-    expect(getModeLabel('per-request')).toBe('Per-request')
+  test('returns Per-request (deprecated) for per-request mode', () => {
+    expect(getModeLabel('per-request')).toBe('Per-request (deprecated)')
   })
 
   test('returns Expression for tiered_expr mode', () => {
     expect(getModeLabel('tiered_expr')).toBe('Expression')
   })
 
-  test('returns Per-token for per-token mode', () => {
-    expect(getModeLabel('per-token')).toBe('Per-token')
+  test('returns Per-token (deprecated) for per-token mode', () => {
+    expect(getModeLabel('per-token')).toBe('Per-token (deprecated)')
   })
 
-  test('returns Per-token for undefined', () => {
-    expect(getModeLabel(undefined)).toBe('Per-token')
+  test('returns Per-token (deprecated) for undefined', () => {
+    expect(getModeLabel(undefined)).toBe('Per-token (deprecated)')
   })
 
-  test('returns Per-token for unknown mode', () => {
-    expect(getModeLabel('unknown')).toBe('Per-token')
+  test('returns Per-token (deprecated) for unknown mode', () => {
+    expect(getModeLabel('unknown')).toBe('Per-token (deprecated)')
   })
 
-  test('returns Per-token for empty string', () => {
-    expect(getModeLabel('')).toBe('Per-token')
+  test('returns Per-token (deprecated) for empty string', () => {
+    expect(getModeLabel('')).toBe('Per-token (deprecated)')
   })
 })
 
@@ -140,7 +140,7 @@ describe('getPriceSummary', () => {
     expect(result).toBe('Input $2')
   })
 
-  test('returns input price with extras count', () => {
+  test('returns input price without extras (summary is concise)', () => {
     const row: ModelPricingSnapshot = {
       name: 'model',
       billingMode: 'per-token',
@@ -150,7 +150,7 @@ describe('getPriceSummary', () => {
       hasConflict: false,
     }
     const result = getPriceSummary(row, t)
-    expect(result).toBe('Input $2 · 2 extras')
+    expect(result).toBe('Input $2')
   })
 })
 

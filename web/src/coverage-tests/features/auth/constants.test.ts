@@ -99,11 +99,11 @@ describe('registerFormSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  test('rejects password longer than 20 characters', () => {
+  test('rejects password longer than 128 characters', () => {
     const result = registerFormSchema.safeParse({
       username: 'newuser',
-      password: 'a'.repeat(21),
-      confirmPassword: 'a'.repeat(21),
+      password: 'a'.repeat(129),
+      confirmPassword: 'a'.repeat(129),
     })
     expect(result.success).toBe(false)
   })
@@ -117,11 +117,11 @@ describe('registerFormSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  test('accepts password of exactly 20 characters', () => {
+  test('accepts password of exactly 128 characters', () => {
     const result = registerFormSchema.safeParse({
       username: 'newuser',
-      password: 'a'.repeat(20),
-      confirmPassword: 'a'.repeat(20),
+      password: 'a'.repeat(128),
+      confirmPassword: 'a'.repeat(128),
     })
     expect(result.success).toBe(true)
   })

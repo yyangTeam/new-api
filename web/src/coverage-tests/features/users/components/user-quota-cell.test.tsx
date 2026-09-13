@@ -5,75 +5,73 @@ vi.mock('@/components/status-badge', () => ({
   StatusBadge: ({ label }: { label: string }) => <span data-testid='status-badge'>{label}</span>,
 }))
 
-vi.mock('@/components/ui/progress', () => ({
-  Progress: ({ value }: { value: number }) => <div data-testid='progress' data-value={value} />,
+vi.mock('@/components/quota-details-popover', () => ({
+  QuotaDetailsPopover: ({ children, triggerLabel }: { children: React.ReactNode; title: string; triggerLabel: string; details: unknown[] }) => (
+    <div data-testid='quota-popover' data-trigger-label={triggerLabel}>
+      {children}
+    </div>
+  ),
 }))
 
-vi.mock('@/components/ui/tooltip', () => ({
-  Tooltip: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  TooltipTrigger: ({ children, render: renderProp }: { children: React.ReactNode; render?: React.ReactNode }) => <div>{renderProp}{children}</div>,
-  TooltipContent: ({ children }: { children: React.ReactNode }) => <div data-testid='tooltip-content'>{children}</div>,
+vi.mock('@/lib/currency', () => ({
+  formatQuotaWithCurrency: (v: number, opts?: { showSymbol?: boolean }) =>
+    opts?.showSymbol === false ? String(v) : `$${v}`,
+  getCurrencyDisplay: () => ({
+    meta: { kind: 'currency', symbol: '$' },
+  }),
 }))
 
-vi.mock('@/lib/format', () => ({
-  formatQuota: (v: number) => `$${v}`,
+vi.mock('@/lib/utils', () => ({
+  cn: (...classes: unknown[]) => classes.filter(Boolean).join(' '),
+}))
+
+vi.mock('@/stores/system-config-store', () => ({
+  useSystemConfigStore: (selector: (state: unknown) => unknown) =>
+    selector({ config: { currency: {} } }),
 }))
 
 import { UserQuotaCell } from '@/features/users/components/user-quota-cell'
 
 describe('UserQuotaCell', () => {
-  test('renders No Quota badge when total is 0', () => {
+  test('renders No Quota badge when both used and remaining are 0', () => {
     render(<UserQuotaCell used={0} remaining={0} />)
     expect(screen.getByText('No Quota')).toBeInTheDocument()
   })
 
-  test('renders formatted remaining when total > 0', () => {
+  test('renders formatted remaining when has quota', () => {
     render(<UserQuotaCell used={50} remaining={150} />)
-    expect(screen.getByText('$150')).toBeInTheDocument()
+    expect(screen.getByText('150')).toBeInTheDocument()
   })
 
-  test('renders formatted total when total > 0', () => {
+  test('renders used amount when has quota', () => {
     render(<UserQuotaCell used={50} remaining={150} />)
-    expect(screen.getByText('$200')).toBeInTheDocument()
+    expect(screen.getByText('50')).toBeInTheDocument()
   })
 
-  test('renders progress bar with correct percentage', () => {
+  test('renders Used amount label', () => {
     render(<UserQuotaCell used={50} remaining={150} />)
-    const progress = screen.getByTestId('progress')
-    expect(progress.getAttribute('data-value')).toBe('75')
+    expect(screen.getByText('Used amount')).toBeInTheDocument()
   })
 
-  test('renders tooltip with used value', () => {
-    render(<UserQuotaCell used={100} remaining={400} />)
-    expect(screen.getByText(/Used:/)).toBeInTheDocument()
-    expect(screen.getByText(/\$100/)).toBeInTheDocument()
+  test('popover trigger label contains available balance info', () => {
+    render(<UserQuotaCell used={50} remaining={150} />)
+    const popover = screen.getByTestId('quota-popover')
+    expect(popover.getAttribute('data-trigger-label')).toContain('150')
+    expect(popover.getAttribute('data-trigger-label')).toContain('50')
   })
 
-  test('renders tooltip with remaining value', () => {
-    render(<UserQuotaCell used={100} remaining={400} />)
-    expect(screen.getByText(/Remaining:/)).toBeInTheDocument()
+  test('renders No Quota badge (not quota display) when total is 0', () => {
+    render(<UserQuotaCell used={0} remaining={0} />)
+    expect(screen.getByTestId('status-badge')).toBeInTheDocument()
   })
 
-  test('renders tooltip with total value', () => {
-    render(<UserQuotaCell used={100} remaining={400} />)
-    expect(screen.getByText(/Total:/)).toBeInTheDocument()
-  })
-
-  test('renders tooltip with percentage', () => {
-    render(<UserQuotaCell used={100} remaining={400} />)
-    expect(screen.getByText(/Percentage:/)).toBeInTheDocument()
-    expect(screen.getByText(/80\.0%/)).toBeInTheDocument()
-  })
-
-  test('progress is 0 when remaining is 0 and total > 0', () => {
+  test('renders remaining even when 0 if used is positive', () => {
     render(<UserQuotaCell used={100} remaining={0} />)
-    const progress = screen.getByTestId('progress')
-    expect(progress.getAttribute('data-value')).toBe('0')
+    expect(screen.getByText('100')).toBeInTheDocument()
   })
 
-  test('progress is 100 when used is 0', () => {
+  test('renders remaining when used is 0 but remaining is positive', () => {
     render(<UserQuotaCell used={0} remaining={100} />)
-    const progress = screen.getByTestId('progress')
-    expect(progress.getAttribute('data-value')).toBe('100')
+    expect(screen.getByText('100')).toBeInTheDocument()
   })
 })

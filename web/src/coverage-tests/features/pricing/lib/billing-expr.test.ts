@@ -27,7 +27,7 @@ describe('parseTiersFromExpr', () => {
   })
 
   test('parses versioned expression', () => {
-    const expr = 'v2:tier("Standard", p*1.5 + c*3)'
+    const expr = 'v1:tier("Standard", p*1.5 + c*3)'
     const tiers = parseTiersFromExpr(expr)
     expect(tiers).toHaveLength(1)
     expect(tiers[0].label).toBe('Standard')
@@ -48,22 +48,26 @@ describe('parseTiersFromExpr', () => {
   })
 
   test('parses tier with multiple conditions using &&', () => {
-    const expr = 'p>1000 && c<=5000 ? tier("Mid", p*1.5 + c*3)'
+    const expr = 'p>1000 && c<=5000 ? tier("Mid", p*1.5 + c*3) : tier("Default", p*1 + c*2)'
     const tiers = parseTiersFromExpr(expr)
-    expect(tiers).toHaveLength(1)
+    expect(tiers).toHaveLength(2)
     expect(tiers[0].conditions).toEqual([
       { var: 'p', op: '>', value: 1000 },
       { var: 'c', op: '<=', value: 5000 },
     ])
+    expect(tiers[1].label).toBe('Default')
+    expect(tiers[1].conditions).toEqual([])
   })
 
   test('parses tier with len condition', () => {
-    const expr = 'len>=200000 ? tier("Long context", p*2 + c*4)'
+    const expr = 'len>=200000 ? tier("Long context", p*2 + c*4) : tier("Short", p*1 + c*2)'
     const tiers = parseTiersFromExpr(expr)
-    expect(tiers).toHaveLength(1)
+    expect(tiers).toHaveLength(2)
     expect(tiers[0].conditions).toEqual([
       { var: 'len', op: '>=', value: 200000 },
     ])
+    expect(tiers[1].label).toBe('Short')
+    expect(tiers[1].conditions).toEqual([])
   })
 
   test('parses tier with cache vars', () => {
@@ -74,12 +78,12 @@ describe('parseTiersFromExpr', () => {
     expect(tiers[0].cacheCreatePrice).toBe(0.8)
   })
 
-  test('sets missing vars to 0', () => {
+  test('omits missing vars from the tier', () => {
     const expr = 'tier("Simple", p*1)'
     const tiers = parseTiersFromExpr(expr)
     expect(tiers).toHaveLength(1)
     expect(tiers[0].inputPrice).toBe(1)
-    expect(tiers[0].outputPrice).toBe(0)
+    expect(tiers[0].outputPrice).toBeUndefined()
   })
 
   test('returns empty array for invalid expression', () => {

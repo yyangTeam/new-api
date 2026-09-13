@@ -20,6 +20,7 @@ vi.mock('@/lib/auth-session', () => ({
   getFreshAuthHeaders: vi.fn(),
   isAuthBundle: vi.fn(),
   refreshAuthentication: vi.fn(),
+  resolveAuthentication: vi.fn(),
   AuthRotationError: class extends Error {},
 }))
 
@@ -79,39 +80,53 @@ describe('api', () => {
   })
 
   describe('getNotice', () => {
-    it('calls GET /api/notice', async () => {
+    it('calls GET /api/notice with Cache-Control override', async () => {
       mockGet.mockResolvedValue({
         data: { success: true, data: 'Hello' },
       })
       const result = await getNotice()
-      expect(mockGet).toHaveBeenCalledWith('/api/notice')
+      expect(mockGet).toHaveBeenCalledWith('/api/notice', {
+        headers: { 'Cache-Control': null },
+      })
       expect(result).toEqual({ success: true, data: 'Hello' })
     })
   })
 
   describe('disable2FA', () => {
-    it('calls POST /api/user/2fa/disable with code and acceptAuthRotation', async () => {
-      mockPost.mockResolvedValue({ data: { success: true } })
+    it('calls POST /api/user/2fa/disable with proof token header', async () => {
+      mockPost.mockResolvedValue({
+        data: { success: true, data: { notification_warning: false } },
+      })
       const result = await disable2FA('654321')
       expect(mockPost).toHaveBeenCalledWith(
         '/api/user/2fa/disable',
-        { code: '654321' },
-        { acceptAuthRotation: true }
+        {},
+        expect.objectContaining({
+          headers: { 'X-Security-Proof': '654321' },
+          acceptAuthRotation: true,
+          singleUseAuthorization: true,
+        })
       )
-      expect(result).toEqual({ success: true })
+      expect(result).toEqual({ notification_warning: false })
     })
   })
 
   describe('regenerate2FABackupCodes', () => {
-    it('calls POST /api/user/2fa/backup_codes with code', async () => {
-      mockPost.mockResolvedValue({ data: { codes: ['abc', 'def'] } })
+    it('calls POST /api/user/2fa/backup_codes with proof token header', async () => {
+      mockPost.mockResolvedValue({
+        data: { success: true, data: { backup_codes: ['abc', 'def'] } },
+      })
       const result = await regenerate2FABackupCodes('111111')
       expect(mockPost).toHaveBeenCalledWith(
         '/api/user/2fa/backup_codes',
-        { code: '111111' },
-        { acceptAuthRotation: true }
+        {},
+        expect.objectContaining({
+          headers: { 'X-Security-Proof': '111111' },
+          acceptAuthRotation: true,
+          singleUseAuthorization: true,
+        })
       )
-      expect(result).toEqual({ codes: ['abc', 'def'] })
+      expect(result).toEqual({ backup_codes: ['abc', 'def'] })
     })
   })
 })

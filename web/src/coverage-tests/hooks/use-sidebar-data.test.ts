@@ -26,60 +26,13 @@ describe('useSidebarData', () => {
     expect(groupIds).toEqual(['chat', 'general', 'personal', 'admin'])
   })
 
-  it('does not include image generation when imageGenUrl is not set', () => {
+  it('chat group contains Playground and Chat items', () => {
     const { result } = renderHook(() => useSidebarData())
     const chatGroup = result.current.navGroups.find((g) => g.id === 'chat')!
-    const imageGenItem = chatGroup.items.find(
-      (item) => 'url' in item && item.url === '/image-gen'
-    )
-    expect(imageGenItem).toBeUndefined()
-  })
-
-  it('includes image generation with embed mode when url is set', () => {
-    mockUseStatus.mockReturnValue({
-      status: {
-        image_generation_url: 'https://example.com/gen',
-        image_generation_open_mode: 'embed',
-      },
-    })
-    const { result } = renderHook(() => useSidebarData())
-    const chatGroup = result.current.navGroups.find((g) => g.id === 'chat')!
-    const imageGenItem = chatGroup.items.find(
-      (item) => 'url' in item && item.url === '/image-gen'
-    )
-    expect(imageGenItem).toBeDefined()
-    expect(imageGenItem).not.toHaveProperty('externalUrl')
-  })
-
-  it('includes image generation with new_tab mode and externalUrl', () => {
-    mockUseStatus.mockReturnValue({
-      status: {
-        image_generation_url: 'https://example.com/gen',
-        image_generation_open_mode: 'new_tab',
-      },
-    })
-    const { result } = renderHook(() => useSidebarData())
-    const chatGroup = result.current.navGroups.find((g) => g.id === 'chat')!
-    const imageGenItem = chatGroup.items.find(
-      (item) => 'url' in item && item.url === '/image-gen'
-    )
-    expect(imageGenItem).toBeDefined()
-    expect(imageGenItem).toHaveProperty(
-      'externalUrl',
-      'https://example.com/gen'
-    )
-  })
-
-  it('defaults image_generation_open_mode to embed', () => {
-    mockUseStatus.mockReturnValue({
-      status: { image_generation_url: 'https://example.com/gen' },
-    })
-    const { result } = renderHook(() => useSidebarData())
-    const chatGroup = result.current.navGroups.find((g) => g.id === 'chat')!
-    const imageGenItem = chatGroup.items.find(
-      (item) => 'url' in item && item.url === '/image-gen'
-    )
-    expect(imageGenItem).not.toHaveProperty('externalUrl')
+    const urls = chatGroup.items
+      .filter((item) => 'url' in item)
+      .map((item) => (item as { url: string }).url)
+    expect(urls).toContain('/playground')
   })
 
   it('admin group has system settings and system info items', () => {

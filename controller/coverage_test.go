@@ -734,7 +734,14 @@ func TestShouldRetry(t *testing.T) {
 
 	t.Run("specific channel id never retries", func(t *testing.T) {
 		c := newCtx()
-		c.Set("specific_channel_id", 42)
+		cc := &taskdto.ChannelConstraints{}
+		cc.AddPin(taskdto.ChannelPin{
+			ChannelId: 42,
+			Source:    taskdto.PinSourceToken,
+			Rank:      taskdto.PinRankToken,
+			RetryMode: taskdto.PinRetrySingleAttempt,
+		})
+		common.SetContextKey(c, constant.ContextKeyChannelConstraints, cc)
 		err := types.NewErrorWithStatusCode(errors.New("boom"), types.ErrorCodeInvalidRequest, http.StatusBadGateway)
 		assert.False(t, shouldRetry(c, err, 3))
 	})
@@ -790,7 +797,14 @@ func TestShouldRetryTaskRelay(t *testing.T) {
 
 	t.Run("specific channel id never retries", func(t *testing.T) {
 		c := newCtx()
-		c.Set("specific_channel_id", 9)
+		cc := &taskdto.ChannelConstraints{}
+		cc.AddPin(taskdto.ChannelPin{
+			ChannelId: 9,
+			Source:    taskdto.PinSourceToken,
+			Rank:      taskdto.PinRankToken,
+			RetryMode: taskdto.PinRetrySingleAttempt,
+		})
+		common.SetContextKey(c, constant.ContextKeyChannelConstraints, cc)
 		err := &taskdto.TaskError{StatusCode: http.StatusBadGateway, Error: errors.New("boom")}
 		assert.False(t, shouldRetryTaskRelay(c, 1, err, 3))
 	})

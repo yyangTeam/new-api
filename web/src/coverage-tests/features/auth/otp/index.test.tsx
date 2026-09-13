@@ -32,13 +32,13 @@ describe('Otp page', () => {
   it('renders heading', () => {
     render(React.createElement(Otp))
 
-    expect(screen.getByText('Two-factor Authentication')).toBeInTheDocument()
+    expect(screen.getByText('Security verification')).toBeInTheDocument()
   })
 
   it('renders description text', () => {
     render(React.createElement(Otp))
 
-    expect(screen.getByText('Please enter the authentication code.')).toBeInTheDocument()
+    expect(screen.getByText('Verify your identity to finish signing in.')).toBeInTheDocument()
   })
 
   it('renders re-login link', () => {

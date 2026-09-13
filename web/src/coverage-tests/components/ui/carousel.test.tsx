@@ -2,6 +2,26 @@ import { render, screen } from '@/test/test-utils'
 
 import { Carousel, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel'
 
+// Mock IntersectionObserver for embla-carousel
+const mockObserve = vi.fn()
+const mockUnobserve = vi.fn()
+const mockDisconnect = vi.fn()
+
+class MockIntersectionObserver {
+  observe = mockObserve
+  unobserve = mockUnobserve
+  disconnect = mockDisconnect
+  constructor(
+    public callback: IntersectionObserverCallback,
+    public options?: IntersectionObserverInit
+  ) {}
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver
+})
+
 describe('Carousel', () => {
   test('renders with role=region and aria-roledescription', () => {
     render(

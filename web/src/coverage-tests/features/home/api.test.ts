@@ -21,7 +21,9 @@ describe('getHomePageContent', () => {
 
     const result = await getHomePageContent()
 
-    expect(api.get).toHaveBeenCalledWith('/api/home_page_content')
+    expect(api.get).toHaveBeenCalledWith('/api/home_page_content', {
+      headers: { 'Cache-Control': null },
+    })
     expect(result).toEqual(mockResponse.data)
   })
 

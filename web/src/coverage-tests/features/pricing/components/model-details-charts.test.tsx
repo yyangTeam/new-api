@@ -24,6 +24,7 @@ vi.mock('@/lib/vchart', () => ({
 
 vi.mock('@/features/performance-metrics/lib/format', () => ({
   getSuccessRateColor: (v: number) => (v >= 99 ? '#10b981' : '#ef4444'),
+  formatLatency: vi.fn((ms: number) => `${ms}ms`),
 }))
 
 import {

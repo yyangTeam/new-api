@@ -2,7 +2,6 @@ package setting
 
 import (
 	"fmt"
-	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,19 +31,19 @@ func TestCheckModelRequestRateLimitGroup_ZeroSuccessCount(t *testing.T) {
 }
 
 func TestCheckModelRequestRateLimitGroup_ExceedsMaxInt32(t *testing.T) {
-	maxPlus := math.MaxInt32 + 1
+	maxPlus := int64(maxModelRequestRateLimitCount) + 1
 	jsonStr := fmt.Sprintf(`{"default":[%d,100]}`, maxPlus)
 	err := CheckModelRequestRateLimitGroup(jsonStr)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "max rate limits")
+	assert.Contains(t, err.Error(), "exceeds max rate limit")
 }
 
 func TestCheckModelRequestRateLimitGroup_SuccessCountExceedsMaxInt32(t *testing.T) {
-	maxPlus := math.MaxInt32 + 1
+	maxPlus := int64(maxModelRequestRateLimitCount) + 1
 	jsonStr := fmt.Sprintf(`{"default":[10,%d]}`, maxPlus)
 	err := CheckModelRequestRateLimitGroup(jsonStr)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "max rate limits")
+	assert.Contains(t, err.Error(), "exceeds max rate limit")
 }
 
 func TestCheckModelRequestRateLimitGroup_Empty(t *testing.T) {

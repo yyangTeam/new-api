@@ -92,7 +92,10 @@ describe('profile api', () => {
 
       const result = await updateUserSettings({ notify_type: 'email' })
 
-      expect(mockPut).toHaveBeenCalledWith('/api/user/setting', { notify_type: 'email' })
+      expect(mockPut).toHaveBeenCalledWith(
+        '/api/user/setting',
+        expect.objectContaining({ notify_type: 'email' })
+      )
       expect(result).toEqual(data)
     })
   })

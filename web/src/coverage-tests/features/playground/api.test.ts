@@ -12,6 +12,23 @@ vi.mock('@/lib/api', () => ({
   },
 }))
 
+vi.mock('@/lib/server-error-message', () => ({
+  requireServerSuccess: <T,>(response: T): T => {
+    if (
+      response &&
+      typeof response === 'object' &&
+      'success' in response &&
+      (response as Record<string, unknown>).success === false
+    ) {
+      throw new Error(
+        (response as Record<string, unknown>).message as string || 'Server error'
+      )
+    }
+    return response
+  },
+  createServerError: (response: unknown) => new Error('Server error'),
+}))
+
 describe('playground api', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -71,13 +88,12 @@ describe('playground api', () => {
       ])
     })
 
-    it('returns empty array when success is false', async () => {
+    it('throws when success is false', async () => {
       mockGet.mockResolvedValue({
         data: { success: false, data: null },
       })
 
-      const result = await getUserModels('default')
-      expect(result).toEqual([])
+      await expect(getUserModels('default')).rejects.toThrow()
     })
 
     it('returns empty array when data is not an array', async () => {
@@ -111,13 +127,12 @@ describe('playground api', () => {
       ])
     })
 
-    it('returns empty array when success is false', async () => {
+    it('throws when success is false', async () => {
       mockGet.mockResolvedValue({
         data: { success: false, data: null },
       })
 
-      const result = await getUserGroups()
-      expect(result).toEqual([])
+      await expect(getUserGroups()).rejects.toThrow()
     })
 
     it('returns empty array when data is null', async () => {

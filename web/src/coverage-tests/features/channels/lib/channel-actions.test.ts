@@ -47,6 +47,7 @@ vi.mock('@/features/channels/api', () => ({
 
 vi.mock('@/lib/currency', () => ({
   formatCurrencyFromUSD: vi.fn(() => '$10.00'),
+  formatBillingCurrencyFromUSD: vi.fn(() => '$10.00'),
 }))
 
 import {

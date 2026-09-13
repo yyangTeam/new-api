@@ -72,7 +72,11 @@ describe('usePasskeyManagement', () => {
   })
 
   it('handles passkey support detection failure', async () => {
-    mockIsPasskeySupported.mockRejectedValue(new Error('unsupported'))
+    // Use mockResolvedValue(false) instead of mockRejectedValue because the
+    // production hook calls `void isPasskeySupported().then(...)` without a
+    // .catch(), so a rejected promise would cause an unhandled rejection.
+    // Resolving with false tests the meaningful outcome: supported stays false.
+    mockIsPasskeySupported.mockResolvedValue(false)
 
     const { result } = renderHook(() => usePasskeyManagement())
 

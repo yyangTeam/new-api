@@ -11,6 +11,11 @@ import {
 
 vi.mock('@/components/group-badge', () => ({
   GroupBadge: ({ group }: { group: string }) => <span data-testid='group-badge'>{group}</span>,
+  GroupMultiplierBadge: ({ ratio, label, children, className }: any) => (
+    <span data-testid='group-multiplier-badge' className={className}>
+      {ratio !== undefined ? `${ratio}x` : label} Ratio{children}
+    </span>
+  ),
 }))
 
 describe('AUTO_GROUP_FRAME_CLASS_NAME', () => {
@@ -102,14 +107,14 @@ describe('GroupRatioBadge', () => {
     expect(container.textContent).toContain('Ratio')
   })
 
-  test('wraps in AutoGroupFrame when isAuto is true', () => {
+  test('renders AutoGroupFlowBorder when isAuto is true', () => {
     const { container } = render(<GroupRatioBadge ratio={1} isAuto={true} />)
-    expect(container.querySelector('[data-auto-group-frame]')).toBeInTheDocument()
+    expect(container.querySelector('[data-auto-group-flow-border]')).toBeInTheDocument()
   })
 
-  test('does not wrap in AutoGroupFrame when isAuto is false', () => {
+  test('does not render AutoGroupFlowBorder when isAuto is false', () => {
     const { container } = render(<GroupRatioBadge ratio={1} isAuto={false} />)
-    expect(container.querySelector('[data-auto-group-frame]')).not.toBeInTheDocument()
+    expect(container.querySelector('[data-auto-group-flow-border]')).not.toBeInTheDocument()
   })
 })
 

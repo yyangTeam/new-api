@@ -35,7 +35,11 @@ describe('ApiKeyTimestampCell', () => {
   test('renders relative time when past 60 seconds', () => {
     // now is 120s after timestamp
     render(<ApiKeyTimestampCell {...defaultProps} />)
-    expect(screen.getByText('1700000000s ago')).toBeInTheDocument()
+    // The text is split across elements: number in a span, suffix as text node
+    const timeEl = document.querySelector('time')
+    expect(timeEl).toBeInTheDocument()
+    expect(timeEl!.textContent).toContain('1700000000')
+    expect(timeEl!.textContent).toContain('s ago')
   })
 
   test('renders with custom className', () => {

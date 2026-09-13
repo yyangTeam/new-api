@@ -16,7 +16,7 @@ class MockIntersectionObserver {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  globalThis.IntersectionObserver = MockIntersectionObserver as any
+  globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver
 })
 
 describe('AnimateInView', () => {
@@ -114,16 +114,20 @@ describe('AnimateInView', () => {
   })
 
   test('respects prefers-reduced-motion', () => {
-    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
-      matches: query === '(prefers-reduced-motion: reduce)',
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }))
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query === '(prefers-reduced-motion: reduce)',
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    })
 
     const { container } = render(
       <AnimateInView>

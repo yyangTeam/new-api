@@ -8,6 +8,7 @@ vi.mock('@/lib/auth-session', () => ({
 
 vi.mock('@/lib/server-error-message', () => ({
   getServerErrorMessageKey: vi.fn(),
+  safeServerErrorMessage: Symbol('safeServerErrorMessage'),
 }))
 
 vi.mock('@/stores/auth-store', () => ({

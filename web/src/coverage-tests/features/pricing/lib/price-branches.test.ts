@@ -12,6 +12,10 @@ vi.mock('@/lib/currency', () => ({
     if (!Number.isFinite(value)) return '$NaN'
     return `$${value.toFixed(4)}`
   },
+  formatBillingCurrencyFromUSD: vi.fn((value: number) => {
+    if (!Number.isFinite(value)) return '$NaN'
+    return `$${value.toFixed(4)}`
+  }),
 }))
 
 function createModel(overrides: Partial<PricingModel> = {}): PricingModel {

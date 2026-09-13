@@ -303,8 +303,10 @@ func TestAdaptorNotImplementedStubs(t *testing.T) {
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{ChannelMeta: &relaycommon.ChannelMeta{}}
 
+	// ConvertGeminiRequest is now implemented (delegates to service.ConvertRequest),
+	// so a non-nil request no longer returns an error.
 	_, err := a.ConvertGeminiRequest(c, info, &dto.GeminiChatRequest{})
-	require.Error(t, err)
+	require.NoError(t, err)
 
 	_, err = a.ConvertAudioRequest(c, info, dto.AudioRequest{})
 	require.Error(t, err)

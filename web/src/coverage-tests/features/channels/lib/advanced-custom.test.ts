@@ -68,20 +68,20 @@ describe('cloneAdvancedCustomConfig', () => {
 
 describe('getAdvancedCustomTemplateConfig', () => {
   test('returns config for a known template', () => {
-    const config = getAdvancedCustomTemplateConfig('official_openai_chat')
+    const config = getAdvancedCustomTemplateConfig('claude_only')
     expect(config.advanced_routes).toHaveLength(1)
     expect(config.advanced_routes![0].incoming_path).toBe(
-      '/v1/chat/completions'
+      '/v1/messages'
     )
     expect(config.advanced_routes![0].converter).toBe('none')
   })
 
   test('returns a deep copy (mutations do not affect template)', () => {
-    const config = getAdvancedCustomTemplateConfig('official_openai_chat')
+    const config = getAdvancedCustomTemplateConfig('claude_only')
     config.advanced_routes![0].incoming_path = '/changed'
-    const again = getAdvancedCustomTemplateConfig('official_openai_chat')
+    const again = getAdvancedCustomTemplateConfig('claude_only')
     expect(again.advanced_routes![0].incoming_path).toBe(
-      '/v1/chat/completions'
+      '/v1/messages'
     )
   })
 
@@ -96,17 +96,20 @@ describe('getAdvancedCustomTemplateConfig', () => {
     )
   })
 
-  test('official_openai_images has two routes', () => {
-    const config = getAdvancedCustomTemplateConfig('official_openai_images')
-    expect(config.advanced_routes).toHaveLength(2)
+  test('openai_only has OpenAI native routes with bearer auth', () => {
+    const config = getAdvancedCustomTemplateConfig('openai_only')
+    expect(config.advanced_routes!.length).toBeGreaterThan(1)
     expect(config.advanced_routes![0].incoming_path).toBe(
-      '/v1/images/generations'
+      '/v1/chat/completions'
     )
-    expect(config.advanced_routes![1].incoming_path).toBe('/v1/images/edits')
+    for (const route of config.advanced_routes!) {
+      expect(route.auth?.type).toBe('header')
+      expect(route.auth?.name).toBe('Authorization')
+    }
   })
 
-  test('official_gemini_native has three routes with query auth', () => {
-    const config = getAdvancedCustomTemplateConfig('official_gemini_native')
+  test('gemini_only has three routes with query auth', () => {
+    const config = getAdvancedCustomTemplateConfig('gemini_only')
     expect(config.advanced_routes).toHaveLength(3)
     for (const route of config.advanced_routes!) {
       expect(route.auth?.type).toBe('query')
@@ -114,8 +117,8 @@ describe('getAdvancedCustomTemplateConfig', () => {
     }
   })
 
-  test('official_claude_messages uses x-api-key header auth', () => {
-    const config = getAdvancedCustomTemplateConfig('official_claude_messages')
+  test('claude_only uses x-api-key header auth', () => {
+    const config = getAdvancedCustomTemplateConfig('claude_only')
     expect(config.advanced_routes![0].auth?.type).toBe('header')
     expect(config.advanced_routes![0].auth?.name).toBe('x-api-key')
   })

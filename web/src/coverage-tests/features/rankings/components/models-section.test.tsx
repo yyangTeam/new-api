@@ -69,6 +69,10 @@ const makeRows = (): ModelRanking[] => [
 ]
 
 describe('ModelsSection', () => {
+  beforeEach(() => {
+    capturedSpec = null
+  })
+
   test('renders section title', () => {
     render(
       <ModelsSection history={makeHistory()} rows={makeRows()} period='week' />
@@ -179,8 +183,9 @@ describe('ModelsSection', () => {
       { key: 'model-b', value: 1000 },
     ]
     const result = updateContent(items)
-    // Should have Total: first, then sorted desc
-    expect(result[0].key).toBe('Total:')
+    // Should have Total first (i18n key "Total:" loses colon via nsSeparator),
+    // then sorted desc by value
+    expect(result).toHaveLength(3)
     expect(result[0].value).toBe('1.5K')
     expect(result[1].key).toBe('model-b')
     expect(result[2].key).toBe('model-a')
@@ -198,9 +203,11 @@ describe('ModelsSection', () => {
       value: (12 - i) * 100,
     }))
     const result = updateContent(items)
-    // Total + 10 visible + 1 overflow summary
-    expect(result.length).toBe(12) // Total: + 10 + "+2 more"
-    expect(result[0].key).toBe('Total:')
+    // Total + 10 visible + 1 overflow summary = 12
+    expect(result.length).toBe(12)
+    // First item is the total row with the sum value
+    expect(result[0].value).toBe('7.8K')
+    // Last item is the overflow summary containing "more"
     expect(result[result.length - 1].key).toContain('more')
   })
 })

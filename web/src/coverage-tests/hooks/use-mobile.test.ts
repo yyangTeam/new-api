@@ -5,6 +5,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 
 describe('useIsMobile', () => {
   let changeListeners: Array<() => void>
+  let matchMediaMock: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     changeListeners = []
@@ -13,7 +14,7 @@ describe('useIsMobile', () => {
       configurable: true,
       value: 1024,
     })
-    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
+    matchMediaMock = vi.fn().mockImplementation((query: string) => ({
       matches: false,
       media: query,
       onchange: null,
@@ -25,6 +26,11 @@ describe('useIsMobile', () => {
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
     }))
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: matchMediaMock,
+    })
   })
 
   it('returns false for desktop viewport (>= 768px)', () => {
@@ -66,7 +72,7 @@ describe('useIsMobile', () => {
 
   it('removes event listener on unmount', () => {
     const removeEventListener = vi.fn()
-    vi.mocked(window.matchMedia).mockImplementation((query: string) => ({
+    matchMediaMock.mockImplementation((query: string) => ({
       matches: false,
       media: query,
       onchange: null,

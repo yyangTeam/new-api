@@ -1,27 +1,55 @@
 import { render, screen } from '@/test/test-utils'
 
-vi.mock('@/lib/lobe-icon', () => ({
-  getLobeIcon: () => null,
-}))
+// Mock the data-table components to control rendering
+vi.mock('@/components/data-table', () => {
+  return {
+    DataTableView: (props: any) => {
+      const rows = props.table.getRowModel().rows
+      if (props.isLoading) return <div data-testid='loading-skeleton'>Loading...</div>
+      if (rows.length === 0) {
+        return (
+          <div>
+            <div>{props.emptyTitle}</div>
+            <div>{props.emptyDescription}</div>
+          </div>
+        )
+      }
+      return (
+        <div data-testid='data-table-view'>
+          {rows.map((row: any) => (
+            <div key={row.id}>{row.original.model_name}</div>
+          ))}
+        </div>
+      )
+    },
+    DataTablePagination: (props: any) => <div data-testid='pagination'>Pagination</div>,
+    DataTableRow: (props: any) => <div>{props.children}</div>,
+    useDataTable: (opts: any) => {
+      const rows = opts.data.map((item: any, idx: number) => ({
+        id: String(idx),
+        original: item,
+        getVisibleCells: () => [],
+      }))
+      return {
+        table: {
+          getRowModel: () => ({ rows }),
+          getPageCount: () => Math.ceil(opts.data.length / (opts.pagination?.pageSize ?? 20)),
+          getState: () => ({ pagination: opts.pagination ?? { pageIndex: 0, pageSize: 20 } }),
+          previousPage: vi.fn(),
+          nextPage: vi.fn(),
+          getCanPreviousPage: () => false,
+          getCanNextPage: () => opts.data.length > (opts.pagination?.pageSize ?? 20),
+          setPageIndex: vi.fn(),
+          getHeaderGroups: () => [],
+          getAllColumns: () => [],
+        },
+      }
+    },
+  }
+})
 
-vi.mock('@/features/pricing/lib/dynamic-price', () => ({
-  getDynamicDisplayGroupRatio: () => 1,
-  getDynamicPricingSummary: () => null,
-  isDynamicPricingModel: () => false,
-}))
-
-vi.mock('@/features/pricing/lib/filters', () => ({
-  parseTags: (tags?: string) => (tags ? tags.split(',') : []),
-}))
-
-vi.mock('@/features/pricing/lib/model-helpers', () => ({
-  isTokenBasedModel: (m: { quota_type: number }) => m.quota_type === 0,
-}))
-
-vi.mock('@/features/pricing/lib/price', () => ({
-  formatPrice: () => '$0.01',
-  formatRequestPrice: () => '$0.005',
-  stripTrailingZeros: (s: string) => s,
+vi.mock('@/features/pricing/components/pricing-columns', () => ({
+  usePricingColumns: () => [],
 }))
 
 import { PricingTable } from '@/features/pricing/components/pricing-table'
@@ -75,18 +103,16 @@ describe('PricingTable', () => {
   })
 
   test('renders loading skeleton when isLoading', () => {
-    const { container } = render(
-      <PricingTable models={[]} isLoading={true} />
-    )
+    render(<PricingTable models={[]} isLoading={true} />)
     // Loading state should not show "No Models Found"
     expect(screen.queryByText('No Models Found')).not.toBeInTheDocument()
-    // Should have some content rendered
-    expect(container.firstChild).not.toBeNull()
+    // Should have loading skeleton content
+    expect(screen.getByTestId('loading-skeleton')).toBeInTheDocument()
   })
 
   test('does not show pagination when loading', () => {
     render(<PricingTable models={[]} isLoading={true} />)
     // No pagination should be visible during loading
-    expect(screen.queryByText(/of \d+/)).not.toBeInTheDocument()
+    expect(screen.queryByTestId('pagination')).not.toBeInTheDocument()
   })
 })

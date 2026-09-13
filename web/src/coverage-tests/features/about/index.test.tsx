@@ -126,9 +126,8 @@ describe('About', () => {
     })
     render(<About />)
     await waitFor(() => {
-      expect(
-        screen.getByText('https://github.com/QuantumNous/new-api')
-      ).toBeInTheDocument()
+      const link = screen.getByRole('link', { name: /github\.com\/QuantumNous\/new-api/ })
+      expect(link).toHaveAttribute('href', 'https://github.com/QuantumNous/new-api')
     })
   })
 })

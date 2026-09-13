@@ -225,7 +225,7 @@ describe('getDynamicPriceEntries', () => {
     expect(entries[1].field).toBe('outputPrice')
   })
 
-  test('excludes entries with zero or negative values', () => {
+  test('includes zero-valued entries but excludes negative values', () => {
     const tier = {
       label: 'base',
       conditions: [],
@@ -236,7 +236,7 @@ describe('getDynamicPriceEntries', () => {
     const entries = getDynamicPriceEntries(tier, { tokenUnit: 'M' })
     const fields = entries.map((e) => e.field)
     expect(fields).toContain('inputPrice')
-    expect(fields).not.toContain('outputPrice')
+    expect(fields).toContain('outputPrice')
     expect(fields).not.toContain('cacheReadPrice')
   })
 

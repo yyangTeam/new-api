@@ -48,6 +48,7 @@ vi.mock('@/features/auth/hooks/use-auth-redirect', () => ({
 
 vi.mock('@/lib/server-error-message', () => ({
   getServerErrorMessageKey: () => false,
+  safeServerErrorMessage: Symbol('safeServerErrorMessage'),
 }))
 
 // ---------------------------------------------------------------------------

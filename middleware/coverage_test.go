@@ -6,6 +6,7 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
+	rootdto "github.com/QuantumNous/new-api/dto"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service/authz"
@@ -580,14 +581,16 @@ func TestGetModelRequestSunoFetchDoesNotSelectChannel(t *testing.T) {
 	ensureI18nInitialized(t)
 	gin.SetMode(gin.TestMode)
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
-	// Suno fetch requires POST method and path ending with /fetch
+	// Suno fetch handling moved to the task plugin system;
+	// getModelRequest alone no longer recognises /suno/ paths,
+	// so shouldSelect stays true (default).
 	req := httptest.NewRequest(http.MethodPost, "/suno/fetch", nil)
 	ctx.Request = req
 
 	_, shouldSelect, err := getModelRequest(ctx)
 
 	require.NoError(t, err)
-	assert.False(t, shouldSelect)
+	assert.True(t, shouldSelect)
 }
 
 func TestGetModelRequestNonJSONModelField(t *testing.T) {
@@ -1438,7 +1441,13 @@ func TestSetupContextForTokenSpecificChannelForAdmin(t *testing.T) {
 	err := SetupContextForToken(ctx, token, "sk-key", "123")
 
 	require.NoError(t, err)
-	assert.Equal(t, "123", ctx.GetString("specific_channel_id"))
+	// Admin-specified channel is now stored as a ChannelPin in constraints,
+	// not as a plain "specific_channel_id" context string.
+	constraints, ok := common.GetContextKeyType[*rootdto.ChannelConstraints](ctx, constant.ContextKeyChannelConstraints)
+	require.True(t, ok, "channel constraints should be set in context")
+	require.Len(t, constraints.Pins, 1)
+	assert.Equal(t, 123, constraints.Pins[0].ChannelId)
+	assert.Equal(t, rootdto.PinSourceToken, constraints.Pins[0].Source)
 }
 
 func TestSetupContextForTokenSpecificChannelForNonAdmin(t *testing.T) {

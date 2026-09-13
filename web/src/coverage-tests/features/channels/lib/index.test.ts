@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 vi.mock('i18next', () => ({ default: { t: (k: string) => k } }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }))
 vi.mock('@/lib/api', () => ({ api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }))
-vi.mock('@/lib/currency', () => ({ formatCurrencyFromUSD: vi.fn(() => '$0') }))
+vi.mock('@/lib/currency', () => ({ formatCurrencyFromUSD: vi.fn(() => '$0'), formatBillingCurrencyFromUSD: vi.fn(() => '$0') }))
 vi.mock('@/features/channels/api', () => ({
   copyChannel: vi.fn(),
   deleteChannel: vi.fn(),

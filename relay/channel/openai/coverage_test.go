@@ -1127,9 +1127,13 @@ func TestCollectStreamFunctionCallNamesNilIndex(t *testing.T) {
 	collectStreamFunctionCallNames(data, seen, &names)
 	require.Len(t, names, 1)
 	assert.Equal(t, "fn_no_index", names[0])
-	// Key should be "0-0" (choice index 0, tool index 0 from slice position)
-	_, exists := seen["0-0"]
-	assert.True(t, exists)
+	// With a callID present ("c1"), the function uses composite keys with null-byte
+	// separators: "id\x000\x00c1" (id-based dedup) and
+	// "active\x000\x000\x00fn_no_index" (active marker).
+	_, hasID := seen["id\x000\x00c1"]
+	assert.True(t, hasID, "should have id-based dedup key")
+	_, hasActive := seen["active\x000\x000\x00fn_no_index"]
+	assert.True(t, hasActive, "should have active marker key")
 }
 
 // --- processCompletionsStreamResponse ---

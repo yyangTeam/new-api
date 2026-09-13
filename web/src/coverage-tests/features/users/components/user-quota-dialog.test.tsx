@@ -7,6 +7,7 @@ import { UserQuotaDialog } from '@/features/users/components/user-quota-dialog'
 vi.mock('@/lib/currency', () => ({
   getCurrencyDisplay: () => ({ meta: { kind: 'dollars' } }),
   getCurrencyLabel: () => 'USD',
+  formatBillingCurrencyFromUSD: vi.fn(() => '$0'),
 }))
 
 vi.mock('@/lib/format', () => ({

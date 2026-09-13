@@ -2,6 +2,26 @@ import { render, screen } from '@testing-library/react'
 
 import { Stats } from '@/features/home/components/sections/stats'
 
+// Mock IntersectionObserver for the Counter component
+const mockObserve = vi.fn()
+const mockUnobserve = vi.fn()
+const mockDisconnect = vi.fn()
+
+class MockIntersectionObserver {
+  observe = mockObserve
+  unobserve = mockUnobserve
+  disconnect = mockDisconnect
+  constructor(
+    public callback: IntersectionObserverCallback,
+    public options?: IntersectionObserverInit
+  ) {}
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver
+})
+
 describe('Stats', () => {
   test('renders stat labels', () => {
     render(<Stats />)
@@ -32,24 +52,25 @@ describe('Stats', () => {
   })
 
   test('Counter shows final value when prefers-reduced-motion is enabled', () => {
-    const originalMatchMedia = window.matchMedia
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: query === '(prefers-reduced-motion: reduce)',
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }))
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query === '(prefers-reduced-motion: reduce)',
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    })
 
     const { container } = render(<Stats />)
     const counters = container.querySelectorAll('.tabular-nums')
     // With reduced motion, Counter sets the final value immediately
     expect(counters[0].textContent).toContain('50')
     expect(counters[0].textContent).toContain('+')
-
-    window.matchMedia = originalMatchMedia
   })
 })

@@ -17,7 +17,9 @@ describe('getUserAgreement', () => {
 
     const result = await getUserAgreement()
 
-    expect(api.get).toHaveBeenCalledWith('/api/user-agreement')
+    expect(api.get).toHaveBeenCalledWith('/api/user-agreement', {
+      headers: { 'Cache-Control': null },
+    })
     expect(result).toEqual(mockResponse.data)
   })
 
@@ -36,7 +38,9 @@ describe('getPrivacyPolicy', () => {
 
     const result = await getPrivacyPolicy()
 
-    expect(api.get).toHaveBeenCalledWith('/api/privacy-policy')
+    expect(api.get).toHaveBeenCalledWith('/api/privacy-policy', {
+      headers: { 'Cache-Control': null },
+    })
     expect(result).toEqual(mockResponse.data)
   })
 

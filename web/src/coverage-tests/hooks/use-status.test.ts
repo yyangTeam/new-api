@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(),
+  queryOptions: vi.fn((opts: unknown) => opts),
 }))
 
 vi.mock('@/lib/api', () => ({

@@ -69,6 +69,7 @@ func setupIntegrationDB(t *testing.T) *gorm.DB {
 		&model.TwoFABackupCode{},
 		&model.CasbinRule{},
 		&model.AuthzRole{},
+		&model.PasskeyCredential{},
 	)
 	require.NoError(t, err)
 

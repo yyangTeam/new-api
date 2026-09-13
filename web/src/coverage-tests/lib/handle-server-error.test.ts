@@ -20,14 +20,14 @@ describe('handleServerError', () => {
     vi.clearAllMocks()
   })
 
-  test('shows generic error message for unknown error types', () => {
+  test('shows the string itself for unknown string error types', () => {
     handleServerError('some string error')
-    expect(toast.error).toHaveBeenCalledWith('Something went wrong!')
+    expect(toast.error).toHaveBeenCalledWith('some string error')
   })
 
-  test('shows generic error message for plain Error', () => {
+  test('shows Error message for plain Error', () => {
     handleServerError(new Error('something broke'))
-    expect(toast.error).toHaveBeenCalledWith('Something went wrong!')
+    expect(toast.error).toHaveBeenCalledWith('something broke')
   })
 
   test('shows content not found for 204 status', () => {
@@ -35,9 +35,9 @@ describe('handleServerError', () => {
     expect(toast.error).toHaveBeenCalledWith('Content not found.')
   })
 
-  test('shows content not found for 204 status as string', () => {
+  test('shows generic error for 204 status as string (not a number)', () => {
     handleServerError({ status: '204' })
-    expect(toast.error).toHaveBeenCalledWith('Content not found.')
+    expect(toast.error).toHaveBeenCalledWith('Something went wrong!')
   })
 
   test('shows AxiosError response title when available', () => {
@@ -80,7 +80,7 @@ describe('handleServerError', () => {
   test('handles AxiosError without response', () => {
     const error = new AxiosError('Network Error')
     handleServerError(error)
-    expect(toast.error).toHaveBeenCalledWith(undefined)
+    expect(toast.error).toHaveBeenCalledWith('Network Error')
   })
 
   test('shows generic error for non-204 status objects', () => {

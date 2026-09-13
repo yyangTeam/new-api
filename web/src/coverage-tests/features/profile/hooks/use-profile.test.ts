@@ -57,7 +57,7 @@ describe('useProfile', () => {
     })
 
     expect(result.current.profile).toBeNull()
-    expect(toast.error).toHaveBeenCalledWith('Failed to load profile')
+    expect(toast.error).toHaveBeenCalledWith('Network')
   })
 
   it('handles fetch with success false', async () => {
@@ -162,7 +162,7 @@ describe('useProfile', () => {
     })
 
     expect(success).toBe(false)
-    expect(toast.error).toHaveBeenCalledWith('Failed to update profile')
+    expect(toast.error).toHaveBeenCalledWith('Network')
   })
 
   it('updateSettings succeeds', async () => {
@@ -223,7 +223,7 @@ describe('useProfile', () => {
     })
 
     expect(success).toBe(false)
-    expect(toast.error).toHaveBeenCalledWith('Failed to update settings')
+    expect(toast.error).toHaveBeenCalledWith('err')
   })
 
   it('sets updating state during updateProfile', async () => {

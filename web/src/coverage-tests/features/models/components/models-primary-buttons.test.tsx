@@ -48,8 +48,6 @@ describe('ModelsPrimaryButtons', () => {
 
     // Menu items should be visible
     expect(await screen.findByText('Missing Models')).toBeInTheDocument()
-    expect(await screen.findByText('Sync Upstream')).toBeInTheDocument()
     expect(await screen.findByText('Prefill Groups')).toBeInTheDocument()
-    expect(await screen.findByText('Manage Vendors')).toBeInTheDocument()
   })
 })

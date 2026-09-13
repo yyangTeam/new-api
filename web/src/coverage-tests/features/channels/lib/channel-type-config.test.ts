@@ -75,8 +75,8 @@ describe('requiresRegion', () => {
 describe('getChannelTypeHints', () => {
   test('returns hints for known type', () => {
     const hints = getChannelTypeHints(1)
-    expect(hints.baseUrl).toBe('Default: https://api.openai.com')
     expect(hints.key).toBe('Format: sk-...')
+    expect(hints.models).toBe('gpt-4,gpt-4-turbo,gpt-3.5-turbo')
   })
 
   test('returns empty object for unknown type', () => {

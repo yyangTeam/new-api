@@ -7,14 +7,13 @@ import { useOAuthLogin } from '@/features/auth/hooks/use-oauth-login'
 const mockHandleLoginSuccess = vi.fn()
 const mockCreateOAuthFlow = vi.fn()
 const mockLogout = vi.fn()
-const mockTelegramLogin = vi.fn()
 const mockClearAuthentication = vi.fn()
 const mockIsAuthBundle = vi.fn()
 const mockBuildGitHubOAuthUrl = vi.fn()
 const mockBuildDiscordOAuthUrl = vi.fn()
 const mockBuildOIDCOAuthUrl = vi.fn()
 const mockBuildLinuxDOOAuthUrl = vi.fn()
-const mockPickTelegramAuthorization = vi.fn()
+const mockHandleServerError = vi.fn()
 
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
@@ -32,10 +31,15 @@ vi.mock('@/lib/api', () => ({
   isAuthBundle: (...args: unknown[]) => mockIsAuthBundle(...args),
 }))
 
+vi.mock('@/lib/handle-server-error', () => ({
+  handleServerError: (...args: unknown[]) => mockHandleServerError(...args),
+  markServerErrorHandled: vi.fn(),
+}))
+
 vi.mock('@/features/auth/api', () => ({
   createOAuthFlow: (...args: unknown[]) => mockCreateOAuthFlow(...args),
+  createOAuthAuthorization: vi.fn(),
   logout: () => mockLogout(),
-  telegramLogin: (...args: unknown[]) => mockTelegramLogin(...args),
 }))
 
 vi.mock('@/features/auth/lib/oauth', () => ({
@@ -45,8 +49,8 @@ vi.mock('@/features/auth/lib/oauth', () => ({
   buildLinuxDOOAuthUrl: (...args: unknown[]) => mockBuildLinuxDOOAuthUrl(...args),
 }))
 
-vi.mock('@/features/auth/lib/telegram-login', () => ({
-  pickTelegramAuthorization: (...args: unknown[]) => mockPickTelegramAuthorization(...args),
+vi.mock('@/features/auth/lib/oauth-callback-mode', () => ({
+  rememberOAuthLoginRedirect: vi.fn(),
 }))
 
 vi.mock('@/features/auth/hooks/use-auth-redirect', () => ({
@@ -144,7 +148,7 @@ describe('useOAuthLogin', () => {
       await result.current.handleGitHubLogin()
     })
 
-    expect(toast.error).toHaveBeenCalledWith('Failed to start GitHub login')
+    expect(mockHandleServerError).toHaveBeenCalled()
   })
 
   it('handleDiscordLogin opens discord oauth', async () => {
@@ -177,7 +181,7 @@ describe('useOAuthLogin', () => {
       await result.current.handleDiscordLogin()
     })
 
-    expect(toast.error).toHaveBeenCalledWith('Failed to start Discord login')
+    expect(mockHandleServerError).toHaveBeenCalled()
   })
 
   it('handleOIDCLogin opens oidc oauth', async () => {
@@ -226,16 +230,18 @@ describe('useOAuthLogin', () => {
     expect(mockCreateOAuthFlow).not.toHaveBeenCalled()
   })
 
-  it('handleTelegramLogin shows error without bot name', async () => {
+  it('handleTelegramLogin shows error when not configured', async () => {
     const { result } = renderHook(() =>
-      useOAuthLogin({ ...baseStatus, telegram_bot_name: '  ' } as any)
+      useOAuthLogin({ ...baseStatus, telegram_oauth_configured: false } as any)
     )
 
     await act(async () => {
       await result.current.handleTelegramLogin()
     })
 
-    expect(toast.error).toHaveBeenCalledWith('Login failed')
+    expect(toast.error).toHaveBeenCalledWith(
+      'Telegram OAuth is not configured or enabled. Please contact your administrator.'
+    )
   })
 
   it('handleCustomOAuthLogin opens custom provider', async () => {

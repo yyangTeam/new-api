@@ -11,8 +11,12 @@ vi.mock('@/features/performance-metrics/api', () => ({
   }),
 }))
 
+vi.mock('@/lib/server-error-message', () => ({
+  requireServerSuccess: (v: unknown) => v,
+}))
+
 vi.mock('@/features/pricing/components/model-perf-badge', () => ({
-  ModelPerfBadge: () => null,
+  ModelPerfBadge: (props: { children?: React.ReactNode }) => <div>{props.children}</div>,
 }))
 
 vi.mock('@/features/pricing/components/model-billing-mode-badge', () => ({
@@ -22,6 +26,10 @@ vi.mock('@/features/pricing/components/model-billing-mode-badge', () => ({
 vi.mock('@/features/pricing/lib/dynamic-price', () => ({
   getDynamicDisplayGroupRatio: () => 1,
   getDynamicPricingSummary: () => null,
+  getDynamicPriceUnitLabelKey: () => null,
+  getCardExamplePrice: () => null,
+  isUnconfiguredTaskUsageModel: vi.fn(() => false),
+  hasTaskUsageSchema: vi.fn(() => false),
 }))
 
 vi.mock('@/features/pricing/lib/filters', () => ({
@@ -37,8 +45,23 @@ vi.mock('@/features/pricing/lib/price', () => ({
   formatRequestPrice: () => '$0.005',
 }))
 
-vi.mock('@/hooks/use-copy-to-clipboard', () => ({
-  useCopyToClipboard: () => ({ copyToClipboard: vi.fn() }),
+vi.mock('@/features/pricing/lib/task-price-display', () => ({
+  taskPriceLabel: () => null,
+  taskUsageUnitLabel: () => '',
+}))
+
+vi.mock('@/features/pricing/hooks/use-billing-time', () => ({
+  useBillingTime: () => undefined,
+}))
+
+vi.mock('@/components/copy-button', () => ({
+  CopyButton: () => <span>copy</span>,
+}))
+
+vi.mock('@/stores/system-config-store', () => ({
+  useSystemConfigStore: (selector: (state: any) => any) => selector({
+    config: { currency: { type: 'NONE' } },
+  }),
 }))
 
 import { ModelCardGrid } from '@/features/pricing/components/model-card-grid'
@@ -145,6 +168,7 @@ describe('ModelCardGrid', () => {
         tokenUnit='K'
       />
     )
-    expect(screen.getByText('1K')).toBeInTheDocument()
+    const matches = screen.getAllByText(/\/\s*1K/)
+    expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 })

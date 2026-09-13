@@ -1,7 +1,7 @@
 import { render, screen, userEvent } from '@/test/test-utils'
 
-vi.mock('@/hooks/use-copy-to-clipboard', () => ({
-  useCopyToClipboard: () => ({ copyToClipboard: vi.fn() }),
+vi.mock('@/components/copy-button', () => ({
+  CopyButton: () => <span>copy</span>,
 }))
 
 vi.mock('@/lib/lobe-icon', () => ({
@@ -11,7 +11,11 @@ vi.mock('@/lib/lobe-icon', () => ({
 vi.mock('@/features/pricing/lib/dynamic-price', () => ({
   getDynamicDisplayGroupRatio: () => 1,
   getDynamicPricingSummary: () => null,
+  getDynamicPriceUnitLabelKey: () => null,
+  getCardExamplePrice: () => null,
   isDynamicPricingModel: () => false,
+  isUnconfiguredTaskUsageModel: vi.fn(() => false),
+  hasTaskUsageSchema: vi.fn(() => false),
 }))
 
 vi.mock('@/features/pricing/lib/filters', () => ({
@@ -25,6 +29,29 @@ vi.mock('@/features/pricing/lib/model-helpers', () => ({
 vi.mock('@/features/pricing/lib/price', () => ({
   formatPrice: () => '$0.01',
   formatRequestPrice: () => '$0.005',
+}))
+
+vi.mock('@/features/pricing/lib/task-price-display', () => ({
+  taskPriceLabel: () => null,
+  taskUsageUnitLabel: () => '',
+}))
+
+vi.mock('@/features/pricing/hooks/use-billing-time', () => ({
+  useBillingTime: () => undefined,
+}))
+
+vi.mock('@/features/pricing/components/model-billing-mode-badge', () => ({
+  ModelBillingModeBadge: () => <span>billing-badge</span>,
+}))
+
+vi.mock('@/features/pricing/components/model-perf-badge', () => ({
+  ModelPerfBadge: (props: { children?: React.ReactNode }) => <div>{props.children}</div>,
+}))
+
+vi.mock('@/stores/system-config-store', () => ({
+  useSystemConfigStore: (selector: (state: any) => any) => selector({
+    config: { currency: { type: 'NONE' } },
+  }),
 }))
 
 import { ModelCard } from '@/features/pricing/components/model-card'
@@ -94,7 +121,7 @@ describe('ModelCard', () => {
   test('renders per request price for request-based model', () => {
     const model = createModel({ quota_type: 1 })
     render(<ModelCard {...defaultProps} model={model} />)
-    expect(screen.getByText('/ request')).toBeInTheDocument()
+    expect(screen.getByText('request', { exact: false })).toBeInTheDocument()
   })
 
   test('renders cached price when cache_ratio is set', () => {
@@ -129,21 +156,28 @@ describe('ModelCard', () => {
 
   test('renders with K token unit', () => {
     render(<ModelCard {...defaultProps} tokenUnit='K' />)
-    expect(screen.getByText('1K')).toBeInTheDocument()
+    const matches = screen.getAllByText(/\/\s*1K/)
+    expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
   test('renders with M token unit by default', () => {
     render(<ModelCard {...defaultProps} />)
-    expect(screen.getByText('1M')).toBeInTheDocument()
+    const matches = screen.getAllByText(/\/\s*1M/)
+    expect(matches.length).toBeGreaterThanOrEqual(1)
   })
 
-  test('shows hidden count when there are many tags/endpoints', () => {
+  test('shows hidden count when there are many tags/endpoints/groups', () => {
     const model = createModel({
       tags: 'a,b,c,d,e',
       supported_endpoint_types: ['openai', 'anthropic', 'gemini'],
       enable_groups: ['g1', 'g2', 'g3'],
     })
     render(<ModelCard {...defaultProps} model={model} />)
-    expect(screen.getByText('+6')).toBeInTheDocument()
+    // Tags: 5 tags, shows first 2, remainder = +3
+    expect(screen.getByText('+3')).toBeInTheDocument()
+    // Groups: 3 groups, shows first 1, remainder = +2
+    expect(screen.getByText('+2')).toBeInTheDocument()
+    // Endpoints: 3 endpoints, shows first 2, remainder = +1
+    expect(screen.getByText('+1')).toBeInTheDocument()
   })
 })

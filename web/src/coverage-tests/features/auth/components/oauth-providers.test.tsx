@@ -14,19 +14,6 @@ vi.mock('@/features/auth/hooks/use-oauth-login', () => ({
   useOAuthLogin: (...args: unknown[]) => mockUseOAuthLogin(...args),
 }))
 
-// TelegramLoginDialog loads external scripts, must mock
-vi.mock('@/features/auth/components/telegram-login-dialog', () => ({
-  TelegramLoginDialog: ({
-    open,
-    botName,
-  }: {
-    open: boolean
-    botName: string
-  }) =>
-    open ? (
-      <div data-testid='telegram-dialog'>bot: {botName}</div>
-    ) : null,
-}))
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -43,10 +30,6 @@ function defaultOAuthHookReturn() {
     handleLinuxDOLogin: vi.fn(),
     handleTelegramLogin: vi.fn(),
     handleCustomOAuthLogin: vi.fn(),
-    isTelegramDialogOpen: false,
-    isTelegramPending: false,
-    handleTelegramAuthorization: vi.fn(),
-    setIsTelegramDialogOpen: vi.fn(),
   }
 }
 
@@ -361,27 +344,6 @@ describe('OAuthProviders', () => {
       expect.objectContaining({ github_oauth: true }),
       '/dashboard'
     )
-  })
-
-  it('renders Telegram login dialog when open', () => {
-    mockUseOAuthLogin.mockReturnValue({
-      ...defaultOAuthHookReturn(),
-      isTelegramDialogOpen: true,
-    })
-
-    render(
-      <OAuthProviders
-        status={
-          {
-            telegram_oauth: true,
-            telegram_bot_name: 'test_bot',
-          } as never
-        }
-      />
-    )
-
-    expect(screen.getByTestId('telegram-dialog')).toBeInTheDocument()
-    expect(screen.getByText('bot: test_bot')).toBeInTheDocument()
   })
 
   it('applies custom className', () => {

@@ -22,6 +22,7 @@ vi.mock('@/lib/currency', () => ({
       exchangeRate: 1,
     },
   }),
+  formatBillingCurrencyFromUSD: vi.fn(() => '$0'),
 }))
 
 vi.mock('@/lib/time', () => ({

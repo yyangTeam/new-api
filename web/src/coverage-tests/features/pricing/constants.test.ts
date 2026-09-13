@@ -40,11 +40,12 @@ describe('getQuotaTypeLabels', () => {
     expect(labels[QUOTA_TYPES.ALL]).toBe('All Models')
     expect(labels[QUOTA_TYPES.TOKEN]).toBe('Token-based')
     expect(labels[QUOTA_TYPES.REQUEST]).toBe('Per Request')
+    expect(labels[QUOTA_TYPES.TASK]).toBe('Task billing')
   })
 
-  test('has exactly 3 entries', () => {
+  test('has exactly 4 entries', () => {
     const labels = getQuotaTypeLabels(t)
-    expect(Object.keys(labels)).toHaveLength(3)
+    expect(Object.keys(labels)).toHaveLength(4)
   })
 })
 

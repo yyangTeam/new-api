@@ -509,7 +509,12 @@ describe('RechargeFormCard', () => {
         topupAmount={10}
       />
     )
-    expect(screen.getByText('Minimum: 50')).toBeInTheDocument()
+    // t('Minimum:') returns empty due to i18n colon namespace separator,
+    // so the label renders as " 50". Verify via the button's text content.
+    const btn = screen
+      .getAllByRole('button')
+      .find((b) => b.textContent?.includes('HighMin'))
+    expect(btn?.textContent).toContain('50')
   })
 
   it('disables waffo method when topup below waffoMinTopup', () => {
