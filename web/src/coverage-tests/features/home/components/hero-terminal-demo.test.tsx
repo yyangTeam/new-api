@@ -59,6 +59,20 @@ describe('HeroTerminalDemo', () => {
   })
 
   test('auto-cycles through demos', () => {
+    // The global test setup prefers reduced motion, which makes
+    // HeroTerminalDemo skip the cycling interval entirely (the effect
+    // early-returns when prefers-reduced-motion matches). Override matchMedia
+    // so the auto-cycle effect runs; restoreMocks:true reverts this afterward.
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }))
     render(<HeroTerminalDemo />)
     // First demo is Chat -> second is Responses
     act(() => { vi.advanceTimersByTime(4500 + 250) })

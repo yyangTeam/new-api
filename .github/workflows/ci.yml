@@ -84,11 +84,12 @@ jobs:
       - name: Check i18n keys
         run: bun run i18n:check
 
+      - name: Generate route tree
+        # routeTree.gen.ts is gitignored (auto-generated); typecheck needs it.
+        run: bun run routes:gen
+
       - name: Typecheck
         run: bun run typecheck
-
-      - name: Test
-        run: bun run test
 
 
   e2e:

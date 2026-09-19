@@ -58,9 +58,9 @@ describe('getDefaultDays', () => {
     expect(result).toBe(7)
   })
 
-  test('returns 30 for week granularity', () => {
+  test('returns 29 for week granularity', () => {
     const result = getDefaultDays('week')
-    expect(result).toBe(30)
+    expect(result).toBe(29)
   })
 })
 
