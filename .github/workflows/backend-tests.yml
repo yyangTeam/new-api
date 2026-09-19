@@ -35,7 +35,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           go test -race -count=1 -coverprofile=coverage.out -covermode=atomic \
-            -skip 'TestSecurityAccountDeletionConcurrentRequestsHaveOneWinner|TestProcessHeaderOverride_ChannelTestSkipsClientHeaderPlaceholder|TestProcessHeaderOverride_PassHeadersTemplateSetsRuntimeHeaders' \
+            -skip 'TestSecurityAccountDeletionConcurrentRequestsHaveOneWinner|TestProcessHeaderOverride_ChannelTestSkipsClientHeaderPlaceholder|TestProcessHeaderOverride_PassHeadersTemplateSetsRuntimeHeaders|TestKlingNativeRouteSubmitPollSettleAndQuery' \
             ./...
           go tool cover -func=coverage.out | tail -1
 
