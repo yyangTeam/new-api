@@ -36,9 +36,9 @@ describe('ModelSettings page component', () => {
     expect(defaults['claude.thinking_adapter_budget_tokens_percentage']).toBe(0.8)
     expect(defaults['grok.violation_deduction_enabled']).toBe(true)
     expect(defaults['grok.violation_deduction_amount']).toBe(0.05)
-    expect(defaults.RetryTimes).toBe(0)
-    expect(defaults['channel_affinity_setting.enabled']).toBe(false)
-    expect(defaults['channel_affinity_setting.max_entries']).toBe(100000)
+    // RetryTimes, ChannelDisableThreshold, AutomaticDisable*, monitor_setting.*
+    // and channel_affinity_setting.* were relocated to the request-policies
+    // feature upstream, so they are no longer part of ModelSettings defaults.
     expect(defaults['model_deployment.ionet.enabled']).toBe(false)
   })
 })

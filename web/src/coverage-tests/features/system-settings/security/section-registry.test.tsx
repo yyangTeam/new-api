@@ -4,9 +4,6 @@ import type { TFunction } from 'i18next'
 vi.mock('@/features/system-settings/request-limits/rate-limit-section', () => ({
   RateLimitSection: () => 'RateLimitSection',
 }))
-vi.mock('@/features/system-settings/request-limits/sensitive-words-section', () => ({
-  SensitiveWordsSection: () => 'SensitiveWordsSection',
-}))
 vi.mock('@/features/system-settings/request-limits/ssrf-section', () => ({
   SSRFSection: () => 'SSRFSection',
 }))
@@ -21,14 +18,11 @@ import {
   getSecuritySectionMeta,
 } from '@/features/system-settings/security/section-registry'
 
+// After the upstream request-policies refactor, sensitive-words moved out of
+// the security registry. The security registry now exposes 3 sections.
 describe('security section-registry', () => {
   it('exports correct section IDs', () => {
-    expect(SECURITY_SECTION_IDS).toEqual([
-      'rate-limit',
-      'sensitive-words',
-      'ssrf',
-      'token-limits',
-    ])
+    expect(SECURITY_SECTION_IDS).toEqual(['rate-limit', 'ssrf', 'token-limits'])
   })
 
   it('has rate-limit as default section', () => {
@@ -38,12 +32,12 @@ describe('security section-registry', () => {
   it('generates nav items with path-style URLs', () => {
     const t = ((key: string) => key) as unknown as TFunction
     const items = getSecuritySectionNavItems(t)
-    expect(items).toHaveLength(4)
+    expect(items).toHaveLength(3)
     expect(items[0]).toEqual({
       title: 'Rate Limiting',
       url: '/system-settings/security/rate-limit',
     })
-    expect(items[2]).toEqual({
+    expect(items[1]).toEqual({
       title: 'SSRF Protection',
       url: '/system-settings/security/ssrf',
     })

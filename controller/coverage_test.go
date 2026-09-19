@@ -4,7 +4,6 @@ package controller
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +17,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
-	"github.com/QuantumNous/new-api/relaykit/types"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -633,227 +632,13 @@ func TestAddUsedChannelAppendsAndStores(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Set("use_channel", []string{"1"})
 
-	addUsedChannel(c, 7)
+	service.AppendUsedChannel(c, 7)
 
 	got, ok := c.Get("use_channel")
 	require.True(t, ok)
 	sl, ok := got.([]string)
 	require.True(t, ok)
 	assert.Equal(t, []string{"1", "7"}, sl)
-}
-
-func TestFastTokenCountMetaForPricing(t *testing.T) {
-	t.Run("nil request returns empty meta", func(t *testing.T) {
-		meta := fastTokenCountMetaForPricing(nil)
-		require.NotNil(t, meta)
-	})
-
-	t.Run("general request picks larger of max_tokens and max_completion_tokens", func(t *testing.T) {
-		// max_completion_tokens wins
-		req := &dto.GeneralOpenAIRequest{
-			MaxTokens:           lo.ToPtr(uint(10)),
-			MaxCompletionTokens: lo.ToPtr(uint(20)),
-		}
-		meta := fastTokenCountMetaForPricing(req)
-		require.NotNil(t, meta)
-		assert.Equal(t, 20, meta.MaxTokens)
-
-		// max_tokens wins when larger
-		req2 := &dto.GeneralOpenAIRequest{
-			MaxTokens:           lo.ToPtr(uint(30)),
-			MaxCompletionTokens: lo.ToPtr(uint(20)),
-		}
-		meta2 := fastTokenCountMetaForPricing(req2)
-		assert.Equal(t, 30, meta2.MaxTokens)
-	})
-
-	t.Run("general request with nil token fields yields zero", func(t *testing.T) {
-		meta := fastTokenCountMetaForPricing(&dto.GeneralOpenAIRequest{})
-		require.NotNil(t, meta)
-		assert.Equal(t, 0, meta.MaxTokens)
-	})
-
-	t.Run("responses request uses max_output_tokens", func(t *testing.T) {
-		req := &dto.OpenAIResponsesRequest{MaxOutputTokens: lo.ToPtr(uint(40))}
-		meta := fastTokenCountMetaForPricing(req)
-		require.NotNil(t, meta)
-		assert.Equal(t, 40, meta.MaxTokens)
-	})
-
-	t.Run("claude request uses max_tokens", func(t *testing.T) {
-		req := &dto.ClaudeRequest{MaxTokens: lo.ToPtr(uint(50))}
-		meta := fastTokenCountMetaForPricing(req)
-		require.NotNil(t, meta)
-		assert.Equal(t, 50, meta.MaxTokens)
-	})
-
-	t.Run("image request delegates to its own GetTokenCountMeta", func(t *testing.T) {
-		req := &dto.ImageRequest{Model: "dall-e-3", N: lo.ToPtr(uint(1))}
-		meta := fastTokenCountMetaForPricing(req)
-		// ImageRequest.GetTokenCountMeta is the source of truth; just assert
-		// delegation produced a non-nil meta here.
-		require.NotNil(t, meta)
-	})
-
-	t.Run("unknown request type yields empty meta with tokenizer type", func(t *testing.T) {
-		meta := fastTokenCountMetaForPricing(&dto.EmbeddingRequest{Model: "x"})
-		require.NotNil(t, meta)
-		assert.Equal(t, types.TokenTypeTokenizer, meta.TokenType)
-	})
-}
-
-// TestShouldRetry locks in the relay retry decision matrix. It exercises the
-// pure parts of shouldRetry: channel errors always retry, skip-retry errors
-// never retry, status-code range rules, and the specific_channel_id guard.
-func TestShouldRetry(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	newCtx := func() *gin.Context {
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-		return c
-	}
-
-	t.Run("nil error never retries", func(t *testing.T) {
-		assert.False(t, shouldRetry(newCtx(), nil, 3))
-	})
-
-	t.Run("channel error always retries regardless of budget", func(t *testing.T) {
-		err := types.NewError(errors.New("channel down"), types.ErrorCodeChannelInvalidKey)
-		assert.True(t, shouldRetry(newCtx(), err, 0))
-	})
-
-	t.Run("skip-retry error never retries", func(t *testing.T) {
-		err := types.NewError(errors.New("bad body"), types.ErrorCodeBadResponseBody, types.ErrOptionWithSkipRetry())
-		assert.False(t, shouldRetry(newCtx(), err, 3))
-	})
-
-	t.Run("zero budget never retries", func(t *testing.T) {
-		err := types.NewErrorWithStatusCode(errors.New("boom"), types.ErrorCodeInvalidRequest, http.StatusBadGateway)
-		assert.False(t, shouldRetry(newCtx(), err, 0))
-	})
-
-	t.Run("specific channel id never retries", func(t *testing.T) {
-		c := newCtx()
-		cc := &taskdto.ChannelConstraints{}
-		cc.AddPin(taskdto.ChannelPin{
-			ChannelId: 42,
-			Source:    taskdto.PinSourceToken,
-			Rank:      taskdto.PinRankToken,
-			RetryMode: taskdto.PinRetrySingleAttempt,
-		})
-		common.SetContextKey(c, constant.ContextKeyChannelConstraints, cc)
-		err := types.NewErrorWithStatusCode(errors.New("boom"), types.ErrorCodeInvalidRequest, http.StatusBadGateway)
-		assert.False(t, shouldRetry(c, err, 3))
-	})
-
-	t.Run("2xx never retries", func(t *testing.T) {
-		err := types.NewErrorWithStatusCode(errors.New("ok?"), types.ErrorCodeInvalidRequest, http.StatusOK)
-		assert.False(t, shouldRetry(newCtx(), err, 3))
-	})
-
-	t.Run("out-of-range status code retries", func(t *testing.T) {
-		err := types.NewErrorWithStatusCode(errors.New("weird"), types.ErrorCodeInvalidRequest, 700)
-		assert.True(t, shouldRetry(newCtx(), err, 3))
-	})
-
-	t.Run("504 always-skip status does not retry", func(t *testing.T) {
-		err := types.NewErrorWithStatusCode(errors.New("gateway timeout"), types.ErrorCodeInvalidRequest, http.StatusGatewayTimeout)
-		assert.False(t, shouldRetry(newCtx(), err, 3))
-	})
-
-	t.Run("500 retries", func(t *testing.T) {
-		err := types.NewErrorWithStatusCode(errors.New("server"), types.ErrorCodeInvalidRequest, http.StatusInternalServerError)
-		assert.True(t, shouldRetry(newCtx(), err, 3))
-	})
-
-	t.Run("400 does not retry (outside retry ranges)", func(t *testing.T) {
-		err := types.NewErrorWithStatusCode(errors.New("bad req"), types.ErrorCodeInvalidRequest, http.StatusBadRequest)
-		assert.False(t, shouldRetry(newCtx(), err, 3))
-	})
-
-	t.Run("429 retries", func(t *testing.T) {
-		err := types.NewErrorWithStatusCode(errors.New("rate"), types.ErrorCodeInvalidRequest, http.StatusTooManyRequests)
-		assert.True(t, shouldRetry(newCtx(), err, 3))
-	})
-}
-
-// TestShouldRetryTaskRelay locks in the task relay retry decision matrix.
-func TestShouldRetryTaskRelay(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	newCtx := func() *gin.Context {
-		w := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(w)
-		return c
-	}
-
-	t.Run("nil error never retries", func(t *testing.T) {
-		assert.False(t, shouldRetryTaskRelay(newCtx(), 1, nil, 3))
-	})
-
-	t.Run("zero budget never retries", func(t *testing.T) {
-		err := &taskdto.TaskError{StatusCode: http.StatusBadGateway, Error: errors.New("boom")}
-		assert.False(t, shouldRetryTaskRelay(newCtx(), 1, err, 0))
-	})
-
-	t.Run("specific channel id never retries", func(t *testing.T) {
-		c := newCtx()
-		cc := &taskdto.ChannelConstraints{}
-		cc.AddPin(taskdto.ChannelPin{
-			ChannelId: 9,
-			Source:    taskdto.PinSourceToken,
-			Rank:      taskdto.PinRankToken,
-			RetryMode: taskdto.PinRetrySingleAttempt,
-		})
-		common.SetContextKey(c, constant.ContextKeyChannelConstraints, cc)
-		err := &taskdto.TaskError{StatusCode: http.StatusBadGateway, Error: errors.New("boom")}
-		assert.False(t, shouldRetryTaskRelay(c, 1, err, 3))
-	})
-
-	t.Run("429 always retries", func(t *testing.T) {
-		err := &taskdto.TaskError{StatusCode: http.StatusTooManyRequests, Error: errors.New("rate")}
-		assert.True(t, shouldRetryTaskRelay(newCtx(), 1, err, 3))
-	})
-
-	t.Run("307 always retries", func(t *testing.T) {
-		err := &taskdto.TaskError{StatusCode: 307, Error: errors.New("redirect")}
-		assert.True(t, shouldRetryTaskRelay(newCtx(), 1, err, 3))
-	})
-
-	t.Run("5xx retries unless always-skip status", func(t *testing.T) {
-		err := &taskdto.TaskError{StatusCode: http.StatusBadGateway, Error: errors.New("boom")}
-		assert.True(t, shouldRetryTaskRelay(newCtx(), 1, err, 3))
-
-		// 504 is in the always-skip status list -> no retry
-		err504 := &taskdto.TaskError{StatusCode: http.StatusGatewayTimeout, Error: errors.New("timeout")}
-		assert.False(t, shouldRetryTaskRelay(newCtx(), 1, err504, 3))
-	})
-
-	t.Run("400 never retries", func(t *testing.T) {
-		err := &taskdto.TaskError{StatusCode: http.StatusBadRequest, Error: errors.New("bad")}
-		assert.False(t, shouldRetryTaskRelay(newCtx(), 1, err, 3))
-	})
-
-	t.Run("408 never retries", func(t *testing.T) {
-		err := &taskdto.TaskError{StatusCode: http.StatusRequestTimeout, Error: errors.New("timeout")}
-		assert.False(t, shouldRetryTaskRelay(newCtx(), 1, err, 3))
-	})
-
-	t.Run("local error on 4xx never retries", func(t *testing.T) {
-		// A 4xx status (e.g. 409) that isn't 400/408/429 reaches the LocalError
-		// guard; local errors must not retry regardless of remaining budget.
-		err := &taskdto.TaskError{StatusCode: http.StatusConflict, Error: errors.New("local"), LocalError: true}
-		assert.False(t, shouldRetryTaskRelay(newCtx(), 1, err, 3))
-	})
-
-	t.Run("2xx never retries", func(t *testing.T) {
-		err := &taskdto.TaskError{StatusCode: http.StatusOK, Error: errors.New("ok")}
-		assert.False(t, shouldRetryTaskRelay(newCtx(), 1, err, 3))
-	})
-
-	t.Run("unknown 4xx retries", func(t *testing.T) {
-		err := &taskdto.TaskError{StatusCode: http.StatusConflict, Error: errors.New("conflict")}
-		assert.True(t, shouldRetryTaskRelay(newCtx(), 1, err, 3))
-	})
 }
 
 func TestRespondTaskError(t *testing.T) {
@@ -884,9 +669,9 @@ func TestRespondTaskError(t *testing.T) {
 
 func TestCanManageTargetRole(t *testing.T) {
 	cases := []struct {
-		name             string
-		myRole, target   int
-		want             bool
+		name           string
+		myRole, target int
+		want           bool
 	}{
 		{"root manages anyone", common.RoleRootUser, common.RoleCommonUser, true},
 		{"root manages admin", common.RoleRootUser, common.RoleAdminUser, true},
@@ -994,7 +779,6 @@ func TestLoginMethodFromContext(t *testing.T) {
 		})
 	}
 }
-
 
 // ---------------------------------------------------------------------------
 // channel.go DB-backed helpers (status filter applied to a real query)

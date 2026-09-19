@@ -50,3 +50,5 @@ go.work
 go.work.sum
 web/package-lock.json
 web/src/routeTree.gen.ts
+new-api-server
+deploy-data/

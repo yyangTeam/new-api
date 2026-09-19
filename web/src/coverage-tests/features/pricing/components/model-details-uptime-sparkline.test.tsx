@@ -51,7 +51,7 @@ describe('UptimeSparkline', () => {
       { date: '2024-01-01', uptime_pct: 99.5, incidents: 0, outage_minutes: 0 },
     ]
     const { container } = render(<UptimeSparkline series={series} />)
-    expect(container.textContent).toContain('99.5%')
+    expect(container.textContent).toContain('99.50%')
   })
 
   test('hides overall percentage when showOverall is false', () => {

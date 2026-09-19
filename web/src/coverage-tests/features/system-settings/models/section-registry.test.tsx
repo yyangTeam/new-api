@@ -1,9 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import type { TFunction } from 'i18next'
 
-vi.mock('@/features/system-settings/general/channel-affinity', () => ({
-  ChannelAffinitySection: () => 'ChannelAffinitySection',
-}))
 vi.mock('@/features/system-settings/integrations/ionet-deployment-settings-section', () => ({
   IoNetDeploymentSettingsSection: () => 'IoNetDeploymentSettingsSection',
 }))
@@ -19,9 +16,6 @@ vi.mock('@/features/system-settings/models/global-settings-card', () => ({
 vi.mock('@/features/system-settings/models/grok-settings-card', () => ({
   GrokSettingsCard: () => 'GrokSettingsCard',
 }))
-vi.mock('@/features/system-settings/models/routing-reliability-section', () => ({
-  RoutingReliabilitySection: () => 'RoutingReliabilitySection',
-}))
 
 import {
   MODELS_SECTION_IDS,
@@ -30,15 +24,16 @@ import {
   getModelsSectionMeta,
 } from '@/features/system-settings/models/section-registry'
 
+// After the upstream request-policies refactor, routing-reliability and
+// channel-affinity moved out of the models registry into request-policies.
+// The models registry now exposes 5 sections.
 describe('models section-registry', () => {
   it('exports correct section IDs', () => {
     expect(MODELS_SECTION_IDS).toEqual([
       'global',
-      'routing-reliability',
       'gemini',
       'claude',
       'grok',
-      'channel-affinity',
       'model-deployment',
     ])
   })
@@ -50,12 +45,12 @@ describe('models section-registry', () => {
   it('generates nav items with path-style URLs', () => {
     const t = ((key: string) => key) as unknown as TFunction
     const items = getModelsSectionNavItems(t)
-    expect(items).toHaveLength(7)
+    expect(items).toHaveLength(5)
     expect(items[0]).toEqual({
       title: 'Global Model Configuration',
       url: '/system-settings/models/global',
     })
-    expect(items[2]).toEqual({
+    expect(items[1]).toEqual({
       title: 'Gemini',
       url: '/system-settings/models/gemini',
     })

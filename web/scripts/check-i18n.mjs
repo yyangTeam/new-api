@@ -116,6 +116,7 @@ const BRAND_LITERAL_SET = new Set([
   'MokaAI', 'FastGPT', 'OhMyGPT', 'OpenRouter', 'OpenAIMax', 'Pancake',
   'MjProxy', 'MjProxyPlus', 'SunoAPI', 'Baidu V2', 'DoubaoVideo', 'Jimeng',
   'LingYiWanWu', 'LinuxDO', 'ChatGPT', 'Passkey', 'QuantumNous',
+  'SGLang', 'Responses WebSocket',
   'Vertex AI', 'Uptime Kuma', 'Uptime Kuma URL', 'CC Switch', 'AI Proxy',
   'AIGC2D', 'API2GPT', 'API URL', 'NewAPI', 'Submodel', 'credit', '1M token',
   'One API', 'JustSong', 'Client ID', 'Client Secret',

@@ -84,7 +84,7 @@ func TestGetRequestURL_PlainBaseAppendsMessagesPath(t *testing.T) {
 func TestGetRequestURL_NoBetaFlagsOmitsQuery(t *testing.T) {
 	a := &Adaptor{}
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:        &relaycommon.ChannelMeta{ChannelBaseUrl: "https://host.example"},
+		ChannelMeta:       &relaycommon.ChannelMeta{ChannelBaseUrl: "https://host.example"},
 		IsClaudeBetaQuery: false,
 	}
 	got, err := a.GetRequestURL(info)
@@ -95,7 +95,7 @@ func TestGetRequestURL_NoBetaFlagsOmitsQuery(t *testing.T) {
 func TestGetRequestURL_IsClaudeBetaQueryAppendsBetaTrue(t *testing.T) {
 	a := &Adaptor{}
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:        &relaycommon.ChannelMeta{ChannelBaseUrl: "https://host.example"},
+		ChannelMeta:       &relaycommon.ChannelMeta{ChannelBaseUrl: "https://host.example"},
 		IsClaudeBetaQuery: true,
 	}
 	got, err := a.GetRequestURL(info)
@@ -107,7 +107,7 @@ func TestGetRequestURL_ChannelOtherSettingsBetaAppendsBetaTrue(t *testing.T) {
 	a := &Adaptor{}
 	info := &relaycommon.RelayInfo{
 		ChannelMeta: &relaycommon.ChannelMeta{
-			ChannelBaseUrl:        "https://host.example",
+			ChannelBaseUrl:       "https://host.example",
 			ChannelOtherSettings: dto.ChannelOtherSettings{ClaudeBetaQuery: true},
 		},
 	}
@@ -121,7 +121,7 @@ func TestGetRequestURL_IsClaudeBetaQueryWinsOverChannelSetting(t *testing.T) {
 	a := &Adaptor{}
 	info := &relaycommon.RelayInfo{
 		ChannelMeta: &relaycommon.ChannelMeta{
-			ChannelBaseUrl:        "https://host.example",
+			ChannelBaseUrl:       "https://host.example",
 			ChannelOtherSettings: dto.ChannelOtherSettings{ClaudeBetaQuery: false},
 		},
 		IsClaudeBetaQuery: true,
@@ -162,7 +162,7 @@ func TestSetupRequestHeader_SetsApiKeyAndDefaultVersion(t *testing.T) {
 	c := newTestContext()
 	header := make(http.Header)
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{ApiKey: "sk-ant-key"},
+		ChannelMeta:     &relaycommon.ChannelMeta{ApiKey: "sk-ant-key"},
 		OriginModelName: "claude-3-5-sonnet",
 	}
 	a := &Adaptor{}
@@ -178,7 +178,7 @@ func TestSetupRequestHeader_RespectsClientAnthropicVersion(t *testing.T) {
 	c.Request.Header.Set("anthropic-version", "2024-10-22")
 	header := make(http.Header)
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{ApiKey: "k"},
+		ChannelMeta:     &relaycommon.ChannelMeta{ApiKey: "k"},
 		OriginModelName: "m",
 	}
 	a := &Adaptor{}
@@ -191,7 +191,7 @@ func TestSetupRequestHeader_ForwardsAnthropicBeta(t *testing.T) {
 	c.Request.Header.Set("anthropic-beta", "prompt-caching-2024-07-31,output-128k-2025-02-19")
 	header := make(http.Header)
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{ApiKey: "k"},
+		ChannelMeta:     &relaycommon.ChannelMeta{ApiKey: "k"},
 		OriginModelName: "m",
 	}
 	a := &Adaptor{}
@@ -203,7 +203,7 @@ func TestSetupRequestHeader_OmitsAnthropicBetaWhenAbsent(t *testing.T) {
 	c := newTestContext()
 	header := make(http.Header)
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{ApiKey: "k"},
+		ChannelMeta:     &relaycommon.ChannelMeta{ApiKey: "k"},
 		OriginModelName: "m",
 	}
 	a := &Adaptor{}
@@ -216,9 +216,9 @@ func TestSetupRequestHeader_StreamSetsAcceptTextEventStream(t *testing.T) {
 	c.Request.Header.Set("Accept", "") // client did not set Accept
 	header := make(http.Header)
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{ApiKey: "k"},
+		ChannelMeta:     &relaycommon.ChannelMeta{ApiKey: "k"},
 		OriginModelName: "m",
-		IsStream:         true,
+		IsStream:        true,
 	}
 	a := &Adaptor{}
 	require.NoError(t, a.SetupRequestHeader(c, &header, info))
@@ -354,8 +354,8 @@ func TestDoResponse_DispatchesByStreamFlag(t *testing.T) {
 	a := &Adaptor{}
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
-		RelayFormat:      types.RelayFormatClaude,
+		ChannelMeta: &relaycommon.ChannelMeta{},
+		RelayFormat: types.RelayFormatClaude,
 	}
 	// Non-stream path returns the ClaudeHandler result (usage, nil).
 	info.IsStream = false
@@ -403,24 +403,24 @@ func TestStopReasonClaude2OpenAI(t *testing.T) {
 
 func TestMaybeMarkClaudeRefusal(t *testing.T) {
 	t.Run("nil context is safe", func(t *testing.T) {
-		require.NotPanics(t, func() { maybeMarkClaudeRefusal(nil, "refusal") })
+		require.NotPanics(t, func() { maybeMarkClaudeRefusal(nil, nil, "refusal") })
 	})
 	t.Run("refusal sets admin reject reason", func(t *testing.T) {
 		c := newTestContext()
-		maybeMarkClaudeRefusal(c, "refusal")
+		maybeMarkClaudeRefusal(c, &relaycommon.RelayInfo{}, "refusal")
 		val, ok := common.GetContextKey(c, constant.ContextKeyAdminRejectReason)
 		require.True(t, ok)
 		assert.Equal(t, "claude_stop_reason=refusal", val)
 	})
 	t.Run("refusal is case-insensitive", func(t *testing.T) {
 		c := newTestContext()
-		maybeMarkClaudeRefusal(c, "REFUSAL")
+		maybeMarkClaudeRefusal(c, &relaycommon.RelayInfo{}, "REFUSAL")
 		_, ok := common.GetContextKey(c, constant.ContextKeyAdminRejectReason)
 		assert.True(t, ok)
 	})
 	t.Run("non-refusal stop reason does not set reject reason", func(t *testing.T) {
 		c := newTestContext()
-		maybeMarkClaudeRefusal(c, "end_turn")
+		maybeMarkClaudeRefusal(c, &relaycommon.RelayInfo{}, "end_turn")
 		_, ok := common.GetContextKey(c, constant.ContextKeyAdminRejectReason)
 		assert.False(t, ok)
 	})
@@ -655,7 +655,7 @@ func TestCacheCreationTokensForOpenAIUsage(t *testing.T) {
 	t.Run("aggregate cache creation preferred when it exceeds split", func(t *testing.T) {
 		// Aggregate (CachedCreationTokens=50) > split (5m=10 + 1h=20 = 30) -> use 50.
 		u := &dto.Usage{
-			PromptTokensDetails:          dto.InputTokenDetails{CachedCreationTokens: 50},
+			PromptTokensDetails:         dto.InputTokenDetails{CachedCreationTokens: 50},
 			ClaudeCacheCreation5mTokens: 10,
 			ClaudeCacheCreation1hTokens: 20,
 		}
@@ -677,7 +677,7 @@ func TestCacheCreationTokensForOpenAIUsage(t *testing.T) {
 	t.Run("split used when aggregate is smaller than split", func(t *testing.T) {
 		// Aggregate (10) <= split (5m=15 + 1h=5 = 20) -> use split.
 		u := &dto.Usage{
-			PromptTokensDetails:          dto.InputTokenDetails{CachedCreationTokens: 10},
+			PromptTokensDetails:         dto.InputTokenDetails{CachedCreationTokens: 10},
 			ClaudeCacheCreation5mTokens: 15,
 			ClaudeCacheCreation1hTokens: 5,
 		}
@@ -690,7 +690,7 @@ func TestCacheCreationTokensForOpenAIUsage(t *testing.T) {
 func TestHandleStreamResponseData_ClaudeFormatMessageStartCapturesModel(t *testing.T) {
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "orig",
 		RelayFormat:     types.RelayFormatClaude,
 	}
@@ -710,12 +710,12 @@ func TestHandleStreamResponseData_ClaudeFormatMessageDeltaPatchesUsage(t *testin
 
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "m",
 		RelayFormat:     types.RelayFormatClaude,
 	}
 	claudeInfo := &ClaudeResponseInfo{Usage: &dto.Usage{
-		PromptTokens: 100,
+		PromptTokens:        100,
 		PromptTokensDetails: dto.InputTokenDetails{CachedTokens: 30, CachedCreationTokens: 50},
 	}}
 	// Bedrock-style delta: only output_tokens, missing input/cache fields.
@@ -729,7 +729,7 @@ func TestHandleStreamResponseData_ClaudeFormatMessageDeltaPatchesUsage(t *testin
 func TestHandleStreamResponseData_InvalidJSONReturnsError(t *testing.T) {
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "m",
 		RelayFormat:     types.RelayFormatClaude,
 	}
@@ -743,7 +743,7 @@ func TestHandleStreamResponseData_InvalidJSONReturnsError(t *testing.T) {
 func TestHandleStreamResponseData_ClaudeErrorReturnsError(t *testing.T) {
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "m",
 		RelayFormat:     types.RelayFormatClaude,
 	}
@@ -756,7 +756,7 @@ func TestHandleStreamResponseData_ClaudeErrorReturnsError(t *testing.T) {
 func TestHandleStreamResponseData_RefusalMarksContext(t *testing.T) {
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "m",
 		RelayFormat:     types.RelayFormatClaude,
 	}
@@ -774,7 +774,7 @@ func TestHandleStreamResponseData_RefusalMarksContext(t *testing.T) {
 func TestHandleStreamResponseData_OpenAIFormatConvertsChunk(t *testing.T) {
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "m",
 		RelayFormat:     types.RelayFormatOpenAI,
 	}
@@ -790,7 +790,7 @@ func TestHandleStreamResponseData_OpenAIFormatReturnsNilWhenFormatterDeclines(t 
 	// returns nil without emitting a chunk (no error, no payload).
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "m",
 		RelayFormat:     types.RelayFormatOpenAI,
 	}
@@ -804,7 +804,7 @@ func TestHandleStreamResponseData_OpenAIFormatReturnsNilWhenFormatterDeclines(t 
 func TestHandleStreamFinalResponse_ClaudeFormatSetsSemanticAndBilling(t *testing.T) {
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "claude-3-5-sonnet",
 		RelayFormat:     types.RelayFormatClaude,
 	}
@@ -830,7 +830,7 @@ func TestHandleStreamFinalResponse_ClaudeFormatSetsSemanticAndBilling(t *testing
 func TestHandleStreamFinalResponse_IncompleteUsageTriggersFallback(t *testing.T) {
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "claude-3-5-sonnet",
 		RelayFormat:     types.RelayFormatClaude,
 	}
@@ -860,8 +860,8 @@ func TestHandleStreamFinalResponse_OpenAIFormatEmitsUsageWhenRequested(t *testin
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
 		ChannelMeta:        &relaycommon.ChannelMeta{},
-		OriginModelName:   "claude-3-5-sonnet",
-		RelayFormat:       types.RelayFormatOpenAI,
+		OriginModelName:    "claude-3-5-sonnet",
+		RelayFormat:        types.RelayFormatOpenAI,
 		ShouldIncludeUsage: true,
 	}
 	claudeInfo := &ClaudeResponseInfo{
@@ -886,8 +886,8 @@ func TestHandleStreamFinalResponse_OpenAIFormatSkipsUsageWhenNotRequested(t *tes
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
 		ChannelMeta:        &relaycommon.ChannelMeta{},
-		OriginModelName:   "claude-3-5-sonnet",
-		RelayFormat:       types.RelayFormatOpenAI,
+		OriginModelName:    "claude-3-5-sonnet",
+		RelayFormat:        types.RelayFormatOpenAI,
 		ShouldIncludeUsage: false,
 	}
 	claudeInfo := &ClaudeResponseInfo{
@@ -908,7 +908,7 @@ func TestHandleStreamFinalResponse_OpenAIFormatSkipsUsageWhenNotRequested(t *tes
 func TestClaudeHandler_NonStreamOpenAIFormatProducesMappedUsage(t *testing.T) {
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "claude-3-5-sonnet",
 		RelayFormat:     types.RelayFormatOpenAI,
 	}
@@ -952,7 +952,7 @@ func TestClaudeHandler_NonStreamOpenAIFormatProducesMappedUsage(t *testing.T) {
 func TestClaudeHandler_NonStreamClaudeFormatPassesBodyThrough(t *testing.T) {
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "claude-3-5-sonnet",
 		RelayFormat:     types.RelayFormatClaude,
 	}
@@ -975,7 +975,7 @@ func TestClaudeHandler_NonStreamClaudeFormatPassesBodyThrough(t *testing.T) {
 func TestClaudeHandler_UpstreamErrorReturnsAPIError(t *testing.T) {
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "claude-3-5-sonnet",
 		RelayFormat:     types.RelayFormatClaude,
 	}
@@ -1002,7 +1002,7 @@ func TestClaudeStreamHandler_ClaudeFormatAccumulatesUsage(t *testing.T) {
 
 	c := newTestContext()
 	info := &relaycommon.RelayInfo{
-		ChannelMeta:      &relaycommon.ChannelMeta{},
+		ChannelMeta:     &relaycommon.ChannelMeta{},
 		OriginModelName: "claude-3-5-sonnet",
 		RelayFormat:     types.RelayFormatClaude,
 		IsStream:        true,

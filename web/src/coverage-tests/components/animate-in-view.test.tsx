@@ -17,6 +17,25 @@ class MockIntersectionObserver {
 beforeEach(() => {
   vi.clearAllMocks()
   globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver
+  // The global test setup (src/test-setup.ts) mocks prefers-reduced-motion to
+  // match so entrance animations skip transient hidden states. AnimateInView's
+  // reduced-motion path strips `opacity-0` and never creates an observer, so
+  // tests asserting the normal animation path need reduced-motion to NOT
+  // match. The "respects prefers-reduced-motion" test overrides this in its
+  // own body.
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (query: string): MediaQueryList => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      dispatchEvent: () => false,
+    }),
+  })
 })
 
 describe('AnimateInView', () => {
