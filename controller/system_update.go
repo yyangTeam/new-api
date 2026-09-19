@@ -114,8 +114,12 @@ func resolveExePath() (string, error) {
 	return exePath, nil
 }
 
-// performUpdate downloads the latest release binary for the current platform
+// PerformUpdate downloads the latest release binary for the current platform
 // and atomically swaps it into place, keeping the previous binary as a backup.
+// It does NOT restart: the new binary is staged and the response reports
+// need_restart=true so the operator triggers RestartService as a deliberate
+// second step (this is what makes the restart survivable in Docker, where the
+// restart policy relaunches the same container with the swapped binary intact).
 func PerformUpdate(c *gin.Context) {
 	release, err := fetchLatestRelease()
 	if err != nil {
@@ -141,13 +145,12 @@ func PerformUpdate(c *gin.Context) {
 		return
 	}
 
-	common.SysLog(fmt.Sprintf("Update to %s successful, restarting...", release.TagName))
+	common.SysLog(fmt.Sprintf("Update to %s staged, awaiting restart", release.TagName))
 	common.ApiSuccess(c, gin.H{
-		"version": release.TagName,
-		"message": "Update successful, restarting service...",
+		"version":      release.TagName,
+		"need_restart": true,
+		"message":      "Update downloaded. Restart the service to apply it.",
 	})
-
-	triggerRestart()
 }
 
 // RestartService triggers a graceful restart of the running process.
@@ -158,9 +161,10 @@ func RestartService(c *gin.Context) {
 }
 
 // RollbackService restores the locally retained previous binary (the .backup
-// produced by the last update) and restarts. No download is required, so this
-// is the fastest way to undo a bad update. The current (newer) binary is
-// moved into the backup slot, so the operator can roll forward again.
+// produced by the last update). No download is required, so this is the fastest
+// way to undo a bad update. The current (newer) binary is moved into the backup
+// slot, so the operator can roll forward again. Like PerformUpdate it stages the
+// swap and returns need_restart=true rather than restarting itself.
 func RollbackService(c *gin.Context) {
 	exePath, err := resolveExePath()
 	if err != nil {
@@ -190,9 +194,11 @@ func RollbackService(c *gin.Context) {
 		common.SysError("backup slot could not be refilled after rollback: " + err.Error())
 	}
 
-	common.SysLog(fmt.Sprintf("Rolled back to previous version, restarting..."))
-	common.ApiSuccess(c, gin.H{"message": "Rolled back to previous version, restarting..."})
-	triggerRestart()
+	common.SysLog("Rolled back to previous version, awaiting restart")
+	common.ApiSuccess(c, gin.H{
+		"need_restart": true,
+		"message":      "Rolled back to previous version. Restart the service to apply it.",
+	})
 }
 
 // ListRollbackVersions returns recent releases older than the current version
@@ -293,12 +299,12 @@ func RollbackToVersion(c *gin.Context) {
 		return
 	}
 
-	common.SysLog(fmt.Sprintf("Rollback to %s successful, restarting...", version))
+	common.SysLog(fmt.Sprintf("Rollback to %s staged, awaiting restart", version))
 	common.ApiSuccess(c, gin.H{
-		"version": version,
-		"message": "Rollback successful, restarting service...",
+		"version":      version,
+		"need_restart": true,
+		"message":      "Rollback downloaded. Restart the service to apply it.",
 	})
-	triggerRestart()
 }
 
 // applyReleaseBinary is the shared download + atomic-swap routine used by both
@@ -490,17 +496,18 @@ func pickAssetName(tagName string) string {
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
 
+	// Names must match the assets published by .github/workflows/release.yml.
 	switch {
 	case goos == "linux" && goarch == "amd64":
 		return "new-api-" + tagName
 	case goos == "linux" && goarch == "arm64":
 		return "new-api-arm64-" + tagName
-	case goos == "darwin" && goarch == "amd64":
-		return "new-api-darwin-amd64-" + tagName
-	case goos == "darwin" && goarch == "arm64":
-		return "new-api-darwin-arm64-" + tagName
+	case goos == "darwin":
+		// The release publishes a single macOS binary (no amd64/arm64 split),
+		// so both architectures map to it.
+		return "new-api-macos-" + tagName
 	case goos == "windows" && goarch == "amd64":
-		return "new-api-windows-amd64-" + tagName + ".exe"
+		return "new-api-" + tagName + ".exe"
 	default:
 		return fmt.Sprintf("new-api-%s-%s-%s", goos, goarch, tagName)
 	}

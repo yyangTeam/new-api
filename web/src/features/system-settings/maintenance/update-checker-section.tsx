@@ -61,6 +61,9 @@ export function UpdateCheckerSection(props: UpdateCheckerSectionProps) {
   const [loadingRollback, setLoadingRollback] = useState(false)
   const [rollingBack, setRollingBack] = useState<Record<string, boolean>>({})
   const [restarting, setRestarting] = useState(false)
+  // Set once an update/rollback has staged a new binary that only takes effect
+  // after a restart (the backend no longer restarts automatically).
+  const [needRestart, setNeedRestart] = useState(false)
 
   const fetchRollbackInfo = async () => {
     setLoadingRollback(true)
@@ -113,8 +116,9 @@ export function UpdateCheckerSection(props: UpdateCheckerSectionProps) {
       if (!payload?.success) {
         throw new Error(payload?.message || t('Rollback failed'))
       }
+      setNeedRestart(true)
       toast.success(
-        t('Rolled back to previous version. Service is restarting...')
+        t('Rolled back to previous version. Restart the service to apply it.')
       )
     } catch (error) {
       const message =
@@ -135,8 +139,9 @@ export function UpdateCheckerSection(props: UpdateCheckerSectionProps) {
       if (!payload?.success) {
         throw new Error(payload?.message || t('Rollback failed'))
       }
+      setNeedRestart(true)
       toast.success(
-        t('Rolled back to {{version}}. Service is restarting...', {
+        t('Rolled back to {{version}}. Restart the service to apply it.', {
           version,
         })
       )
@@ -168,11 +173,19 @@ export function UpdateCheckerSection(props: UpdateCheckerSectionProps) {
             </div>
           </div>
 
+          {needRestart && (
+            <div className='rounded-lg border border-warning bg-warning/10 p-3 text-sm'>
+              {t(
+                'A new version has been staged. Restart the service to apply it.'
+              )}
+            </div>
+          )}
+
           <div className='flex flex-wrap gap-3'>
             <SystemUpdateAction compact={false} />
 
             <Button
-              variant='outline'
+              variant={needRestart ? 'default' : 'outline'}
               onClick={handleRestart}
               disabled={restarting}
             >
@@ -181,7 +194,7 @@ export function UpdateCheckerSection(props: UpdateCheckerSectionProps) {
               ) : (
                 <>
                   <PowerIcon className='me-2 h-4 w-4' />
-                  {t('Restart service')}
+                  {needRestart ? t('Restart now') : t('Restart service')}
                 </>
               )}
             </Button>
