@@ -959,7 +959,7 @@ func TestProcessTokenData(t *testing.T) {
 		data := `{"choices":[{"delta":{"content":"world"}}]}`
 		var builder strings.Builder
 		var toolCount int
-		err := processTokenData(relayconstant.RelayModeChatCompletions, data, &builder, &toolCount)
+		err := processTokenData(&relaycommon.RelayInfo{RelayMode: relayconstant.RelayModeChatCompletions}, data, &builder, &toolCount)
 		require.NoError(t, err)
 		assert.Equal(t, "world", builder.String())
 	})
@@ -968,7 +968,7 @@ func TestProcessTokenData(t *testing.T) {
 		data := `{"choices":[{"text":"hello"},{"text":" world"}]}`
 		var builder strings.Builder
 		var toolCount int
-		err := processTokenData(relayconstant.RelayModeCompletions, data, &builder, &toolCount)
+		err := processTokenData(&relaycommon.RelayInfo{RelayMode: relayconstant.RelayModeCompletions}, data, &builder, &toolCount)
 		require.NoError(t, err)
 		assert.Equal(t, "hello world", builder.String())
 	})
@@ -977,7 +977,7 @@ func TestProcessTokenData(t *testing.T) {
 		data := `{"choices":[{"delta":{"content":"ignored"}}]}`
 		var builder strings.Builder
 		var toolCount int
-		err := processTokenData(relayconstant.RelayModeEmbeddings, data, &builder, &toolCount)
+		err := processTokenData(&relaycommon.RelayInfo{RelayMode: relayconstant.RelayModeEmbeddings}, data, &builder, &toolCount)
 		require.NoError(t, err)
 		assert.Equal(t, "", builder.String())
 	})
@@ -985,14 +985,14 @@ func TestProcessTokenData(t *testing.T) {
 	t.Run("invalid JSON in chat mode returns error", func(t *testing.T) {
 		var builder strings.Builder
 		var toolCount int
-		err := processTokenData(relayconstant.RelayModeChatCompletions, `{broken`, &builder, &toolCount)
+		err := processTokenData(&relaycommon.RelayInfo{RelayMode: relayconstant.RelayModeChatCompletions}, `{broken`, &builder, &toolCount)
 		require.Error(t, err)
 	})
 
 	t.Run("invalid JSON in completions mode returns error", func(t *testing.T) {
 		var builder strings.Builder
 		var toolCount int
-		err := processTokenData(relayconstant.RelayModeCompletions, `{broken`, &builder, &toolCount)
+		err := processTokenData(&relaycommon.RelayInfo{RelayMode: relayconstant.RelayModeCompletions}, `{broken`, &builder, &toolCount)
 		require.Error(t, err)
 	})
 }
@@ -1092,7 +1092,7 @@ func TestCollectStreamFunctionCallNamesMultipleChoices(t *testing.T) {
 
 	// Two choices, each with a tool call at index 0
 	data := `{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"c1","type":"function","function":{"name":"fn_a"}}]}},{"index":1,"delta":{"tool_calls":[{"index":0,"id":"c2","type":"function","function":{"name":"fn_b"}}]}}]}`
-	collectStreamFunctionCallNames(data, seen, &names)
+	observeStreamChoices(&relaycommon.RelayInfo{}, data, seen, &names)
 
 	require.Len(t, names, 2)
 	assert.Equal(t, "fn_a", names[0])
@@ -1105,7 +1105,7 @@ func TestCollectStreamFunctionCallNamesEmptyName(t *testing.T) {
 
 	// Tool call with empty name (arguments-only delta) is ignored
 	data := `{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{}"}}]}}]}`
-	collectStreamFunctionCallNames(data, seen, &names)
+	observeStreamChoices(&relaycommon.RelayInfo{}, data, seen, &names)
 	assert.Empty(t, names)
 }
 
@@ -1113,7 +1113,7 @@ func TestCollectStreamFunctionCallNamesInvalidJSON(t *testing.T) {
 	seen := make(map[string]struct{})
 	var names []string
 
-	collectStreamFunctionCallNames(`{bad json`, seen, &names)
+	observeStreamChoices(&relaycommon.RelayInfo{}, `{bad json`, seen, &names)
 	assert.Empty(t, names) // graceful handling
 }
 
@@ -1124,7 +1124,7 @@ func TestCollectStreamFunctionCallNamesNilIndex(t *testing.T) {
 
 	// No "index" field in the tool_call — relies on slice position 0
 	data := `{"choices":[{"index":0,"delta":{"tool_calls":[{"id":"c1","type":"function","function":{"name":"fn_no_index"}}]}}]}`
-	collectStreamFunctionCallNames(data, seen, &names)
+	observeStreamChoices(&relaycommon.RelayInfo{}, data, seen, &names)
 	require.Len(t, names, 1)
 	assert.Equal(t, "fn_no_index", names[0])
 	// With a callID present ("c1"), the function uses composite keys with null-byte
