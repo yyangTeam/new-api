@@ -590,17 +590,17 @@ func TestPickAssetName(t *testing.T) {
 	name := pickAssetName("v0.0.1")
 	assert.Contains(t, name, "v0.0.1")
 
+	// Names must match the assets published by .github/workflows/release.yml.
 	switch {
 	case runtime.GOOS == "linux" && runtime.GOARCH == "amd64":
 		assert.Equal(t, "new-api-v0.0.1", name)
 	case runtime.GOOS == "linux" && runtime.GOARCH == "arm64":
 		assert.Equal(t, "new-api-arm64-v0.0.1", name)
-	case runtime.GOOS == "darwin" && runtime.GOARCH == "amd64":
-		assert.Equal(t, "new-api-darwin-amd64-v0.0.1", name)
-	case runtime.GOOS == "darwin" && runtime.GOARCH == "arm64":
-		assert.Equal(t, "new-api-darwin-arm64-v0.0.1", name)
+	case runtime.GOOS == "darwin":
+		// The release publishes a single macOS binary; both arches map to it.
+		assert.Equal(t, "new-api-macos-v0.0.1", name)
 	case runtime.GOOS == "windows" && runtime.GOARCH == "amd64":
-		assert.Equal(t, "new-api-windows-amd64-v0.0.1.exe", name)
+		assert.Equal(t, "new-api-v0.0.1.exe", name)
 	default:
 		assert.Equal(t, "new-api-"+runtime.GOOS+"-"+runtime.GOARCH+"-v0.0.1", name)
 	}
