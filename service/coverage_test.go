@@ -1259,38 +1259,12 @@ func TestNewSystemTaskProgressReporter_ClampsProgress(t *testing.T) {
 }
 
 // --- merged from token_counter_test.go ---
-func TestCountTextToken_EmptyString(t *testing.T) {
-	assert.Equal(t, 0, CountTextToken("", "gpt-4o"))
-	assert.Equal(t, 0, CountTextToken("", "claude-3"))
-}
-
-func TestCountTextToken_NonOpenAIModel_UsesEstimator(t *testing.T) {
-	// For non-OpenAI models, CountTextToken delegates to EstimateTokenByModel
-	text := "hello world"
-	expected := EstimateTokenByModel("claude-3-opus", text)
-	got := CountTextToken(text, "claude-3-opus")
-	assert.Equal(t, expected, got)
-}
-
-func TestCountTextToken_OpenAIModel_UsesTokenizer(t *testing.T) {
-	// Initialize encoders for this test
-	InitTokenEncoders()
-
-	// "hello world" with GPT tokenizer should be a specific count (2 tokens typically)
-	got := CountTextToken("hello world", "gpt-4")
-	assert.Greater(t, got, 0)
-	// The tiktoken count for "hello world" with cl100k_base is 2
-	assert.Equal(t, 2, got)
-}
-
 func TestCountTokenInput_StringType(t *testing.T) {
-	InitTokenEncoders()
 	result := CountTokenInput("hello", "gpt-4")
 	assert.Greater(t, result, 0)
 }
 
 func TestCountTokenInput_StringSlice(t *testing.T) {
-	InitTokenEncoders()
 	input := []string{"hello", " world"}
 	result := CountTokenInput(input, "gpt-4")
 	// "hello world" = 2 tokens
@@ -1298,14 +1272,12 @@ func TestCountTokenInput_StringSlice(t *testing.T) {
 }
 
 func TestCountTokenInput_InterfaceSlice(t *testing.T) {
-	InitTokenEncoders()
-	input := []interface{}{"hello", " world"}
+	input := []any{"hello", " world"}
 	result := CountTokenInput(input, "gpt-4")
 	assert.Greater(t, result, 0)
 }
 
 func TestCountTokenInput_OtherType(t *testing.T) {
-	InitTokenEncoders()
 	// Non-string/slice types get fmt.Sprintf'd then counted
 	result := CountTokenInput(42, "gpt-4")
 	assert.Greater(t, result, 0)

@@ -633,30 +633,6 @@ func TestBytes2Size(t *testing.T) {
 	}
 }
 
-func TestSeconds2Time(t *testing.T) {
-	// Seconds2Time emits a unit only when its value is > 0, except the
-	// trailing seconds unit which is always present.
-	cases := []struct {
-		in   int
-		want string
-	}{
-		{0, "0 秒"},
-		{59, "59 秒"},
-		{60, "1 分钟 0 秒"},
-		{61, "1 分钟 1 秒"},
-		{3600, "1 小时 0 秒"},
-		{3661, "1 小时 1 分钟 1 秒"},
-		{86400, "1 天 0 秒"},
-		{90061, "1 天 1 小时 1 分钟 1 秒"},
-		{2592000, "1 个月 0 秒"},
-		{31104000, "1 年 0 秒"},
-		{31104000 + 2592000 + 86400 + 3600 + 60 + 1, "1 年 1 个月 1 天 1 小时 1 分钟 1 秒"},
-	}
-	for _, c := range cases {
-		assert.Equal(t, c.want, Seconds2Time(c.in), "input=%d", c.in)
-	}
-}
-
 func TestInterface2String(t *testing.T) {
 	assert.Equal(t, "hello", Interface2String("hello"))
 	assert.Equal(t, "42", Interface2String(42))

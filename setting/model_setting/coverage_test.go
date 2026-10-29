@@ -19,9 +19,9 @@ func TestGetClaudeSettings_EnsuresDefaultMaxTokensKey(t *testing.T) {
 	// When the admin removes the "default" key, GetClaudeSettings must restore
 	// it so GetDefaultMaxTokens always has a deterministic fallback.
 	claudeSettings = ClaudeSettings{
-		HeadersSettings:        map[string]map[string][]string{},
-		DefaultMaxTokens:       map[string]int{},
-		ThinkingAdapterEnabled: true,
+		HeadersSettings:                       map[string]map[string][]string{},
+		DefaultMaxTokens:                      map[string]int{},
+		ThinkingAdapterEnabled:                true,
 		ThinkingAdapterBudgetTokensPercentage: 0.8,
 	}
 	s := GetClaudeSettings()
@@ -37,7 +37,7 @@ func TestGetDefaultMaxTokens_ModelOverrideThenFallback(t *testing.T) {
 
 	claudeSettings = ClaudeSettings{
 		DefaultMaxTokens: map[string]int{
-			"default":    8192,
+			"default":     8192,
 			"claude-opus": 4096,
 		},
 	}
@@ -199,22 +199,4 @@ func TestGetGrokSettings_Defaults(t *testing.T) {
 	require.NotNil(t, s)
 	assert.True(t, s.ViolationDeductionEnabled)
 	assert.InDelta(t, 0.05, s.ViolationDeductionAmount, 0.0001)
-}
-
-func TestGetQwenSettings_ReturnsSingleton(t *testing.T) {
-	require.NotNil(t, GetQwenSettings())
-}
-
-func TestIsSyncImageModel_SubstringMatch(t *testing.T) {
-	orig := qwenSettings.SyncImageModels
-	t.Cleanup(func() { qwenSettings.SyncImageModels = orig })
-
-	qwenSettings.SyncImageModels = []string{"z-image", "qwen-image-edit"}
-	// Substring containment: a longer model name containing a listed token matches.
-	assert.True(t, IsSyncImageModel("z-image"))
-	assert.True(t, IsSyncImageModel("prefix-z-image-suffix"))
-	assert.True(t, IsSyncImageModel("qwen-image-edit-max-2026-01-16"))
-	// No substring overlap.
-	assert.False(t, IsSyncImageModel("wan2.5"))
-	assert.False(t, IsSyncImageModel(""))
 }

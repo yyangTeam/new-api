@@ -6,29 +6,29 @@ import {
   THEME_RADIUS_VALUES,
   THEME_SCALE_VALUES,
   CONTENT_LAYOUT_VALUES,
-  THEME_COOKIE_KEYS,
   PRESET_DEFAULT_FONT,
   DEFAULT_THEME_CUSTOMIZATION,
 } from '@/lib/theme-customization'
+import { THEME_STORAGE_KEYS } from '@/lib/theme-storage'
 
 describe('resolveThemeFont', () => {
-  test('returns sans for default font with default preset', () => {
-    expect(resolveThemeFont('default', 'default')).toBe('sans')
+  test('returns system for default font with default preset', () => {
+    expect(resolveThemeFont('default', 'default')).toBe('system')
   })
 
   test('returns serif for default font with anthropic preset', () => {
     expect(resolveThemeFont('default', 'anthropic')).toBe('serif')
   })
 
-  test('returns sans for default font with unlisted preset', () => {
-    expect(resolveThemeFont('default', 'underground')).toBe('sans')
-    expect(resolveThemeFont('default', 'rose-garden')).toBe('sans')
-    expect(resolveThemeFont('default', 'lake-view')).toBe('sans')
-    expect(resolveThemeFont('default', 'sunset-glow')).toBe('sans')
-    expect(resolveThemeFont('default', 'forest-whisper')).toBe('sans')
-    expect(resolveThemeFont('default', 'ocean-breeze')).toBe('sans')
-    expect(resolveThemeFont('default', 'lavender-dream')).toBe('sans')
-    expect(resolveThemeFont('default', 'simple-large')).toBe('sans')
+  test('returns system for default font with presets without font overrides', () => {
+    expect(resolveThemeFont('default', 'underground')).toBe('system')
+    expect(resolveThemeFont('default', 'rose-garden')).toBe('system')
+    expect(resolveThemeFont('default', 'lake-view')).toBe('system')
+    expect(resolveThemeFont('default', 'sunset-glow')).toBe('system')
+    expect(resolveThemeFont('default', 'forest-whisper')).toBe('system')
+    expect(resolveThemeFont('default', 'ocean-breeze')).toBe('system')
+    expect(resolveThemeFont('default', 'lavender-dream')).toBe('system')
+    expect(resolveThemeFont('default', 'simple-large')).toBe('system')
   })
 
   test('returns sans when explicitly set to sans regardless of preset', () => {
@@ -119,19 +119,21 @@ describe('CONTENT_LAYOUT_VALUES', () => {
   })
 })
 
-describe('THEME_COOKIE_KEYS', () => {
-  test('maps each customization axis to a cookie key', () => {
-    expect(THEME_COOKIE_KEYS.preset).toBe('theme_preset')
-    expect(THEME_COOKIE_KEYS.font).toBe('theme_font')
-    expect(THEME_COOKIE_KEYS.radius).toBe('theme_radius')
-    expect(THEME_COOKIE_KEYS.scale).toBe('theme_scale')
-    expect(THEME_COOKIE_KEYS.contentLayout).toBe('theme_content_layout')
+describe('THEME_STORAGE_KEYS', () => {
+  test('maps each customization axis to a local storage key', () => {
+    expect(THEME_STORAGE_KEYS.preset).toBe('newapi:theme:v1:preset')
+    expect(THEME_STORAGE_KEYS.font).toBe('newapi:theme:v1:font')
+    expect(THEME_STORAGE_KEYS.radius).toBe('newapi:theme:v1:radius')
+    expect(THEME_STORAGE_KEYS.scale).toBe('newapi:theme:v1:scale')
+    expect(THEME_STORAGE_KEYS.contentLayout).toBe(
+      'newapi:theme:v1:content-layout'
+    )
   })
 })
 
 describe('PRESET_DEFAULT_FONT', () => {
-  test('maps default preset to sans', () => {
-    expect(PRESET_DEFAULT_FONT['default']).toBe('sans')
+  test('does not override the default preset font', () => {
+    expect(PRESET_DEFAULT_FONT['default']).toBeUndefined()
   })
 
   test('maps anthropic preset to serif', () => {

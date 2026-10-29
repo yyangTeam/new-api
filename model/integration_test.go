@@ -166,6 +166,9 @@ func TestTokenAutoGroups_Empty(t *testing.T) {
 
 func TestValidateAccessToken(t *testing.T) {
 	db := SetupIntegrationTestDB(t)
+	previousRetireAt := LegacyAccessTokenRetireAt()
+	t.Cleanup(func() { legacyAccessTokenRetireAt.Store(previousRetireAt) })
+	require.NoError(t, EnsureLegacyAccessTokenRetireAt(common.GetTimestamp()))
 
 	pat := "abcdef1234567890abcdef1234567890"
 	SeedTestUserWithAccessToken(t, db, "patuser", "pass12345", common.RoleAdminUser, pat)
@@ -180,6 +183,9 @@ func TestValidateAccessToken(t *testing.T) {
 
 func TestValidateAccessToken_Invalid(t *testing.T) {
 	SetupIntegrationTestDB(t)
+	previousRetireAt := LegacyAccessTokenRetireAt()
+	t.Cleanup(func() { legacyAccessTokenRetireAt.Store(previousRetireAt) })
+	require.NoError(t, EnsureLegacyAccessTokenRetireAt(common.GetTimestamp()))
 
 	user, err := ValidateAccessToken("nonexistent-token")
 	require.NoError(t, err)

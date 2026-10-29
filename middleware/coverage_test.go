@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	rootdto "github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
-	rootdto "github.com/QuantumNous/new-api/dto"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service/authz"
@@ -1018,9 +1018,9 @@ func TestDetectLanguageFromAcceptLanguageHeader(t *testing.T) {
 			expected:       "en",
 		},
 		{
-			name:           "empty header defaults to English",
+			name:           "empty header leaves language unstated",
 			acceptLanguage: "",
-			expected:       i18n.DefaultLang,
+			expected:       "",
 		},
 	}
 
@@ -1053,21 +1053,23 @@ func TestDetectLanguageFromUserSetting(t *testing.T) {
 	assert.Equal(t, "zh-CN", lang)
 }
 
-func TestGetLanguageDefaultsWhenNotSet(t *testing.T) {
+func TestStatedLangReturnsEmptyWhenNotSet(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/", nil)
 
-	lang := GetLanguage(ctx)
+	lang := i18n.StatedLang(ctx)
 
-	assert.Equal(t, i18n.DefaultLang, lang)
+	assert.Empty(t, lang)
 }
 
-func TestGetLanguageReturnsSetValue(t *testing.T) {
+func TestStatedLangReturnsSetValue(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/", nil)
 	ctx.Set(string(constant.ContextKeyLanguage), "zh-TW")
 
-	lang := GetLanguage(ctx)
+	lang := i18n.StatedLang(ctx)
 
 	assert.Equal(t, "zh-TW", lang)
 }

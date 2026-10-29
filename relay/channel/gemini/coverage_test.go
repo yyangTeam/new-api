@@ -32,14 +32,14 @@ import (
 
 func TestGetRequestURL(t *testing.T) {
 	tests := []struct {
-		name           string
-		baseUrl        string
-		upstreamModel  string
-		originModel    string
-		isStream       bool
-		relayMode      int
-		batchEmbedding bool
-		wantURL        string
+		name            string
+		baseUrl         string
+		upstreamModel   string
+		originModel     string
+		isStream        bool
+		relayMode       int
+		batchEmbedding  bool
+		wantURL         string
 		wantDisablePing bool
 	}{
 		{
@@ -51,23 +51,23 @@ func TestGetRequestURL(t *testing.T) {
 			wantURL:       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
 		},
 		{
-			name:           "chat stream content appends alt=sse",
-			baseUrl:        "https://generativelanguage.googleapis.com",
-			upstreamModel:  "gemini-2.5-flash",
-			originModel:    "gemini-2.5-flash",
-			isStream:       true,
-			relayMode:      relayconstant.RelayModeChatCompletions,
-			wantURL:        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse",
+			name:            "chat stream content appends alt=sse",
+			baseUrl:         "https://generativelanguage.googleapis.com",
+			upstreamModel:   "gemini-2.5-flash",
+			originModel:     "gemini-2.5-flash",
+			isStream:        true,
+			relayMode:       relayconstant.RelayModeChatCompletions,
+			wantURL:         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse",
 			wantDisablePing: false,
 		},
 		{
-			name:           "native gemini stream disables ping",
-			baseUrl:        "https://generativelanguage.googleapis.com",
-			upstreamModel:  "gemini-2.5-flash",
-			originModel:    "gemini-2.5-flash",
-			isStream:       true,
-			relayMode:      relayconstant.RelayModeGemini,
-			wantURL:        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse",
+			name:            "native gemini stream disables ping",
+			baseUrl:         "https://generativelanguage.googleapis.com",
+			upstreamModel:   "gemini-2.5-flash",
+			originModel:     "gemini-2.5-flash",
+			isStream:        true,
+			relayMode:       relayconstant.RelayModeGemini,
+			wantURL:         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse",
 			wantDisablePing: true,
 		},
 		{
@@ -89,9 +89,9 @@ func TestGetRequestURL(t *testing.T) {
 		{
 			name:           "embedding model batch uses batchEmbedContents action",
 			baseUrl:        "https://generativelanguage.googleapis.com",
-			upstreamModel: "gemini-embedding-001",
-			originModel:   "gemini-embedding-001",
-			relayMode:     relayconstant.RelayModeEmbeddings,
+			upstreamModel:  "gemini-embedding-001",
+			originModel:    "gemini-embedding-001",
+			relayMode:      relayconstant.RelayModeEmbeddings,
 			batchEmbedding: true,
 			wantURL:        "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents",
 		},
@@ -116,10 +116,10 @@ func TestGetRequestURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			info := &relaycommon.RelayInfo{
-				IsStream:             tt.isStream,
+				IsStream:               tt.isStream,
 				IsGeminiBatchEmbedding: tt.batchEmbedding,
-				RelayMode:            tt.relayMode,
-				OriginModelName:       tt.originModel,
+				RelayMode:              tt.relayMode,
+				OriginModelName:        tt.originModel,
 			}
 			info.ChannelMeta = &relaycommon.ChannelMeta{
 				ChannelBaseUrl:    tt.baseUrl,
@@ -376,7 +376,7 @@ func TestConvertClaudeRequest_WithSystemPrompt(t *testing.T) {
 	// A system prompt in the Claude request must surface as Gemini system
 	// instructions, not as a user content turn.
 	req := &dto.ClaudeRequest{
-		Model: "gemini-2.5-flash",
+		Model:  "gemini-2.5-flash",
 		System: json.RawMessage(`[{"type":"text","text":"you are helpful"}]`),
 		Messages: []dto.ClaudeMessage{
 			{Role: "user", Content: json.RawMessage(`[{"type":"text","text":"hi"}]`)},
@@ -728,9 +728,9 @@ func TestDoResponse_RoutesResponsesModeNonStream(t *testing.T) {
 	c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", nil)
 	c.Set(common.RequestIdKey, "do-resp-test")
 	info := &relaycommon.RelayInfo{
-		RelayMode:    relayconstant.RelayModeResponses,
-		RelayFormat:  types.RelayFormatOpenAIResponses,
-		IsStream:     false,
+		RelayMode:   relayconstant.RelayModeResponses,
+		RelayFormat: types.RelayFormatOpenAIResponses,
+		IsStream:    false,
 	}
 	info.ChannelMeta = &relaycommon.ChannelMeta{UpstreamModelName: "gemini-2.5-flash"}
 
@@ -1109,8 +1109,8 @@ func TestGeminiChatHandler_GeminiFormatPassthrough(t *testing.T) {
 // ---------------------------------------------------------------------------
 // relay-gemini.go: pure helpers
 //
-// geminiResponseUsageText, geminiResponseInlineImageCount and
-// markGeminiGoogleSearchCall are pure transforms exercised here in isolation.
+// geminiResponseUsageText and geminiResponseInlineImageCount are pure
+// transforms exercised here in isolation.
 // ---------------------------------------------------------------------------
 
 func TestGeminiResponseUsageText_NilSafeAndConcatenates(t *testing.T) {
@@ -1163,45 +1163,6 @@ func TestGeminiResponseInlineImageCount(t *testing.T) {
 			},
 		}
 		assert.Equal(t, 3, geminiResponseInlineImageCount(r))
-	})
-}
-
-func TestMarkGeminiGoogleSearchCall(t *testing.T) {
-	t.Run("nil context is a no-op", func(t *testing.T) {
-		require.NotPanics(t, func() { markGeminiGoogleSearchCall(nil, &dto.GeminiChatResponse{}) })
-	})
-	t.Run("nil response is a no-op", func(t *testing.T) {
-		c, _ := gin.CreateTestContext(httptest.NewRecorder())
-		require.NotPanics(t, func() { markGeminiGoogleSearchCall(c, nil) })
-		assert.False(t, common.GetContextKeyBool(c, "gemini_google_search_call"))
-	})
-	t.Run("sets flag when grounding queries present", func(t *testing.T) {
-		c, _ := gin.CreateTestContext(httptest.NewRecorder())
-		r := &dto.GeminiChatResponse{
-			Candidates: []dto.GeminiChatCandidate{
-				{GroundingMetadata: &dto.GeminiGroundingMetadata{WebSearchQueries: []string{"q"}}},
-			},
-		}
-		markGeminiGoogleSearchCall(c, r)
-		assert.True(t, common.GetContextKeyBool(c, "gemini_google_search_call"))
-	})
-	t.Run("does not set flag when grounding queries empty", func(t *testing.T) {
-		c, _ := gin.CreateTestContext(httptest.NewRecorder())
-		r := &dto.GeminiChatResponse{
-			Candidates: []dto.GeminiChatCandidate{
-				{GroundingMetadata: &dto.GeminiGroundingMetadata{WebSearchQueries: nil}},
-			},
-		}
-		markGeminiGoogleSearchCall(c, r)
-		assert.False(t, common.GetContextKeyBool(c, "gemini_google_search_call"))
-	})
-	t.Run("does not set flag when no grounding metadata", func(t *testing.T) {
-		c, _ := gin.CreateTestContext(httptest.NewRecorder())
-		r := &dto.GeminiChatResponse{
-			Candidates: []dto.GeminiChatCandidate{{Content: dto.GeminiChatContent{Parts: []dto.GeminiPart{{Text: "x"}}}}},
-		}
-		markGeminiGoogleSearchCall(c, r)
-		assert.False(t, common.GetContextKeyBool(c, "gemini_google_search_call"))
 	})
 }
 

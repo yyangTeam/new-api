@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { renderHook, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
@@ -9,7 +10,8 @@ const mockToastSuccess = vi.fn()
 const mockToastError = vi.fn()
 
 vi.mock('@/features/wallet/api', () => ({
-  requestWaffoPancakePayment: (...args: unknown[]) => mockRequestWaffoPancakePayment(...args),
+  requestWaffoPancakePayment: (...args: unknown[]) =>
+    mockRequestWaffoPancakePayment(...args),
   isApiSuccess: (...args: unknown[]) => mockIsApiSuccess(...args),
 }))
 
@@ -27,11 +29,7 @@ describe('useWaffoPancakePayment', () => {
       (res: { success?: boolean; message?: string }) =>
         res.success === true || res.message === 'success'
     )
-    // Mock window.location.href setter
-    Object.defineProperty(window, 'location', {
-      writable: true,
-      value: { ...window.location, href: '' },
-    })
+    window.location.href = 'http://localhost/'
   })
 
   it('starts with processing=false', () => {
@@ -190,12 +188,15 @@ describe('useWaffoPancakePayment', () => {
   it('sets processing state during API call', async () => {
     let resolvePayment: (val: unknown) => void = () => {}
     mockRequestWaffoPancakePayment.mockImplementation(
-      () => new Promise((resolve) => { resolvePayment = resolve })
+      () =>
+        new Promise((resolve) => {
+          resolvePayment = resolve
+        })
     )
 
     const { result } = renderHook(() => useWaffoPancakePayment())
 
-    let paymentPromise: Promise<boolean>
+    let paymentPromise: Promise<boolean> = Promise.resolve(false)
     act(() => {
       paymentPromise = result.current.processWaffoPancakePayment(200)
     })
@@ -203,8 +204,11 @@ describe('useWaffoPancakePayment', () => {
     expect(result.current.processing).toBe(true)
 
     await act(async () => {
-      resolvePayment({ success: true, data: { checkout_url: 'https://ok.com' } })
-      await paymentPromise!
+      resolvePayment({
+        success: true,
+        data: { checkout_url: 'https://ok.com' },
+      })
+      await paymentPromise
     })
 
     expect(result.current.processing).toBe(false)

@@ -1,7 +1,5 @@
 import type { TFunction } from 'i18next'
 
-import type { ApiKey } from '@/features/keys/types'
-
 import {
   getApiKeyFormSchema,
   getApiKeyFormDefaultValues,
@@ -9,6 +7,7 @@ import {
   transformApiKeyToFormDefaults,
   API_KEY_FORM_DEFAULT_VALUES,
 } from '@/features/keys/lib/api-key-form'
+import type { ApiKey } from '@/features/keys/types'
 
 vi.mock('@/lib/format', () => ({
   parseQuotaFromDollars: (amount: number) => Math.round(amount * 500000),
@@ -21,7 +20,12 @@ describe('getApiKeyFormSchema', () => {
   const schema = getApiKeyFormSchema(t)
   // Required auto-group fields the schema enforces (set to safe defaults here
   // so quota/name-focused cases don't fail on unrelated missing keys).
-  const auto = { auto_groups_mode: 'inherit' as const, auto_groups: [] }
+  const auto = {
+    expired_time: null,
+    allow_user_quota_query: true,
+    auto_groups_mode: 'inherit' as const,
+    auto_groups: [],
+  }
 
   test('accepts valid form data with unlimited quota', () => {
     const result = schema.safeParse({
@@ -115,10 +119,11 @@ describe('getApiKeyFormDefaultValues', () => {
     const defaults = getApiKeyFormDefaultValues(false)
     expect(defaults.name).toBe('')
     expect(defaults.remain_quota_dollars).toBe(10)
-    expect(defaults.expired_time).toBeUndefined()
+    expect(defaults.expired_time).toBeNull()
     expect(defaults.unlimited_quota).toBe(true)
     expect(defaults.model_limits).toEqual([])
     expect(defaults.allow_ips).toBe('')
+    expect(defaults.allow_user_quota_query).toBe(true)
     expect(defaults.tokenCount).toBe(1)
   })
 })
@@ -127,10 +132,11 @@ describe('API_KEY_FORM_DEFAULT_VALUES', () => {
   test('has expected default values', () => {
     expect(API_KEY_FORM_DEFAULT_VALUES.name).toBe('')
     expect(API_KEY_FORM_DEFAULT_VALUES.remain_quota_dollars).toBe(10)
-    expect(API_KEY_FORM_DEFAULT_VALUES.expired_time).toBeUndefined()
+    expect(API_KEY_FORM_DEFAULT_VALUES.expired_time).toBeNull()
     expect(API_KEY_FORM_DEFAULT_VALUES.unlimited_quota).toBe(true)
     expect(API_KEY_FORM_DEFAULT_VALUES.model_limits).toEqual([])
     expect(API_KEY_FORM_DEFAULT_VALUES.allow_ips).toBe('')
+    expect(API_KEY_FORM_DEFAULT_VALUES.allow_user_quota_query).toBe(true)
     expect(API_KEY_FORM_DEFAULT_VALUES.group).toBe('')
     expect(API_KEY_FORM_DEFAULT_VALUES.cross_group_retry).toBe(true)
     expect(API_KEY_FORM_DEFAULT_VALUES.tokenCount).toBe(1)
@@ -138,8 +144,11 @@ describe('API_KEY_FORM_DEFAULT_VALUES', () => {
 })
 
 describe('transformFormDataToPayload', () => {
+  const requiredFields = { expired_time: null, allow_user_quota_query: true }
+
   test('transforms basic form data with unlimited quota', () => {
     const payload = transformFormDataToPayload({
+      ...requiredFields,
       name: 'my-key',
       unlimited_quota: true,
       remain_quota_dollars: 10,
@@ -156,12 +165,23 @@ describe('transformFormDataToPayload', () => {
     expect(payload.model_limits_enabled).toBe(false)
     expect(payload.model_limits).toBe('')
     expect(payload.allow_ips).toBe('')
+    expect(payload.allow_user_quota_query).toBe(true)
     expect(payload.group).toBe('')
     expect(payload.cross_group_retry).toBe(false)
   })
 
+  test('preserves disabled user quota queries in the API payload', () => {
+    const payload = transformFormDataToPayload({
+      ...API_KEY_FORM_DEFAULT_VALUES,
+      allow_user_quota_query: false,
+    })
+
+    expect(payload.allow_user_quota_query).toBe(false)
+  })
+
   test('converts quota from dollars when not unlimited', () => {
     const payload = transformFormDataToPayload({
+      ...requiredFields,
       name: 'my-key',
       unlimited_quota: false,
       remain_quota_dollars: 5,
@@ -176,6 +196,7 @@ describe('transformFormDataToPayload', () => {
 
   test('defaults remain_quota_dollars to 0 when undefined', () => {
     const payload = transformFormDataToPayload({
+      ...requiredFields,
       name: 'my-key',
       unlimited_quota: false,
       model_limits: [],
@@ -189,6 +210,7 @@ describe('transformFormDataToPayload', () => {
   test('converts expired_time from Date to unix seconds', () => {
     const date = new Date('2025-06-15T12:00:00Z')
     const payload = transformFormDataToPayload({
+      ...requiredFields,
       name: 'my-key',
       unlimited_quota: true,
       expired_time: date,
@@ -202,6 +224,7 @@ describe('transformFormDataToPayload', () => {
 
   test('sets expired_time to -1 when no expiry', () => {
     const payload = transformFormDataToPayload({
+      ...requiredFields,
       name: 'my-key',
       unlimited_quota: true,
       model_limits: [],
@@ -214,6 +237,7 @@ describe('transformFormDataToPayload', () => {
 
   test('joins model_limits into comma-separated string', () => {
     const payload = transformFormDataToPayload({
+      ...requiredFields,
       name: 'my-key',
       unlimited_quota: true,
       model_limits: ['gpt-4', 'claude-3', 'gemini-pro'],
@@ -227,6 +251,7 @@ describe('transformFormDataToPayload', () => {
 
   test('sets model_limits_enabled to false when empty', () => {
     const payload = transformFormDataToPayload({
+      ...requiredFields,
       name: 'my-key',
       unlimited_quota: true,
       model_limits: [],
@@ -240,6 +265,7 @@ describe('transformFormDataToPayload', () => {
 
   test('sets cross_group_retry only when group is auto', () => {
     const payloadAuto = transformFormDataToPayload({
+      ...requiredFields,
       name: 'my-key',
       unlimited_quota: true,
       model_limits: [],
@@ -251,6 +277,7 @@ describe('transformFormDataToPayload', () => {
     expect(payloadAuto.cross_group_retry).toBe(true)
 
     const payloadNonAuto = transformFormDataToPayload({
+      ...requiredFields,
       name: 'my-key',
       unlimited_quota: true,
       model_limits: [],
@@ -281,6 +308,7 @@ describe('transformApiKeyToFormDefaults', () => {
     model_limits_enabled: true,
     model_limits: 'gpt-4,claude-3',
     allow_ips: '192.168.1.1',
+    allow_user_quota_query: false,
   }
 
   test('transforms basic api key fields', () => {
@@ -289,6 +317,7 @@ describe('transformApiKeyToFormDefaults', () => {
     expect(form.allow_ips).toBe('192.168.1.1')
     expect(form.group).toBe('default')
     expect(form.cross_group_retry).toBe(false)
+    expect(form.allow_user_quota_query).toBe(false)
     expect(form.tokenCount).toBe(1)
   })
 
@@ -310,21 +339,21 @@ describe('transformApiKeyToFormDefaults', () => {
   test('converts expired_time to Date object', () => {
     const form = transformApiKeyToFormDefaults(baseApiKey)
     expect(form.expired_time).toBeInstanceOf(Date)
-    expect(form.expired_time!.getTime()).toBe(1718451600 * 1000)
+    expect(form.expired_time?.getTime()).toBe(1718451600 * 1000)
   })
 
-  test('sets expired_time to undefined when -1 or 0', () => {
+  test('sets expired_time to null when -1 or 0', () => {
     const formNever = transformApiKeyToFormDefaults({
       ...baseApiKey,
       expired_time: -1,
     })
-    expect(formNever.expired_time).toBeUndefined()
+    expect(formNever.expired_time).toBeNull()
 
     const formZero = transformApiKeyToFormDefaults({
       ...baseApiKey,
       expired_time: 0,
     })
-    expect(formZero.expired_time).toBeUndefined()
+    expect(formZero.expired_time).toBeNull()
   })
 
   test('splits model_limits into array', () => {

@@ -9,67 +9,67 @@ import (
 )
 
 func TestValidateURL_ValidHTTPS(t *testing.T) {
-	assert.NoError(t, validateURL("https://example.com", 1, "test"))
+	assert.NoError(t, validateURL("https://example.com", 1, apiInfoMessages))
 }
 
 func TestValidateURL_ValidHTTP(t *testing.T) {
-	assert.NoError(t, validateURL("http://example.com", 1, "test"))
+	assert.NoError(t, validateURL("http://example.com", 1, apiInfoMessages))
 }
 
 func TestValidateURL_ValidWithPort(t *testing.T) {
-	assert.NoError(t, validateURL("https://example.com:8080/path", 1, "test"))
+	assert.NoError(t, validateURL("https://example.com:8080/path", 1, apiInfoMessages))
 }
 
 func TestValidateURL_ValidIP(t *testing.T) {
-	assert.NoError(t, validateURL("http://192.168.1.1:3000/api", 1, "test"))
+	assert.NoError(t, validateURL("http://192.168.1.1:3000/api", 1, apiInfoMessages))
 }
 
 func TestValidateURL_InvalidNoScheme(t *testing.T) {
-	assert.Error(t, validateURL("example.com", 1, "test"))
+	assert.Error(t, validateURL("example.com", 1, apiInfoMessages))
 }
 
 func TestValidateURL_InvalidScheme(t *testing.T) {
-	assert.Error(t, validateURL("ftp://example.com", 1, "test"))
+	assert.Error(t, validateURL("ftp://example.com", 1, apiInfoMessages))
 }
 
 func TestValidateURL_InvalidEmpty(t *testing.T) {
-	assert.Error(t, validateURL("", 1, "test"))
+	assert.Error(t, validateURL("", 1, apiInfoMessages))
 }
 
 func TestValidateURL_InvalidJavascript(t *testing.T) {
-	assert.Error(t, validateURL("javascript:alert(1)", 1, "test"))
+	assert.Error(t, validateURL("javascript:alert(1)", 1, apiInfoMessages))
 }
 
 func TestCheckDangerousContent_Clean(t *testing.T) {
-	assert.NoError(t, checkDangerousContent("This is safe content.", 1, "test"))
+	assert.NoError(t, checkDangerousContent("This is safe content.", 1, apiInfoMessages))
 }
 
 func TestCheckDangerousContent_Script(t *testing.T) {
-	assert.Error(t, checkDangerousContent("<script>alert('xss')</script>", 1, "test"))
+	assert.Error(t, checkDangerousContent("<script>alert('xss')</script>", 1, apiInfoMessages))
 }
 
 func TestCheckDangerousContent_Iframe(t *testing.T) {
-	assert.Error(t, checkDangerousContent("<iframe src='evil.com'>", 1, "test"))
+	assert.Error(t, checkDangerousContent("<iframe src='evil.com'>", 1, apiInfoMessages))
 }
 
 func TestCheckDangerousContent_JavascriptURL(t *testing.T) {
-	assert.Error(t, checkDangerousContent("javascript:void(0)", 1, "test"))
+	assert.Error(t, checkDangerousContent("javascript:void(0)", 1, apiInfoMessages))
 }
 
 func TestCheckDangerousContent_OnloadEvent(t *testing.T) {
-	assert.Error(t, checkDangerousContent("onload=doEvil()", 1, "test"))
+	assert.Error(t, checkDangerousContent("onload=doEvil()", 1, apiInfoMessages))
 }
 
 func TestCheckDangerousContent_OnerrorEvent(t *testing.T) {
-	assert.Error(t, checkDangerousContent("onerror=doEvil()", 1, "test"))
+	assert.Error(t, checkDangerousContent("onerror=doEvil()", 1, apiInfoMessages))
 }
 
 func TestCheckDangerousContent_OnclickEvent(t *testing.T) {
-	assert.Error(t, checkDangerousContent("onclick=doEvil()", 1, "test"))
+	assert.Error(t, checkDangerousContent("onclick=doEvil()", 1, apiInfoMessages))
 }
 
 func TestCheckDangerousContent_CaseInsensitive(t *testing.T) {
-	assert.Error(t, checkDangerousContent("<SCRIPT>alert(1)</SCRIPT>", 1, "test"))
+	assert.Error(t, checkDangerousContent("<SCRIPT>alert(1)</SCRIPT>", 1, apiInfoMessages))
 }
 
 func TestParseJSONArray_Valid(t *testing.T) {

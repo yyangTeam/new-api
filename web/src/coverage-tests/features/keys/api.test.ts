@@ -15,6 +15,7 @@ import {
   fetchTokenKeysBatch,
   batchCreateApiKeys,
 } from '@/features/keys/api'
+import { api } from '@/lib/api'
 
 vi.mock('@/lib/api', () => ({
   api: {
@@ -24,8 +25,6 @@ vi.mock('@/lib/api', () => ({
     delete: vi.fn(),
   },
 }))
-
-import { api } from '@/lib/api'
 
 const mockApi = api as unknown as {
   get: ReturnType<typeof vi.fn>
@@ -96,7 +95,9 @@ describe('getApiKey', () => {
 
 describe('getTokenAutoGroups', () => {
   test('fetches auto groups config', async () => {
-    mockApi.get.mockResolvedValue({ data: { success: true, data: { groups: ['a'], max_count: 3 } } })
+    mockApi.get.mockResolvedValue({
+      data: { success: true, data: { groups: ['a'], max_count: 3 } },
+    })
     const result = await getTokenAutoGroups()
     expect(mockApi.get).toHaveBeenCalledWith('/api/token/auto-groups')
     expect(result.data).toEqual({ groups: ['a'], max_count: 3 })
@@ -113,6 +114,7 @@ describe('createApiKey', () => {
       model_limits_enabled: false,
       model_limits: '',
       allow_ips: '',
+      allow_user_quota_query: true,
       group: '',
       auto_groups: [],
       cross_group_retry: false,
@@ -135,6 +137,7 @@ describe('updateApiKey', () => {
       model_limits_enabled: true,
       model_limits: 'gpt-4',
       allow_ips: '',
+      allow_user_quota_query: false,
       group: 'vip',
       auto_groups: [],
       cross_group_retry: true,
@@ -159,7 +162,9 @@ describe('batchDeleteApiKeys', () => {
   test('posts batch delete with ids', async () => {
     mockApi.post.mockResolvedValue({ data: { success: true, data: 3 } })
     const result = await batchDeleteApiKeys([1, 2, 3])
-    expect(mockApi.post).toHaveBeenCalledWith('/api/token/batch', { ids: [1, 2, 3] })
+    expect(mockApi.post).toHaveBeenCalledWith('/api/token/batch', {
+      ids: [1, 2, 3],
+    })
     expect(result.data).toBe(3)
   })
 })
@@ -178,14 +183,19 @@ describe('updateApiKeyStatus', () => {
   test('puts status-only update', async () => {
     mockApi.put.mockResolvedValue({ data: { success: true } })
     const result = await updateApiKeyStatus(5, 2)
-    expect(mockApi.put).toHaveBeenCalledWith('/api/token/?status_only=true', { id: 5, status: 2 })
+    expect(mockApi.put).toHaveBeenCalledWith('/api/token/?status_only=true', {
+      id: 5,
+      status: 2,
+    })
     expect(result).toEqual({ success: true })
   })
 })
 
 describe('fetchTokenKey', () => {
   test('posts to fetch real key', async () => {
-    mockApi.post.mockResolvedValue({ data: { success: true, data: { key: 'abc123' } } })
+    mockApi.post.mockResolvedValue({
+      data: { success: true, data: { key: 'abc123' } },
+    })
     const result = await fetchTokenKey(10)
     expect(mockApi.post).toHaveBeenCalledWith('/api/token/10/key')
     expect(result.data?.key).toBe('abc123')
@@ -194,9 +204,13 @@ describe('fetchTokenKey', () => {
 
 describe('fetchTokenKeysBatch', () => {
   test('posts batch key fetch', async () => {
-    mockApi.post.mockResolvedValue({ data: { success: true, data: { keys: { '1': 'a', '2': 'b' } } } })
+    mockApi.post.mockResolvedValue({
+      data: { success: true, data: { keys: { '1': 'a', '2': 'b' } } },
+    })
     const result = await fetchTokenKeysBatch([1, 2])
-    expect(mockApi.post).toHaveBeenCalledWith('/api/token/batch/keys', { ids: [1, 2] })
+    expect(mockApi.post).toHaveBeenCalledWith('/api/token/batch/keys', {
+      ids: [1, 2],
+    })
     expect(result.data?.keys).toEqual({ '1': 'a', '2': 'b' })
   })
 })
@@ -213,7 +227,9 @@ describe('batchCreateApiKeys', () => {
       group: '',
       cross_group_retry: false,
     }
-    mockApi.post.mockResolvedValue({ data: { success: true, data: { created: 2, failed: 0 } } })
+    mockApi.post.mockResolvedValue({
+      data: { success: true, data: { created: 2, failed: 0 } },
+    })
     const result = await batchCreateApiKeys(data)
     expect(mockApi.post).toHaveBeenCalledWith('/api/token/batch/create', data)
     expect(result.data?.created).toBe(2)

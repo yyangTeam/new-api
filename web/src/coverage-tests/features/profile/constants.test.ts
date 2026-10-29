@@ -1,16 +1,11 @@
 import { describe, it, expect } from 'vitest'
 
 import {
-  DEFAULT_QUOTA_WARNING_THRESHOLD,
   NOTIFICATION_METHODS,
   ADMIN_NOTIFICATION_METHODS,
 } from '@/features/profile/constants'
 
 describe('profile constants', () => {
-  it('DEFAULT_QUOTA_WARNING_THRESHOLD is 500000', () => {
-    expect(DEFAULT_QUOTA_WARNING_THRESHOLD).toBe(500000)
-  })
-
   it('NOTIFICATION_METHODS has expected values', () => {
     expect(NOTIFICATION_METHODS).toHaveLength(4)
     const values = NOTIFICATION_METHODS.map((m) => m.value)

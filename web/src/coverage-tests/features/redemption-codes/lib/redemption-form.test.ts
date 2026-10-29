@@ -18,7 +18,7 @@ describe('REDEMPTION_FORM_DEFAULT_VALUES', () => {
     expect(REDEMPTION_FORM_DEFAULT_VALUES).toEqual({
       name: '',
       quota_dollars: 10,
-      expired_time: undefined,
+      expired_time: null,
       count: 1,
     })
   })
@@ -31,6 +31,7 @@ describe('getRedemptionFormSchema', () => {
     const result = schema.safeParse({
       name: 'test-code',
       quota_dollars: 10,
+      expired_time: null,
       count: 5,
     })
     expect(result.success).toBe(true)
@@ -40,6 +41,7 @@ describe('getRedemptionFormSchema', () => {
     const result = schema.safeParse({
       name: '',
       quota_dollars: 10,
+      expired_time: null,
     })
     expect(result.success).toBe(false)
   })
@@ -48,6 +50,7 @@ describe('getRedemptionFormSchema', () => {
     const result = schema.safeParse({
       name: 'a'.repeat(21),
       quota_dollars: 10,
+      expired_time: null,
     })
     expect(result.success).toBe(false)
   })
@@ -56,6 +59,7 @@ describe('getRedemptionFormSchema', () => {
     const result = schema.safeParse({
       name: 'test',
       quota_dollars: -1,
+      expired_time: null,
     })
     expect(result.success).toBe(false)
   })
@@ -64,6 +68,7 @@ describe('getRedemptionFormSchema', () => {
     const result = schema.safeParse({
       name: 'test',
       quota_dollars: 10,
+      expired_time: null,
       count: 0,
     })
     expect(result.success).toBe(false)
@@ -73,12 +78,13 @@ describe('getRedemptionFormSchema', () => {
     const result = schema.safeParse({
       name: 'test',
       quota_dollars: 10,
+      expired_time: null,
       count: 101,
     })
     expect(result.success).toBe(false)
   })
 
-  test('accepts optional expired_time', () => {
+  test('accepts an expiration date', () => {
     const result = schema.safeParse({
       name: 'test',
       quota_dollars: 10,
@@ -108,6 +114,7 @@ describe('transformFormDataToPayload', () => {
     const result = transformFormDataToPayload({
       name: 'test',
       quota_dollars: 5,
+      expired_time: null,
     })
     expect(result.expired_time).toBe(0)
   })
@@ -116,6 +123,7 @@ describe('transformFormDataToPayload', () => {
     const result = transformFormDataToPayload({
       name: 'test',
       quota_dollars: 5,
+      expired_time: null,
     })
     expect(result.count).toBe(1)
   })
@@ -143,7 +151,7 @@ describe('transformRedemptionToFormDefaults', () => {
     expect(result.count).toBe(1)
   })
 
-  test('sets expired_time to undefined when 0', () => {
+  test('sets expired_time to null when 0', () => {
     const result = transformRedemptionToFormDefaults({
       id: 1,
       user_id: 100,
@@ -157,6 +165,6 @@ describe('transformRedemptionToFormDefaults', () => {
       used_user_id: 0,
     })
 
-    expect(result.expired_time).toBeUndefined()
+    expect(result.expired_time).toBeNull()
   })
 })

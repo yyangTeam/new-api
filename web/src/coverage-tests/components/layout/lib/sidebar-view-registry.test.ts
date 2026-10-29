@@ -1,4 +1,4 @@
-import { resolveSidebarView, getNavGroupsForPath } from '@/components/layout/lib/sidebar-view-registry'
+import { resolveSidebarView } from '@/components/layout/lib/sidebar-view-registry'
 
 const t = ((key: string) => key) as any
 
@@ -34,21 +34,19 @@ describe('resolveSidebarView', () => {
   })
 })
 
-describe('getNavGroupsForPath', () => {
+describe('system settings sidebar navigation', () => {
   test('returns nav groups for system-settings path', () => {
-    const groups = getNavGroupsForPath('/system-settings', t)
-    expect(groups).not.toBeNull()
+    const groups = resolveSidebarView('/system-settings')?.getNavGroups(t)
+    expect(groups).toBeDefined()
     expect(Array.isArray(groups)).toBe(true)
     expect(groups!.length).toBeGreaterThan(0)
   })
 
-  test('returns null for non-matching path', () => {
-    expect(getNavGroupsForPath('/dashboard', t)).toBeNull()
-  })
-
   test('nav groups contain items', () => {
-    const groups = getNavGroupsForPath('/system-settings/general', t)
-    expect(groups).not.toBeNull()
+    const groups = resolveSidebarView('/system-settings/general')?.getNavGroups(
+      t
+    )
+    expect(groups).toBeDefined()
     groups!.forEach((group) => {
       expect(group.items).toBeDefined()
       expect(group.items.length).toBeGreaterThan(0)

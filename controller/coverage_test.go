@@ -14,6 +14,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	taskdto "github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
@@ -172,14 +173,14 @@ func TestValidateChannel(t *testing.T) {
 		}
 		err := validateChannel(ch, true)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "模型名称过长")
+		assert.Contains(t, err.Error(), "Model name is too long")
 	})
 
 	t.Run("VertexAI requires Other region JSON with default", func(t *testing.T) {
 		ch := &model.Channel{Type: constant.ChannelTypeVertexAi, Key: "k"}
 		err := validateChannel(ch, false)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "部署地区不能为空")
+		assert.Contains(t, err.Error(), "Deployment region cannot be empty")
 
 		// missing default field
 		ch.Other = `{"region2": "us-east1"}`
@@ -191,7 +192,7 @@ func TestValidateChannel(t *testing.T) {
 		ch.Other = `not json`
 		err = validateChannel(ch, false)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Json格式")
+		assert.Contains(t, err.Error(), "valid JSON")
 
 		// valid
 		ch.Other = `{"default": "us-central1"}`
@@ -612,7 +613,7 @@ func TestPickAssetName(t *testing.T) {
 
 func TestProviderParams(t *testing.T) {
 	p := providerParams("GitHub")
-	assert.Equal(t, "GitHub", p["Provider"])
+	assert.Equal(t, "GitHub", p["provider"])
 	assert.Len(t, p, 1)
 }
 
@@ -654,12 +655,15 @@ func TestRespondTaskError(t *testing.T) {
 	})
 
 	t.Run("429 message rewritten to saturation hint", func(t *testing.T) {
+		require.NoError(t, i18n.Init())
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/relay", nil)
+		c.Request.Header.Set("Accept-Language", "en")
 		orig := &taskdto.TaskError{StatusCode: http.StatusTooManyRequests, Message: "orig", Code: "x"}
 		respondTaskError(c, orig)
 		assert.Equal(t, http.StatusTooManyRequests, w.Code)
-		assert.Contains(t, orig.Message, "负载已饱和")
+		assert.Contains(t, orig.Message, "at capacity")
 	})
 }
 

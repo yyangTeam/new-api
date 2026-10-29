@@ -8,9 +8,7 @@ import {
 
 describe('formatTagsArray', () => {
   test('joins tags with commas', () => {
-    expect(formatTagsArray(['chat', 'vision', 'code'])).toBe(
-      'chat,vision,code'
-    )
+    expect(formatTagsArray(['chat', 'vision', 'code'])).toBe('chat,vision,code')
   })
 
   test('filters out empty strings', () => {
@@ -162,6 +160,7 @@ describe('transformFormDataToModelPayload', () => {
       description: '',
       icon: '',
       tags: [],
+      vendor_id: 0,
       endpoints: '',
       name_rule: 0,
       status: false,

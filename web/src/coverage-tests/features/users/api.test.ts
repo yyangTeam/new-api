@@ -17,6 +17,7 @@ import {
   adminClearUserBinding,
   adminUnbindCustomOAuth,
 } from '@/features/users/api'
+import { api } from '@/lib/api'
 
 vi.mock('@/lib/api', () => ({
   api: {
@@ -26,8 +27,6 @@ vi.mock('@/lib/api', () => ({
     delete: vi.fn(),
   },
 }))
-
-import { api } from '@/lib/api'
 
 const mockApi = api as unknown as {
   get: ReturnType<typeof vi.fn>
@@ -42,17 +41,29 @@ beforeEach(() => {
 
 describe('getUsers', () => {
   test('calls api.get with default params', async () => {
-    mockApi.get.mockResolvedValue({ data: { success: true, data: { items: [], total: 0 } } })
+    mockApi.get.mockResolvedValue({
+      data: { success: true, data: { items: [], total: 0 } },
+    })
     const result = await getUsers()
     expect(mockApi.get).toHaveBeenCalledWith('/api/user/', {
-      params: { p: 1, page_size: 10, sort_by: undefined, sort_order: undefined },
+      params: {
+        p: 1,
+        page_size: 10,
+        sort_by: undefined,
+        sort_order: undefined,
+      },
     })
     expect(result).toEqual({ success: true, data: { items: [], total: 0 } })
   })
 
   test('calls api.get with custom params', async () => {
     mockApi.get.mockResolvedValue({ data: { success: true } })
-    await getUsers({ p: 2, page_size: 20, sort_by: 'username', sort_order: 'asc' })
+    await getUsers({
+      p: 2,
+      page_size: 20,
+      sort_by: 'username',
+      sort_order: 'asc',
+    })
     expect(mockApi.get).toHaveBeenCalledWith('/api/user/', {
       params: { p: 2, page_size: 20, sort_by: 'username', sort_order: 'asc' },
     })
@@ -106,46 +117,76 @@ describe('getUser', () => {
 })
 
 describe('createUser', () => {
-  test('posts user data', async () => {
+  test('posts user data without a proof for ordinary creation', async () => {
     const data = { username: 'test', display_name: 'Test' }
     mockApi.post.mockResolvedValue({ data: { success: true } })
     const result = await createUser(data)
-    expect(mockApi.post).toHaveBeenCalledWith('/api/user/', data)
+    expect(mockApi.post).toHaveBeenCalledWith('/api/user/', data, {})
     expect(result).toEqual({ success: true })
+  })
+
+  test('marks a proof-authorized creation as single use', async () => {
+    const data = { username: 'admin', display_name: 'Admin' }
+    mockApi.post.mockResolvedValue({ data: { success: true } })
+
+    await createUser(data, 'create-proof')
+
+    expect(mockApi.post).toHaveBeenCalledWith('/api/user/', data, {
+      headers: { 'X-Security-Proof': 'create-proof' },
+      singleUseAuthorization: true,
+    })
   })
 })
 
 describe('updateUser', () => {
-  test('puts user data with id', async () => {
+  test('puts user data with id and a single-use proof', async () => {
     const data = { id: 1, username: 'test', display_name: 'Test' }
     mockApi.put.mockResolvedValue({ data: { success: true } })
-    const result = await updateUser(data)
-    expect(mockApi.put).toHaveBeenCalledWith('/api/user/', data)
+    const result = await updateUser(data, 'update-proof')
+    expect(mockApi.put).toHaveBeenCalledWith('/api/user/', data, {
+      headers: { 'X-Security-Proof': 'update-proof' },
+      singleUseAuthorization: true,
+    })
     expect(result).toEqual({ success: true })
   })
 })
 
 describe('deleteUser', () => {
-  test('deletes user by ID', async () => {
+  test('deletes user by ID with a single-use proof', async () => {
     mockApi.delete.mockResolvedValue({ data: { success: true } })
-    const result = await deleteUser(3)
-    expect(mockApi.delete).toHaveBeenCalledWith('/api/user/3/')
+    const result = await deleteUser(3, 'delete-proof')
+    expect(mockApi.delete).toHaveBeenCalledWith('/api/user/3/', {
+      headers: { 'X-Security-Proof': 'delete-proof' },
+      singleUseAuthorization: true,
+    })
     expect(result).toEqual({ success: true })
   })
 })
 
 describe('manageUser', () => {
-  test('posts manage action', async () => {
+  test('posts manage action with a single-use proof', async () => {
     mockApi.post.mockResolvedValue({ data: { success: true } })
-    const result = await manageUser(7, 'promote')
-    expect(mockApi.post).toHaveBeenCalledWith('/api/user/manage', { id: 7, action: 'promote' })
+    const result = await manageUser(7, 'promote', 'manage-proof')
+    expect(mockApi.post).toHaveBeenCalledWith(
+      '/api/user/manage',
+      { id: 7, action: 'promote' },
+      {
+        headers: { 'X-Security-Proof': 'manage-proof' },
+        singleUseAuthorization: true,
+      }
+    )
     expect(result).toEqual({ success: true })
   })
 })
 
 describe('adjustUserQuota', () => {
   test('posts quota adjustment payload', async () => {
-    const payload = { id: 1, action: 'add_quota' as const, mode: 'add' as const, value: 100 }
+    const payload = {
+      id: 1,
+      action: 'add_quota' as const,
+      mode: 'add' as const,
+      value: 100,
+    }
     mockApi.post.mockResolvedValue({ data: { success: true } })
     const result = await adjustUserQuota(payload)
     expect(mockApi.post).toHaveBeenCalledWith('/api/user/manage', payload)
@@ -154,26 +195,34 @@ describe('adjustUserQuota', () => {
 })
 
 describe('resetUserPasskey', () => {
-  test('deletes passkey for user', async () => {
+  test('deletes passkey for user with a single-use proof', async () => {
     mockApi.delete.mockResolvedValue({ data: { success: true } })
-    const result = await resetUserPasskey(10)
-    expect(mockApi.delete).toHaveBeenCalledWith('/api/user/10/reset_passkey')
+    const result = await resetUserPasskey(10, 'passkey-proof')
+    expect(mockApi.delete).toHaveBeenCalledWith('/api/user/10/reset_passkey', {
+      headers: { 'X-Security-Proof': 'passkey-proof' },
+      singleUseAuthorization: true,
+    })
     expect(result).toEqual({ success: true })
   })
 })
 
 describe('resetUserTwoFA', () => {
-  test('deletes 2FA for user', async () => {
+  test('deletes 2FA for user with a single-use proof', async () => {
     mockApi.delete.mockResolvedValue({ data: { success: true } })
-    const result = await resetUserTwoFA(10)
-    expect(mockApi.delete).toHaveBeenCalledWith('/api/user/10/2fa')
+    const result = await resetUserTwoFA(10, '2fa-proof')
+    expect(mockApi.delete).toHaveBeenCalledWith('/api/user/10/2fa', {
+      headers: { 'X-Security-Proof': '2fa-proof' },
+      singleUseAuthorization: true,
+    })
     expect(result).toEqual({ success: true })
   })
 })
 
 describe('getGroups', () => {
   test('fetches groups list', async () => {
-    mockApi.get.mockResolvedValue({ data: { success: true, data: ['default', 'vip'] } })
+    mockApi.get.mockResolvedValue({
+      data: { success: true, data: ['default', 'vip'] },
+    })
     const result = await getGroups()
     expect(mockApi.get).toHaveBeenCalledWith('/api/group/')
     expect(result).toEqual({ success: true, data: ['default', 'vip'] })
@@ -183,7 +232,12 @@ describe('getGroups', () => {
 describe('getPermissionCatalog', () => {
   test('returns normalized catalog from API', async () => {
     mockApi.get.mockResolvedValue({
-      data: { data: { resources: [{ resource: 'channel', actions: [] }], roles: ['admin'] } },
+      data: {
+        data: {
+          resources: [{ resource: 'channel', actions: [] }],
+          roles: ['admin'],
+        },
+      },
     })
     const result = await getPermissionCatalog()
     expect(result).toEqual({
@@ -215,19 +269,31 @@ describe('getUserOAuthBindings', () => {
 })
 
 describe('adminClearUserBinding', () => {
-  test('deletes a binding by type', async () => {
+  test('deletes a binding by type with a single-use proof', async () => {
     mockApi.delete.mockResolvedValue({ data: { success: true } })
-    const result = await adminClearUserBinding(5, 'github_id')
-    expect(mockApi.delete).toHaveBeenCalledWith('/api/user/5/bindings/github_id')
+    const result = await adminClearUserBinding(5, 'github_id', 'binding-proof')
+    expect(mockApi.delete).toHaveBeenCalledWith(
+      '/api/user/5/bindings/github_id',
+      {
+        headers: { 'X-Security-Proof': 'binding-proof' },
+        singleUseAuthorization: true,
+      }
+    )
     expect(result).toEqual({ success: true })
   })
 })
 
 describe('adminUnbindCustomOAuth', () => {
-  test('deletes custom oauth binding', async () => {
+  test('deletes custom oauth binding with a single-use proof', async () => {
     mockApi.delete.mockResolvedValue({ data: { success: true } })
-    const result = await adminUnbindCustomOAuth(5, 123)
-    expect(mockApi.delete).toHaveBeenCalledWith('/api/user/5/oauth/bindings/123')
+    const result = await adminUnbindCustomOAuth(5, 123, 'oauth-proof')
+    expect(mockApi.delete).toHaveBeenCalledWith(
+      '/api/user/5/oauth/bindings/123',
+      {
+        headers: { 'X-Security-Proof': 'oauth-proof' },
+        singleUseAuthorization: true,
+      }
+    )
     expect(result).toEqual({ success: true })
   })
 })

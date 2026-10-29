@@ -3,33 +3,36 @@ package oauth
 import (
 	"testing"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestOAuthError_Error(t *testing.T) {
-	e := &OAuthError{MsgKey: "msg.key", RawError: "raw error detail"}
+	e := &OAuthError{Message: common.NewMessage("msg.key"), RawError: "raw error detail"}
 	assert.Equal(t, "raw error detail", e.Error())
 }
 
 func TestOAuthError_ErrorFallbackToMsgKey(t *testing.T) {
-	e := &OAuthError{MsgKey: "msg.key"}
+	e := &OAuthError{Message: common.NewMessage("msg.key")}
 	assert.Equal(t, "msg.key", e.Error())
 }
 
 func TestNewOAuthError(t *testing.T) {
-	e := NewOAuthError("msg.key", map[string]any{"Provider": "GitHub"})
+	e := NewOAuthError(common.NewMessage("msg.key", map[string]any{"provider": "GitHub"}))
 	require.NotNil(t, e)
-	assert.Equal(t, "msg.key", e.MsgKey)
-	assert.Equal(t, "GitHub", e.Params["Provider"])
+	require.NotNil(t, e.Message)
+	assert.Equal(t, "msg.key", e.Message.Key)
+	assert.Equal(t, "GitHub", e.Message.Params["provider"])
 	assert.Empty(t, e.RawError)
 }
 
 func TestNewOAuthErrorWithRaw(t *testing.T) {
-	e := NewOAuthErrorWithRaw("msg.key", map[string]any{"Provider": "Discord"}, "underlying error")
+	e := NewOAuthErrorWithRaw(common.NewMessage("msg.key", map[string]any{"provider": "Discord"}), "underlying error")
 	require.NotNil(t, e)
-	assert.Equal(t, "msg.key", e.MsgKey)
-	assert.Equal(t, "Discord", e.Params["Provider"])
+	require.NotNil(t, e.Message)
+	assert.Equal(t, "msg.key", e.Message.Key)
+	assert.Equal(t, "Discord", e.Message.Params["provider"])
 	assert.Equal(t, "underlying error", e.RawError)
 	assert.Equal(t, "underlying error", e.Error())
 }

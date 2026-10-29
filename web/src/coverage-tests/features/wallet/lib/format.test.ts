@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next'
+
 import {
   formatCreemPrice,
   formatQuotaShort,
@@ -66,7 +68,7 @@ describe('formatCurrency', () => {
   })
 
   test('returns "-" for NaN', () => {
-    expect(formatCurrency(NaN)).toBe('-')
+    expect(formatCurrency(Number.NaN)).toBe('-')
   })
 
   test('returns "-" for non-numeric string', () => {
@@ -89,24 +91,35 @@ describe('formatCurrency', () => {
 })
 
 describe('getDiscountLabel', () => {
+  const t = vi.fn(() => 'translated discount') as unknown as TFunction
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   test('returns empty string for no discount (1.0)', () => {
-    expect(getDiscountLabel(1.0)).toBe('')
+    expect(getDiscountLabel(1.0, t)).toBe('')
+    expect(t).not.toHaveBeenCalled()
   })
 
   test('returns empty string for values above 1.0', () => {
-    expect(getDiscountLabel(1.5)).toBe('')
+    expect(getDiscountLabel(1.5, t)).toBe('')
+    expect(t).not.toHaveBeenCalled()
   })
 
-  test('returns "20% OFF" for 0.8 discount', () => {
-    expect(getDiscountLabel(0.8)).toBe('20% OFF')
+  test('passes 20 percent discount to the translator', () => {
+    expect(getDiscountLabel(0.8, t)).toBe('translated discount')
+    expect(t).toHaveBeenCalledWith('{{percent}}% OFF', { percent: 20 })
   })
 
-  test('returns "50% OFF" for 0.5 discount', () => {
-    expect(getDiscountLabel(0.5)).toBe('50% OFF')
+  test('passes 50 percent discount to the translator', () => {
+    expect(getDiscountLabel(0.5, t)).toBe('translated discount')
+    expect(t).toHaveBeenCalledWith('{{percent}}% OFF', { percent: 50 })
   })
 
-  test('returns "10% OFF" for 0.9 discount', () => {
-    expect(getDiscountLabel(0.9)).toBe('10% OFF')
+  test('passes 10 percent discount to the translator', () => {
+    expect(getDiscountLabel(0.9, t)).toBe('translated discount')
+    expect(t).toHaveBeenCalledWith('{{percent}}% OFF', { percent: 10 })
   })
 })
 

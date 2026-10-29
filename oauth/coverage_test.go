@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/gin-gonic/gin"
@@ -101,7 +100,7 @@ func TestGitHubProvider_ExchangeToken_EmptyCode(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthInvalidCode, oe.MsgKey)
+	assert.Equal(t, "Invalid authorization code", oe.Message.Key)
 }
 
 func TestGitHubProvider_ExchangeToken_Success(t *testing.T) {
@@ -152,8 +151,8 @@ func TestGitHubProvider_ExchangeToken_TransportError_MapsToOAuthError(t *testing
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthConnectFailed, oe.MsgKey)
-	assert.Equal(t, "GitHub", oe.Params["Provider"])
+	assert.Equal(t, "Unable to connect to {{provider}} server, please try again later", oe.Message.Key)
+	assert.Equal(t, "GitHub", oe.Message.Params["provider"])
 	assert.NotEmpty(t, oe.RawError)
 }
 
@@ -166,8 +165,8 @@ func TestGitHubProvider_ExchangeToken_EmptyToken_MapsToTokenFailed(t *testing.T)
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthTokenFailed, oe.MsgKey)
-	assert.Equal(t, "GitHub", oe.Params["Provider"])
+	assert.Equal(t, "Failed to get token from {{provider}}, please check settings", oe.Message.Key)
+	assert.Equal(t, "GitHub", oe.Message.Params["provider"])
 }
 
 func TestGitHubProvider_ExchangeToken_InvalidJSON(t *testing.T) {
@@ -212,7 +211,7 @@ func TestGitHubProvider_GetUserInfo_Non200_MapsToGetUserErr(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthGetUserErr, oe.MsgKey)
+	assert.Equal(t, "Failed to get user information", oe.Message.Key)
 	assert.Contains(t, oe.RawError, "status 401")
 }
 
@@ -225,8 +224,8 @@ func TestGitHubProvider_GetUserInfo_EmptyIDLogin_MapsToUserInfoEmpty(t *testing.
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthUserInfoEmpty, oe.MsgKey)
-	assert.Equal(t, "GitHub", oe.Params["Provider"])
+	assert.Equal(t, "{{provider}} returned empty user info, please check settings", oe.Message.Key)
+	assert.Equal(t, "GitHub", oe.Message.Params["provider"])
 }
 
 func TestGitHubProvider_GetUserInfo_TransportError_MapsToOAuthError(t *testing.T) {
@@ -238,8 +237,8 @@ func TestGitHubProvider_GetUserInfo_TransportError_MapsToOAuthError(t *testing.T
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthConnectFailed, oe.MsgKey)
-	assert.Equal(t, "GitHub", oe.Params["Provider"])
+	assert.Equal(t, "Unable to connect to {{provider}} server, please try again later", oe.Message.Key)
+	assert.Equal(t, "GitHub", oe.Message.Params["provider"])
 }
 
 func TestGitHubProvider_GetUserInfo_InvalidJSON(t *testing.T) {
@@ -263,7 +262,7 @@ func TestGitHubProvider_GetUserInfo_LongBodyIsTruncatedInRawError(t *testing.T) 
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthGetUserErr, oe.MsgKey)
+	assert.Equal(t, "Failed to get user information", oe.Message.Key)
 }
 
 // --- Discord provider ------------------------------------------------------
@@ -297,7 +296,7 @@ func TestDiscordProvider_ExchangeToken_EmptyCode(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthInvalidCode, oe.MsgKey)
+	assert.Equal(t, "Invalid authorization code", oe.Message.Key)
 }
 
 func TestDiscordProvider_ExchangeToken_Success_BuildsRedirectURIAndForm(t *testing.T) {
@@ -358,8 +357,8 @@ func TestDiscordProvider_ExchangeToken_EmptyToken_MapsToTokenFailed(t *testing.T
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthTokenFailed, oe.MsgKey)
-	assert.Equal(t, "Discord", oe.Params["Provider"])
+	assert.Equal(t, "Failed to get token from {{provider}}, please check settings", oe.Message.Key)
+	assert.Equal(t, "Discord", oe.Message.Params["provider"])
 }
 
 func TestDiscordProvider_ExchangeToken_TransportError(t *testing.T) {
@@ -371,8 +370,8 @@ func TestDiscordProvider_ExchangeToken_TransportError(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthConnectFailed, oe.MsgKey)
-	assert.Equal(t, "Discord", oe.Params["Provider"])
+	assert.Equal(t, "Unable to connect to {{provider}} server, please try again later", oe.Message.Key)
+	assert.Equal(t, "Discord", oe.Message.Params["provider"])
 }
 
 func TestDiscordProvider_GetUserInfo_Success(t *testing.T) {
@@ -402,7 +401,7 @@ func TestDiscordProvider_GetUserInfo_Non200_MapsToGetUserErr(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthGetUserErr, oe.MsgKey)
+	assert.Equal(t, "Failed to get user information", oe.Message.Key)
 }
 
 func TestDiscordProvider_GetUserInfo_EmptyFields_MapsToUserInfoEmpty(t *testing.T) {
@@ -414,8 +413,8 @@ func TestDiscordProvider_GetUserInfo_EmptyFields_MapsToUserInfoEmpty(t *testing.
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthUserInfoEmpty, oe.MsgKey)
-	assert.Equal(t, "Discord", oe.Params["Provider"])
+	assert.Equal(t, "{{provider}} returned empty user info, please check settings", oe.Message.Key)
+	assert.Equal(t, "Discord", oe.Message.Params["provider"])
 }
 
 func TestDiscordProvider_GetUserInfo_InvalidJSON(t *testing.T) {
@@ -436,7 +435,7 @@ func TestDiscordProvider_GetUserInfo_TransportError(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthConnectFailed, oe.MsgKey)
+	assert.Equal(t, "Unable to connect to {{provider}} server, please try again later", oe.Message.Key)
 }
 
 // --- OIDC provider ---------------------------------------------------------
@@ -469,7 +468,7 @@ func TestOIDCProvider_ExchangeToken_EmptyCode(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthInvalidCode, oe.MsgKey)
+	assert.Equal(t, "Invalid authorization code", oe.Message.Key)
 }
 
 func TestOIDCProvider_ExchangeToken_Success_BuildsFormWithSettings(t *testing.T) {
@@ -536,8 +535,8 @@ func TestOIDCProvider_ExchangeToken_EmptyToken(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthTokenFailed, oe.MsgKey)
-	assert.Equal(t, "OIDC", oe.Params["Provider"])
+	assert.Equal(t, "Failed to get token from {{provider}}, please check settings", oe.Message.Key)
+	assert.Equal(t, "OIDC", oe.Message.Params["provider"])
 }
 
 func TestOIDCProvider_ExchangeToken_TransportError(t *testing.T) {
@@ -554,8 +553,8 @@ func TestOIDCProvider_ExchangeToken_TransportError(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthConnectFailed, oe.MsgKey)
-	assert.Equal(t, "OIDC", oe.Params["Provider"])
+	assert.Equal(t, "Unable to connect to {{provider}} server, please try again later", oe.Message.Key)
+	assert.Equal(t, "OIDC", oe.Message.Params["provider"])
 }
 
 func TestOIDCProvider_GetUserInfo_Success_ClaimMapping(t *testing.T) {
@@ -596,7 +595,7 @@ func TestOIDCProvider_GetUserInfo_Non200(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthGetUserErr, oe.MsgKey)
+	assert.Equal(t, "Failed to get user information", oe.Message.Key)
 }
 
 func TestOIDCProvider_GetUserInfo_EmptySubOrEmail(t *testing.T) {
@@ -613,8 +612,8 @@ func TestOIDCProvider_GetUserInfo_EmptySubOrEmail(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthUserInfoEmpty, oe.MsgKey)
-	assert.Equal(t, "OIDC", oe.Params["Provider"])
+	assert.Equal(t, "{{provider}} returned empty user info, please check settings", oe.Message.Key)
+	assert.Equal(t, "OIDC", oe.Message.Params["provider"])
 }
 
 func TestOIDCProvider_GetUserInfo_TransportError(t *testing.T) {
@@ -631,8 +630,8 @@ func TestOIDCProvider_GetUserInfo_TransportError(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthConnectFailed, oe.MsgKey)
-	assert.Equal(t, "OIDC", oe.Params["Provider"])
+	assert.Equal(t, "Unable to connect to {{provider}} server, please try again later", oe.Message.Key)
+	assert.Equal(t, "OIDC", oe.Message.Params["provider"])
 }
 
 func TestOIDCProvider_GetUserInfo_InvalidJSON(t *testing.T) {
@@ -677,7 +676,7 @@ func (r *responseRecorder) Header() http.Header {
 	}
 	return r.header
 }
-func (r *responseRecorder) WriteHeader(code int)       { r.status = code }
+func (r *responseRecorder) WriteHeader(code int) { r.status = code }
 func (r *responseRecorder) Write(b []byte) (int, error) {
 	r.body = append(r.body, b...)
 	return len(b), nil
@@ -712,7 +711,7 @@ func TestLinuxDOProvider_ExchangeToken_EmptyCode(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthInvalidCode, oe.MsgKey)
+	assert.Equal(t, "Invalid authorization code", oe.Message.Key)
 }
 
 func TestLinuxDOProvider_ExchangeToken_Success_HTTPRedirectURI(t *testing.T) {
@@ -787,8 +786,8 @@ func TestLinuxDOProvider_ExchangeToken_EmptyToken_WithMessage(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthTokenFailed, oe.MsgKey)
-	assert.Equal(t, "Linux DO", oe.Params["Provider"])
+	assert.Equal(t, "Failed to get token from {{provider}}, please check settings", oe.Message.Key)
+	assert.Equal(t, "Linux DO", oe.Message.Params["provider"])
 	assert.Equal(t, "invalid_grant", oe.RawError)
 }
 
@@ -803,8 +802,8 @@ func TestLinuxDOProvider_ExchangeToken_TransportError(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthConnectFailed, oe.MsgKey)
-	assert.Equal(t, "Linux DO", oe.Params["Provider"])
+	assert.Equal(t, "Unable to connect to {{provider}} server, please try again later", oe.Message.Key)
+	assert.Equal(t, "Linux DO", oe.Message.Params["provider"])
 }
 
 func TestLinuxDOProvider_ExchangeToken_InvalidJSON(t *testing.T) {
@@ -875,8 +874,8 @@ func TestLinuxDOProvider_GetUserInfo_InvalidUserID(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthUserInfoEmpty, oe.MsgKey)
-	assert.Equal(t, "Linux DO", oe.Params["Provider"])
+	assert.Equal(t, "{{provider}} returned empty user info, please check settings", oe.Message.Key)
+	assert.Equal(t, "Linux DO", oe.Message.Params["provider"])
 }
 
 func TestLinuxDOProvider_GetUserInfo_TransportError(t *testing.T) {
@@ -889,8 +888,8 @@ func TestLinuxDOProvider_GetUserInfo_TransportError(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthConnectFailed, oe.MsgKey)
-	assert.Equal(t, "Linux DO", oe.Params["Provider"])
+	assert.Equal(t, "Unable to connect to {{provider}} server, please try again later", oe.Message.Key)
+	assert.Equal(t, "Linux DO", oe.Message.Params["provider"])
 }
 
 func TestLinuxDOProvider_GetUserInfo_InvalidJSON(t *testing.T) {
@@ -912,18 +911,18 @@ func TestTrustLevelError_Error(t *testing.T) {
 
 func newGenericConfig() *model.CustomOAuthProvider {
 	return &model.CustomOAuthProvider{
-		Id:                7,
-		Name:              "AcmeSSO",
-		Slug:              "acme",
-		Enabled:           true,
-		ClientId:          "gen-id",
-		ClientSecret:      "gen-secret",
-		TokenEndpoint:     "https://token.local.test/token",
-		UserInfoEndpoint:  "https://user.local.test/userinfo",
-		UserIdField:       "sub",
-		UsernameField:     "preferred_username",
-		DisplayNameField:  "name",
-		EmailField:        "email",
+		Id:               7,
+		Name:             "AcmeSSO",
+		Slug:             "acme",
+		Enabled:          true,
+		ClientId:         "gen-id",
+		ClientSecret:     "gen-secret",
+		TokenEndpoint:    "https://token.local.test/token",
+		UserInfoEndpoint: "https://user.local.test/userinfo",
+		UserIdField:      "sub",
+		UsernameField:    "preferred_username",
+		DisplayNameField: "name",
+		EmailField:       "email",
 	}
 }
 
@@ -933,7 +932,7 @@ func TestGenericOAuthProvider_ExchangeToken_EmptyCode(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthInvalidCode, oe.MsgKey)
+	assert.Equal(t, "Invalid authorization code", oe.Message.Key)
 }
 
 func TestGenericOAuthProvider_ExchangeToken_Success_JSONBody(t *testing.T) {
@@ -1021,8 +1020,8 @@ func TestGenericOAuthProvider_ExchangeToken_URLEncodedBodyFallback(t *testing.T)
 	p := NewGenericOAuthProvider(cfg)
 
 	rt := &mockRoundTripper{
-		respStatus: 200,
-		respBody:   "access_token=fb-token&scope=user&token_type=bearer",
+		respStatus:  200,
+		respBody:    "access_token=fb-token&scope=user&token_type=bearer",
 		respHeaders: http.Header{"Content-Type": {"application/x-www-form-urlencoded"}},
 	}
 	withMockTransport(t, rt)
@@ -1049,8 +1048,8 @@ func TestGenericOAuthProvider_ExchangeToken_OAuthErrorField(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthTokenFailed, oe.MsgKey)
-	assert.Equal(t, "AcmeSSO", oe.Params["Provider"])
+	assert.Equal(t, "Failed to get token from {{provider}}, please check settings", oe.Message.Key)
+	assert.Equal(t, "AcmeSSO", oe.Message.Params["provider"])
 	assert.Equal(t, "bad code", oe.RawError)
 }
 
@@ -1065,8 +1064,8 @@ func TestGenericOAuthProvider_ExchangeToken_EmptyToken(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthTokenFailed, oe.MsgKey)
-	assert.Equal(t, "AcmeSSO", oe.Params["Provider"])
+	assert.Equal(t, "Failed to get token from {{provider}}, please check settings", oe.Message.Key)
+	assert.Equal(t, "AcmeSSO", oe.Message.Params["provider"])
 	assert.Empty(t, oe.RawError)
 }
 
@@ -1081,8 +1080,8 @@ func TestGenericOAuthProvider_ExchangeToken_TransportError(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthConnectFailed, oe.MsgKey)
-	assert.Equal(t, "AcmeSSO", oe.Params["Provider"])
+	assert.Equal(t, "Unable to connect to {{provider}} server, please try again later", oe.Message.Key)
+	assert.Equal(t, "AcmeSSO", oe.Message.Params["provider"])
 }
 
 func TestGenericOAuthProvider_GetUserInfo_Success(t *testing.T) {
@@ -1151,7 +1150,7 @@ func TestGenericOAuthProvider_GetUserInfo_Non200(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthGetUserErr, oe.MsgKey)
+	assert.Equal(t, "Failed to get user information", oe.Message.Key)
 }
 
 func TestGenericOAuthProvider_GetUserInfo_EmptyUserID(t *testing.T) {
@@ -1165,8 +1164,8 @@ func TestGenericOAuthProvider_GetUserInfo_EmptyUserID(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthUserInfoEmpty, oe.MsgKey)
-	assert.Equal(t, "AcmeSSO", oe.Params["Provider"])
+	assert.Equal(t, "{{provider}} returned empty user info, please check settings", oe.Message.Key)
+	assert.Equal(t, "AcmeSSO", oe.Message.Params["provider"])
 }
 
 func TestGenericOAuthProvider_GetUserInfo_TransportError(t *testing.T) {
@@ -1180,8 +1179,8 @@ func TestGenericOAuthProvider_GetUserInfo_TransportError(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthConnectFailed, oe.MsgKey)
-	assert.Equal(t, "AcmeSSO", oe.Params["Provider"])
+	assert.Equal(t, "Unable to connect to {{provider}} server, please try again later", oe.Message.Key)
+	assert.Equal(t, "AcmeSSO", oe.Message.Params["provider"])
 }
 
 func TestGenericOAuthProvider_GetUserInfo_AccessPolicyAllows(t *testing.T) {
@@ -1236,7 +1235,7 @@ func TestGenericOAuthProvider_GetUserInfo_InvalidAccessPolicy(t *testing.T) {
 	require.Error(t, err)
 	var oe *OAuthError
 	require.ErrorAs(t, err, &oe)
-	assert.Equal(t, i18n.MsgOAuthGetUserErr, oe.MsgKey)
+	assert.Equal(t, "Failed to get user information", oe.Message.Key)
 	assert.Contains(t, oe.RawError, "invalid access policy")
 }
 

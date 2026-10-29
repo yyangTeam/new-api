@@ -14,6 +14,7 @@ const ZERO_EXTRAS: ExtraTokenValues = {
   cacheReadTokens: 0,
   cacheCreateTokens: 0,
   cacheCreate1hTokens: 0,
+  cacheCreate12hTokens: 0,
   imageTokens: 0,
   imageCacheTokens: 0,
   imageOutputTokens: 0,
@@ -55,7 +56,9 @@ describe('generateExprFromVisualConfig', () => {
 
   test('generates single tier expression without conditions', () => {
     const config: VisualConfig = {
-      tiers: [makeTier({ label: 'base', input_unit_cost: 10, output_unit_cost: 20 })],
+      tiers: [
+        makeTier({ label: 'base', input_unit_cost: 10, output_unit_cost: 20 }),
+      ],
     }
     const expr = generateExprFromVisualConfig(config)
     expect(expr).toBe('tier("base", p * 10 + c * 20)')
@@ -101,7 +104,9 @@ describe('generateExprFromVisualConfig', () => {
 
   test('uses default label for tier without label', () => {
     const config: VisualConfig = {
-      tiers: [makeTier({ label: '', input_unit_cost: 5, output_unit_cost: 10 })],
+      tiers: [
+        makeTier({ label: '', input_unit_cost: 5, output_unit_cost: 10 }),
+      ],
     }
     const expr = generateExprFromVisualConfig(config)
     expect(expr).toContain('tier("default"')
@@ -147,7 +152,9 @@ describe('tryParseVisualConfig', () => {
 
   test('round-trips through generate and parse', () => {
     const original: VisualConfig = {
-      tiers: [makeTier({ label: 'base', input_unit_cost: 10, output_unit_cost: 20 })],
+      tiers: [
+        makeTier({ label: 'base', input_unit_cost: 10, output_unit_cost: 20 }),
+      ],
     }
     const expr = generateExprFromVisualConfig(original)
     const parsed = tryParseVisualConfig(expr)
@@ -174,7 +181,8 @@ describe('tryParseVisualConfig', () => {
       expect(result).toBeNull()
     } else {
       const regenerated = generateExprFromVisualConfig(result)
-      const original = 'tier("a", p * 1 + c * 2) : tier("b", p * 3 + c * 4) : tier("c", p * 5 + c * 6)'
+      const original =
+        'tier("a", p * 1 + c * 2) : tier("b", p * 3 + c * 4) : tier("c", p * 5 + c * 6)'
       expect(regenerated.replace(/\s+/g, '')).toBe(original.replace(/\s+/g, ''))
     }
   })

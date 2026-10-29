@@ -120,7 +120,7 @@ func TestResolveOrigins_InsecureOriginRejected(t *testing.T) {
 	}
 	_, err := resolveOrigins(r, settings)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "不安全")
+	assert.Contains(t, err.Error(), "insecure origin")
 }
 
 func TestResolveOrigins_InsecureOriginAllowed(t *testing.T) {
@@ -218,5 +218,5 @@ func TestResolveRPID_NoOrigins(t *testing.T) {
 	settings := &system_setting.PasskeySettings{}
 	_, err := resolveRPID(r, settings, nil)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "未配置 Origin")
+	assert.Contains(t, err.Error(), "origin is not configured")
 }

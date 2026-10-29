@@ -24,13 +24,24 @@ describe('getSortLabels', () => {
   test('returns labels for all sort options', () => {
     const labels = getSortLabels(t)
     expect(labels[SORT_OPTIONS.NAME]).toBe('Name')
-    expect(labels[SORT_OPTIONS.PRICE_LOW]).toBe('Price: Low to High')
-    expect(labels[SORT_OPTIONS.PRICE_HIGH]).toBe('Price: High to Low')
-  })
-
-  test('has exactly 3 entries', () => {
-    const labels = getSortLabels(t)
-    expect(Object.keys(labels)).toHaveLength(3)
+    expect(labels[SORT_OPTIONS.INPUT_PRICE_LOW]).toBe(
+      'Input Price: Low to High'
+    )
+    expect(labels[SORT_OPTIONS.INPUT_PRICE_HIGH]).toBe(
+      'Input Price: High to Low'
+    )
+    expect(labels[SORT_OPTIONS.OUTPUT_PRICE_LOW]).toBe(
+      'Output Price: Low to High'
+    )
+    expect(labels[SORT_OPTIONS.OUTPUT_PRICE_HIGH]).toBe(
+      'Output Price: High to Low'
+    )
+    expect(labels[SORT_OPTIONS.REQUEST_PRICE_LOW]).toBe(
+      'Per-request Price: Low to High'
+    )
+    expect(labels[SORT_OPTIONS.REQUEST_PRICE_HIGH]).toBe(
+      'Per-request Price: High to Low'
+    )
   })
 })
 

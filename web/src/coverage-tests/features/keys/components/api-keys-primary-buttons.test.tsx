@@ -11,6 +11,14 @@ vi.mock('@/features/keys/components/api-keys-provider', () => ({
   }),
 }))
 
+vi.mock('@/hooks/use-status', () => ({
+  useStatus: () => ({ status: null, loading: false }),
+}))
+
+vi.mock('@/features/dashboard/hooks/use-status-data', () => ({
+  useApiInfo: () => ({ items: [] }),
+}))
+
 describe('ApiKeysPrimaryButtons', () => {
   beforeEach(() => {
     vi.clearAllMocks()
