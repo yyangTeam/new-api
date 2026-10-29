@@ -1362,3 +1362,34 @@ func TestCountAudioTokenInput_SaturationOnLargeAudio(t *testing.T) {
 	// 60s / 60 * 100 / 0.06 = 1666.66... → 1666
 	assert.Equal(t, 1666, result)
 }
+
+func TestQuotaReminderDueRespectsConfiguredCooldown(t *testing.T) {
+	previousEnabled, previousThreshold := common.QuotaRemindEnabled, common.QuotaRemindThreshold
+	t.Cleanup(func() {
+		common.QuotaRemindEnabled = previousEnabled
+		common.QuotaRemindThreshold = previousThreshold
+	})
+	common.QuotaRemindEnabled = true
+	common.QuotaRemindThreshold = 1000
+
+	disabled := false
+	for _, tc := range []struct {
+		name    string
+		setting rkdto.UserSetting
+		before  int64
+		after   int64
+		want    bool
+	}{
+		{"continued spending with cooldown", rkdto.UserSetting{NotifyCooldownMinutes: 30}, 900, 800, true},
+		{"threshold crossing with cooldown", rkdto.UserSetting{NotifyCooldownMinutes: 30}, 1100, 900, true},
+		{"continued spending without cooldown", rkdto.UserSetting{}, 900, 800, false},
+		{"refund while below threshold", rkdto.UserSetting{NotifyCooldownMinutes: 30}, 800, 900, false},
+		{"no new spending", rkdto.UserSetting{NotifyCooldownMinutes: 30}, 800, 800, false},
+		{"user disabled reminders", rkdto.UserSetting{NotifyCooldownMinutes: 30, QuotaWarningEnabled: &disabled}, 900, 800, false},
+		{"custom threshold", rkdto.UserSetting{NotifyCooldownMinutes: 30, QuotaWarningThreshold: 5000}, 4000, 3900, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, quotaReminderDue(tc.setting, tc.before, tc.after))
+		})
+	}
+}
