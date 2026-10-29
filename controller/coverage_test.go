@@ -1150,3 +1150,67 @@ func TestBatchTokenRoutesAreAuditedKeyless(t *testing.T) {
 		assert.NotContains(t, entry.Content, owned.Key)
 	})
 }
+
+// ---------------------------------------------------------------------------
+// update_check.go — restore upstream RC/Beta detection through the dev proxy.
+// The proxy must return the published releases LIST (including pre-releases),
+// not GitHub's /releases/latest which excludes them, so the dashboard can
+// surface a newer RC/Beta than the latest stable release.
+// ---------------------------------------------------------------------------
+
+func TestGetLatestReleaseProxiesReleaseListWithPrereleases(t *testing.T) {
+	previousBase, previousRepo := common.UpdateCheckApiBase, common.UpdateCheckRepo
+	previousTransport := http.DefaultTransport
+	common.UpdateCheckApiBase = "https://update-check-test.example"
+	common.UpdateCheckRepo = "test/repo"
+	t.Cleanup(func() {
+		common.UpdateCheckApiBase, common.UpdateCheckRepo = previousBase, previousRepo
+		http.DefaultTransport = previousTransport
+	})
+
+	var capturedURL string
+	http.DefaultTransport = emailHTTPTransport(func(req *http.Request) (*http.Response, error) {
+		capturedURL = req.URL.String()
+		// GitHub /releases list shape: a stable release plus a newer pre-release.
+		body := `[` +
+			`{"tag_name":"v1.0.0","name":"v1.0.0","body":"stable","html_url":"https://example/v1.0.0","published_at":"2026-01-01T00:00:00Z","prerelease":false,"draft":false},` +
+			`{"tag_name":"v1.1.0-rc.1","name":"v1.1.0-rc.1","body":"rc","html_url":"https://example/rc","published_at":"2026-02-01T00:00:00Z","prerelease":true,"draft":false}` +
+			`]`
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(body)),
+			Header:     make(http.Header),
+		}, nil
+	})
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodGet, "/api/latest-release", nil, 1)
+	GetLatestRelease(ctx)
+
+	var resp struct {
+		Success bool `json:"success"`
+		Data    any  `json:"data"`
+	}
+	require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &resp))
+	require.True(t, resp.Success, recorder.Body.String())
+
+	// The proxy must request the releases LIST (per_page=100), not
+	// /releases/latest, so pre-release versions reach the dashboard.
+	assert.Contains(t, capturedURL, "/repos/test/repo/releases")
+	assert.Contains(t, capturedURL, "per_page=100")
+	assert.NotContains(t, capturedURL, "/releases/latest")
+
+	// data must be a list (not a single release) carrying prerelease/draft.
+	releases, ok := resp.Data.([]any)
+	require.True(t, ok, "data must be a release list, got %v", resp.Data)
+	require.Len(t, releases, 2)
+
+	var rc map[string]any
+	for _, r := range releases {
+		if m, ok := r.(map[string]any); ok && m["tag_name"] == "v1.1.0-rc.1" {
+			rc = m
+		}
+	}
+	require.NotNil(t, rc, "the pre-release must be present in the proxied list")
+	assert.Equal(t, true, rc["prerelease"])
+	assert.Equal(t, false, rc["draft"])
+}
