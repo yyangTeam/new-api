@@ -156,6 +156,7 @@ function getBatchAddFormSchema(t: (key: string) => string) {
       unlimited_quota: z.boolean(),
       model_limits: z.array(z.string()),
       allow_ips: z.string().optional(),
+      allow_user_quota_query: z.boolean(),
     })
     .superRefine((data, ctx) => {
       if (!data.unlimited_quota) {
@@ -231,6 +232,7 @@ export function ApiKeysBatchAddDrawer({
       unlimited_quota: true,
       model_limits: [],
       allow_ips: '',
+      allow_user_quota_query: true,
     },
   })
 
@@ -279,6 +281,7 @@ export function ApiKeysBatchAddDrawer({
         group: data.group || '',
         cross_group_retry:
           data.group === 'auto' ? !!data.cross_group_retry : false,
+        allow_user_quota_query: data.allow_user_quota_query,
       })
 
       if (!result.success) {
@@ -649,6 +652,31 @@ export function ApiKeysBatchAddDrawer({
                           />
                         </FormControl>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='allow_user_quota_query'
+                    render={({ field }) => (
+                      <FormItem className={sideDrawerSwitchItemClassName()}>
+                        <div className='flex flex-col gap-0.5'>
+                          <FormLabel className='text-sm'>
+                            {t('Allow querying user quota')}
+                          </FormLabel>
+                          <FormDescription className='text-xs'>
+                            {t(
+                              "When enabled, this API key can be used to check your account's remaining and used quota."
+                            )}
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
                       </FormItem>
                     )}
                   />

@@ -112,6 +112,7 @@ export async function batchUpdateApiKeys(
     allow_ips?: string
     group?: string
     cross_group_retry?: boolean
+    allow_user_quota_query?: boolean
   }
 ): Promise<ApiResponse<number>> {
   const res = await api.put('/api/token/batch', data)

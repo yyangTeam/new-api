@@ -129,6 +129,7 @@ export interface BatchCreateApiKeysRequest {
   allow_ips?: string
   group: string
   cross_group_retry: boolean
+  allow_user_quota_query?: boolean
 }
 
 export interface BatchCreateApiKeysResponse {

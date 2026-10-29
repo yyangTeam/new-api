@@ -589,6 +589,8 @@ type TokenBatchCreateRequest struct {
 	AllowIps           *string  `json:"allow_ips"`
 	Group              string   `json:"group"`
 	CrossGroupRetry    bool     `json:"cross_group_retry"`
+	// 指针区分“未传”和显式 false：批量新建未传即开启，与单个新建默认一致。
+	AllowUserQuotaQuery *bool `json:"allow_user_quota_query"`
 }
 
 type TokenBatchCreateItem struct {
@@ -618,6 +620,8 @@ type TokenBatchUpdate struct {
 	AllowIps        *string `json:"allow_ips"`
 	Group           *string `json:"group"`
 	CrossGroupRetry *bool   `json:"cross_group_retry"`
+	// 仅在传入时修改，未传则保留每个令牌的原值，与单个更新语义一致。
+	AllowUserQuotaQuery *bool `json:"allow_user_quota_query"`
 }
 
 func normalizeBatchTokenNames(names []string) ([]string, error) {
@@ -695,6 +699,9 @@ func CreateTokenBatch(c *gin.Context) {
 		Items:  make([]TokenBatchCreateItem, 0, len(names)),
 		Errors: make([]TokenBatchCreateError, 0),
 	}
+	// 审计只记录数量，不含令牌名或密钥；TokenOperationAudit 中间件负责落库。
+	params := tokenAuditParams(c)
+	params["total"] = len(names)
 
 	for _, name := range names {
 		key, err := common.GenerateKey()
@@ -728,6 +735,8 @@ func CreateTokenBatch(c *gin.Context) {
 			AllowIps:           req.AllowIps,
 			Group:              req.Group,
 			CrossGroupRetry:    req.CrossGroupRetry,
+			// 默认开启用户额度查询，与单个新建保持一致；显式 false 时关闭。
+			AllowUserQuotaQuery: req.AllowUserQuotaQuery == nil || *req.AllowUserQuotaQuery,
 		}
 		if err := token.Insert(); err != nil {
 			reason := err.Error()
@@ -751,6 +760,9 @@ func CreateTokenBatch(c *gin.Context) {
 		})
 	}
 
+	params["created"] = result.Created
+	params["failed"] = result.Failed
+	common.SetContextKey(c, constant.ContextKeyTokenAuditSucceeded, true)
 	common.ApiSuccess(c, result)
 }
 
@@ -800,6 +812,9 @@ func UpdateTokenBatch(c *gin.Context) {
 	if req.CrossGroupRetry != nil {
 		updateFields["cross_group_retry"] = *req.CrossGroupRetry
 	}
+	if req.AllowUserQuotaQuery != nil {
+		updateFields["allow_user_quota_query"] = *req.AllowUserQuotaQuery
+	}
 
 	if len(updateFields) == 0 {
 		common.ApiErrorT(c, "Invalid parameters")
@@ -807,11 +822,15 @@ func UpdateTokenBatch(c *gin.Context) {
 	}
 
 	userId := c.GetInt("id")
+	// 审计只记录请求的 id 与更新条数，不含密钥；TokenOperationAudit 中间件负责落库。
+	params := tokenBatchAuditParams(c, req.Ids)
 	count, err := model.BatchUpdateTokens(req.Ids, userId, updateFields)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
+	params["count"] = count
+	common.SetContextKey(c, constant.ContextKeyTokenAuditSucceeded, true)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

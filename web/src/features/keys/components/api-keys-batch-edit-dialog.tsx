@@ -72,6 +72,8 @@ export function ApiKeysBatchEditDialog<TData>({
   const [enableModelLimits, setEnableModelLimits] = useState(false)
   const [enableAllowIps, setEnableAllowIps] = useState(false)
   const [enableCrossGroupRetry, setEnableCrossGroupRetry] = useState(false)
+  const [enableAllowUserQuotaQuery, setEnableAllowUserQuotaQuery] =
+    useState(false)
 
   const [group, setGroup] = useState('')
   const [crossGroupRetry, setCrossGroupRetry] = useState(false)
@@ -80,6 +82,7 @@ export function ApiKeysBatchEditDialog<TData>({
   const [unlimitedQuota, setUnlimitedQuota] = useState(true)
   const [modelLimits, setModelLimits] = useState<string[]>([])
   const [allowIps, setAllowIps] = useState('')
+  const [allowUserQuotaQuery, setAllowUserQuotaQuery] = useState(true)
 
   const selectedRows = table.getFilteredSelectedRowModel().rows
 
@@ -117,6 +120,7 @@ export function ApiKeysBatchEditDialog<TData>({
     setEnableModelLimits(false)
     setEnableAllowIps(false)
     setEnableCrossGroupRetry(false)
+    setEnableAllowUserQuotaQuery(false)
     setGroup('')
     setCrossGroupRetry(false)
     setExpiredTime(undefined)
@@ -124,6 +128,7 @@ export function ApiKeysBatchEditDialog<TData>({
     setUnlimitedQuota(true)
     setModelLimits([])
     setAllowIps('')
+    setAllowUserQuotaQuery(true)
   }, [])
 
   const handleOpenChange = useCallback(
@@ -141,7 +146,8 @@ export function ApiKeysBatchEditDialog<TData>({
       enableQuota ||
       enableModelLimits ||
       enableAllowIps ||
-      enableCrossGroupRetry
+      enableCrossGroupRetry ||
+      enableAllowUserQuotaQuery
 
     if (!hasAnyField) {
       toast.error(t('Please select at least one field to update'))
@@ -176,6 +182,9 @@ export function ApiKeysBatchEditDialog<TData>({
       }
       if (enableAllowIps) {
         payload.allow_ips = allowIps
+      }
+      if (enableAllowUserQuotaQuery) {
+        payload.allow_user_quota_query = allowUserQuotaQuery
       }
 
       const result = await batchUpdateApiKeys(
@@ -370,6 +379,19 @@ export function ApiKeysBatchEditDialog<TData>({
               placeholder={t('One IP per line (empty for no restriction)')}
               rows={2}
               disabled={!enableAllowIps}
+            />
+          </FieldRow>
+
+          {/* Allow querying user quota */}
+          <FieldRow
+            label={t('Allow querying user quota')}
+            checked={enableAllowUserQuotaQuery}
+            onCheckedChange={setEnableAllowUserQuotaQuery}
+          >
+            <Switch
+              checked={allowUserQuotaQuery}
+              onCheckedChange={setAllowUserQuotaQuery}
+              disabled={!enableAllowUserQuotaQuery}
             />
           </FieldRow>
         </div>
