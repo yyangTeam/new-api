@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"html"
 	"net/smtp"
 	"slices"
 	"strings"
@@ -75,9 +76,13 @@ func newSMTPClient(addr string) (*smtp.Client, error) {
 	return client, nil
 }
 
-func wrapEmailTemplate(body string) string {
+func wrapEmailTemplate(body, lang, footer string) string {
+	logo := ""
+	if SystemName != "" {
+		logo = string([]rune(SystemName)[0])
+	}
 	return fmt.Sprintf(`<!DOCTYPE html>
-<html lang="zh">
+<html lang="%s">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
 <body style="margin:0;padding:0;background-color:#eef2f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
 <table width="100%%" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#eef2f7;">
@@ -102,7 +107,7 @@ func wrapEmailTemplate(body string) string {
     <tr><td style="background:#f8fafc;border-radius:0 0 16px 16px;padding:24px 44px;border-top:1px solid #f1f5f9;">
       <table width="100%%" cellpadding="0" cellspacing="0" role="presentation">
         <tr><td align="center" style="color:#94a3b8;font-size:12px;line-height:1.6;">
-          此邮件由 %s 系统自动发送，请勿直接回复
+          %s
         </td></tr>
       </table>
     </td></tr>
@@ -110,10 +115,20 @@ func wrapEmailTemplate(body string) string {
 </td></tr>
 </table>
 </body>
-</html>`, string([]rune(SystemName)[0]), SystemName, body, SystemName)
+</html>`, html.EscapeString(lang), html.EscapeString(logo), html.EscapeString(SystemName), body, html.EscapeString(footer))
 }
 
 func SendEmail(subject string, receiver string, content string) error {
+	return sendEmail(subject, receiver, content, false)
+}
+
+// SendEmailWithTemplate sends the supplied body in the site's styled HTML
+// template. The caller supplies the recipient's resolved language and footer.
+func SendEmailWithTemplate(subject, receiver, content, lang, footer string) error {
+	return sendEmail(subject, receiver, wrapEmailTemplate(content, lang, footer), true)
+}
+
+func sendEmail(subject, receiver, content string, templated bool) error {
 	OptionMapRWMutex.RLock()
 	provider := OptionMap["EmailProvider"]
 	resendKey := OptionMap["ResendApiKey"]
@@ -138,7 +153,9 @@ func SendEmail(subject string, receiver string, content string) error {
 	if SMTPServer == "" && SMTPAccount == "" {
 		return NewMessage("SMTP server is not configured")
 	}
-	styledContent := wrapEmailTemplate(content)
+	if !templated {
+		content = wrapEmailTemplate(content, "zh", fmt.Sprintf("此邮件由 %s 系统自动发送，请勿直接回复", SystemName))
+	}
 	encodedSubject := fmt.Sprintf("=?UTF-8?B?%s?=", base64.StdEncoding.EncodeToString([]byte(subject)))
 	mail := []byte(fmt.Sprintf("To: %s\r\n"+
 		"From: %s <%s>\r\n"+
@@ -146,7 +163,7 @@ func SendEmail(subject string, receiver string, content string) error {
 		"Date: %s\r\n"+
 		"Message-ID: %s\r\n"+
 		"Content-Type: text/html; charset=UTF-8\r\n\r\n%s\r\n",
-		receiver, SystemName, SMTPFrom, encodedSubject, time.Now().Format(time.RFC1123Z), id, styledContent))
+		receiver, SystemName, SMTPFrom, encodedSubject, time.Now().Format(time.RFC1123Z), id, content))
 	auth := getSMTPAuth()
 	addr := fmt.Sprintf("%s:%d", SMTPServer, SMTPPort)
 	to := strings.Split(receiver, ";")

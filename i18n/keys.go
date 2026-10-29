@@ -127,6 +127,7 @@ const (
 // recipient's language
 const (
 	MsgUserDefaultTokenName = "user.default_token_name"
+	MsgEmailFooter          = "email.footer"
 
 	MsgEmailVerificationSubject  = "email.verification.subject"
 	MsgEmailVerificationGreeting = "email.verification.greeting"

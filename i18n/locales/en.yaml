@@ -102,6 +102,7 @@ relay.access_token_unsupported: "Access tokens are not supported here"
 
 # Emails and the name of the token created at registration
 user.default_token_name: "{{.Username}}'s initial token"
+email.footer: "This email was sent automatically by {{.SystemName}}. Please do not reply."
 email.verification.subject: "{{.SystemName}} email verification"
 email.verification.greeting: "Hello, you are verifying your email address for {{.SystemName}}."
 email.verification.code: "Your verification code is: <strong>{{.Code}}</strong>"
