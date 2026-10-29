@@ -35,13 +35,20 @@ type latestRelease struct {
 	Body        string `json:"body"`
 	HTMLURL     string `json:"html_url"`
 	PublishedAt string `json:"published_at"`
+	Prerelease  bool   `json:"prerelease"`
+	Draft       bool   `json:"draft"`
 }
 
-// GetLatestRelease proxies the configured repository's latest release so the
-// dashboard can check for updates without calling api.github.com from the
+// GetLatestRelease proxies the configured repository's published releases so
+// the dashboard can check for updates without calling api.github.com from the
 // browser (avoids cross-origin issues and works behind an intranet mirror).
 // The API base and owner/repo are configurable via the UpdateCheckApiBase and
 // UpdateCheckRepo options.
+//
+// It returns the releases LIST (including pre-releases) rather than GitHub's
+// /releases/latest, which excludes pre-releases: the dashboard selects the
+// newest published version client-side so a newer RC/Beta than the latest
+// stable release is still surfaced.
 func GetLatestRelease(c *gin.Context) {
 	base := strings.TrimSpace(common.UpdateCheckApiBase)
 	repo := strings.TrimSpace(common.UpdateCheckRepo)
@@ -53,7 +60,7 @@ func GetLatestRelease(c *gin.Context) {
 		return
 	}
 
-	url := strings.TrimRight(base, "/") + "/repos/" + repo + "/releases/latest"
+	url := strings.TrimRight(base, "/") + "/repos/" + repo + "/releases?per_page=100"
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -74,11 +81,6 @@ func GetLatestRelease(c *gin.Context) {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
-		return
-	}
 	if resp.StatusCode != http.StatusOK {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -87,8 +89,10 @@ func GetLatestRelease(c *gin.Context) {
 		return
 	}
 
-	var release latestRelease
-	if err := common.Unmarshal(body, &release); err != nil {
+	// The published-releases list can be large; decode the needed fields
+	// straight from the stream instead of buffering the whole payload.
+	var releases []latestRelease
+	if err := common.DecodeJson(io.LimitReader(resp.Body, 16<<20), &releases); err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": "Failed to parse release payload",
@@ -96,5 +100,5 @@ func GetLatestRelease(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": release})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": releases})
 }

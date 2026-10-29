@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
 
-import type { SystemRelease } from './releases'
+import { selectLatestRelease, type SystemRelease } from './releases'
 
 export type UpdateCheckErrorCode =
   | 'network'
@@ -36,9 +36,12 @@ export class UpdateCheckError extends Error {
 /**
  * Fetch the latest release via the backend proxy at /api/latest-release.
  *
- * This avoids cross-origin issues and browser-side GitHub rate limits, and
- * uses the fork's configured repository (UpdateCheckApiBase / UpdateCheckRepo)
- * instead of hardcoding the upstream repo.
+ * The proxy returns the repository's published releases (including
+ * pre-releases) so the dashboard can detect a newer RC/Beta than the latest
+ * stable release without calling api.github.com from the browser, and uses
+ * the fork's configured repository (UpdateCheckApiBase / UpdateCheckRepo)
+ * instead of hardcoding the upstream repo. Selection runs client-side via
+ * selectLatestRelease, matching upstream behavior.
  */
 export async function fetchLatestSystemRelease(
   signal: AbortSignal
@@ -49,16 +52,12 @@ export async function fetchLatestSystemRelease(
     if (!payload?.success) {
       throw new UpdateCheckError('network')
     }
-    const data = payload.data
-    if (!data) return null
-    return {
-      tag_name: data.tag_name,
-      name: data.name ?? null,
-      body: data.body ?? null,
-      published_at: data.published_at ?? null,
-      prerelease: false,
-      html_url: data.html_url ?? undefined,
-    } as SystemRelease
+    try {
+      return selectLatestRelease(payload.data)
+    } catch (error) {
+      if (signal.aborted) throw error
+      throw new UpdateCheckError('payload')
+    }
   } catch (error) {
     if (signal.aborted) throw error
     if (error instanceof UpdateCheckError) throw error
