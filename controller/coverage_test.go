@@ -4,6 +4,7 @@ package controller
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +16,7 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	taskdto "github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/i18n"
+	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
@@ -968,4 +970,183 @@ func TestAccountSecurityEmailSMTPUsesLocalizedTemplate(t *testing.T) {
 	assert.Contains(t, messages[0], "This email was sent automatically by New API. Please do not reply.")
 	assert.Contains(t, messages[0], i18n.Translate("en", i18n.MsgEmailSecurityNoticeAdvice))
 	assert.Equal(t, 1, strings.Count(messages[0], `<!DOCTYPE html>`))
+}
+
+// ---------------------------------------------------------------------------
+// token.go batch create/update — preserve the per-token quota-query switch
+// and the security audit that single-token routes already had.
+// ---------------------------------------------------------------------------
+
+// stubTokenUserAuth seeds the operator identity that TokenOperationAudit and the
+// batch handlers read, without spinning up the full session/JWT auth chain.
+func stubTokenUserAuth(userID int) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set("id", userID)
+		c.Set("username", "batch-audit-owner")
+		c.Set("role", common.RoleCommonUser)
+		c.Next()
+	}
+}
+
+// TestBatchCreateDefaultsAllowUserQuotaQuery locks in the merge requirement that
+// batch-created tokens inherit the same quota-query default as single-token
+// creation: on unless the caller explicitly turns it off.
+func TestBatchCreateDefaultsAllowUserQuotaQuery(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		field any // nil omits allow_user_quota_query from the request
+		want  bool
+	}{
+		{name: "omitting the field defaults on like single-token create", want: true},
+		{name: "explicit false keeps it off", field: false},
+		{name: "explicit true turns it on", field: true, want: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := setupTokenControllerTestDB(t)
+			body := map[string]any{
+				"names":           []string{"batch-quota"},
+				"expired_time":    -1,
+				"unlimited_quota": true,
+				"group":           "default",
+			}
+			if tc.field != nil {
+				body["allow_user_quota_query"] = tc.field
+			}
+			ctx, recorder := newAuthenticatedContext(t, http.MethodPost, "/api/token/batch/create", body, 1)
+			CreateTokenBatch(ctx)
+
+			response := decodeAPIResponse(t, recorder)
+			require.True(t, response.Success, response.Message)
+
+			var saved model.Token
+			require.NoError(t, db.Where("name = ?", "batch-quota").First(&saved).Error)
+			assert.Equal(t, tc.want, saved.AllowUserQuotaQuery)
+		})
+	}
+}
+
+// TestBatchUpdateAllowUserQuotaQuerySelective locks in that batch update only
+// touches the quota-query switch when the caller sends it; an omitted field
+// preserves each token's existing value, matching single-token update.
+func TestBatchUpdateAllowUserQuotaQuerySelective(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		seeding bool // initial AllowUserQuotaQuery on the seeded token
+		field   any  // nil omits allow_user_quota_query from the batch update
+		want    bool
+	}{
+		{name: "turning it on changes an off token", seeding: false, field: true, want: true},
+		{name: "turning it off changes an on token", seeding: true, field: false},
+		{name: "omitting it leaves an on token unchanged", seeding: true, want: true},
+		{name: "omitting it leaves an off token unchanged", seeding: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := setupTokenControllerTestDB(t)
+			token := seedToken(t, db, 1, "batch-update", "batch-update-key")
+			require.NoError(t, db.Model(token).Update("allow_user_quota_query", tc.seeding).Error)
+
+			body := map[string]any{"ids": []int{token.Id}}
+			if tc.field != nil {
+				body["allow_user_quota_query"] = tc.field
+			} else {
+				// The batch endpoint rejects an empty update, so send an unchanged
+				// group alongside the omitted quota field to exercise the selective path.
+				body["group"] = "default"
+			}
+			ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", body, 1)
+			UpdateTokenBatch(ctx)
+
+			response := decodeAPIResponse(t, recorder)
+			require.True(t, response.Success, response.Message)
+
+			var saved model.Token
+			require.NoError(t, db.Where("id = ?", token.Id).First(&saved).Error)
+			assert.Equal(t, tc.want, saved.AllowUserQuotaQuery)
+		})
+	}
+}
+
+// setupBatchTokenAuditRouter wires the batch token routes through the
+// TokenOperationAudit middleware with a stub operator identity, so the audit
+// behavior of POST /api/token/batch/create and PUT /api/token/batch can be
+// observed without the full session/JWT auth chain.
+func setupBatchTokenAuditRouter(t *testing.T, userID int) *gin.Engine {
+	t.Helper()
+	db := setupTokenControllerTestDB(t)
+	require.NoError(t, db.AutoMigrate(&model.AuditLog{}))
+	router := gin.New()
+	tokenRoutes := router.Group("/api/token", stubTokenUserAuth(userID), middleware.TokenOperationAudit())
+	tokenRoutes.POST("/batch/create", CreateTokenBatch)
+	tokenRoutes.PUT("/batch", UpdateTokenBatch)
+	return router
+}
+
+// TestBatchTokenRoutesAreAuditedKeyless locks in that the batch create and
+// update routes record a security audit entry (closing the merge gap where they
+// fell through the audit middleware's default branch) and that the recorded
+// params never contain the generated token key.
+func TestBatchTokenRoutesAreAuditedKeyless(t *testing.T) {
+	t.Run("batch create records a keyless audit entry", func(t *testing.T) {
+		const userID = 1
+		router := setupBatchTokenAuditRouter(t, userID)
+		body, err := common.Marshal(map[string]any{
+			"names":           []string{"audit-batch"},
+			"expired_time":    -1,
+			"unlimited_quota": true,
+			"group":           "default",
+		})
+		require.NoError(t, err)
+		request := httptest.NewRequest(http.MethodPost, "/api/token/batch/create", bytes.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := decodeAPIResponse(t, recorder)
+		require.True(t, response.Success, recorder.Body.String())
+
+		var events []model.AuditLog
+		require.NoError(t, model.DB.Where("user_id = ? AND action = ?", userID, "token.create_batch").Find(&events).Error)
+		require.Len(t, events, 1, "POST /api/token/batch/create must record exactly one audit entry")
+		entry := events[0]
+		assert.True(t, entry.Success)
+		assert.Equal(t, "token.create_batch", entry.Action)
+
+		var created model.Token
+		require.NoError(t, model.DB.Where("name = ?", "audit-batch").First(&created).Error)
+		require.NotNil(t, entry.Other.Op)
+		paramsJSON, err := common.Marshal(entry.Other.Op.Params)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"total":1,"created":1,"failed":0}`, string(paramsJSON))
+		assert.NotContains(t, string(paramsJSON), created.Key)
+		assert.NotContains(t, entry.Content, created.Key)
+	})
+
+	t.Run("batch update records a keyless audit entry", func(t *testing.T) {
+		const userID = 1
+		router := setupBatchTokenAuditRouter(t, userID)
+		owned := seedToken(t, model.DB, userID, "audit-owned", "audit-owned-key-secret")
+		body, err := common.Marshal(map[string]any{"ids": []int{owned.Id}, "group": "default"})
+		require.NoError(t, err)
+		request := httptest.NewRequest(http.MethodPut, "/api/token/batch", bytes.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := decodeAPIResponse(t, recorder)
+		require.True(t, response.Success, recorder.Body.String())
+
+		var events []model.AuditLog
+		require.NoError(t, model.DB.Where("user_id = ? AND action = ?", userID, "token.update_batch").Find(&events).Error)
+		require.Len(t, events, 1, "PUT /api/token/batch must record exactly one audit entry")
+		entry := events[0]
+		assert.True(t, entry.Success)
+		assert.Equal(t, "token.update_batch", entry.Action)
+
+		require.NotNil(t, entry.Other.Op)
+		paramsJSON, err := common.Marshal(entry.Other.Op.Params)
+		require.NoError(t, err)
+		assert.JSONEq(t, fmt.Sprintf(`{"total":1,"requested_ids":[%d],"count":1}`, owned.Id), string(paramsJSON))
+		assert.NotContains(t, string(paramsJSON), owned.Key)
+		assert.NotContains(t, entry.Content, owned.Key)
+	})
 }

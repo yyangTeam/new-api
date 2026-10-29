@@ -177,6 +177,14 @@ describe('batchUpdateApiKeys', () => {
     expect(mockApi.put).toHaveBeenCalledWith('/api/token/batch', data)
     expect(result.data).toBe(2)
   })
+
+  test('forwards allow_user_quota_query when the operator opts into the change', async () => {
+    const data = { ids: [1, 2], allow_user_quota_query: true }
+    mockApi.put.mockResolvedValue({ data: { success: true, data: 2 } })
+    const result = await batchUpdateApiKeys(data)
+    expect(mockApi.put).toHaveBeenCalledWith('/api/token/batch', data)
+    expect(result.data).toBe(2)
+  })
 })
 
 describe('updateApiKeyStatus', () => {
@@ -233,5 +241,24 @@ describe('batchCreateApiKeys', () => {
     const result = await batchCreateApiKeys(data)
     expect(mockApi.post).toHaveBeenCalledWith('/api/token/batch/create', data)
     expect(result.data?.created).toBe(2)
+  })
+
+  test('forwards allow_user_quota_query so batch tokens can read user quota', async () => {
+    const data = {
+      names: ['key1'],
+      expired_time: -1,
+      remain_quota: 0,
+      unlimited_quota: true,
+      model_limits_enabled: false,
+      model_limits: '',
+      group: '',
+      cross_group_retry: false,
+      allow_user_quota_query: true,
+    }
+    mockApi.post.mockResolvedValue({
+      data: { success: true, data: { created: 1, failed: 0 } },
+    })
+    await batchCreateApiKeys(data)
+    expect(mockApi.post).toHaveBeenCalledWith('/api/token/batch/create', data)
   })
 })
