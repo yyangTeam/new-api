@@ -897,3 +897,75 @@ func TestGetChannelNilChannelMetaAutoBanTrue(t *testing.T) {
 	require.NotNil(t, ch)
 	assert.Equal(t, 1, *ch.AutoBan)
 }
+
+func TestAccountSecurityEmailResendUsesLocalizedTemplate(t *testing.T) {
+	require.NoError(t, i18n.Init())
+	previousSystemName := common.SystemName
+	common.SystemName = "New API"
+	t.Cleanup(func() { common.SystemName = previousSystemName })
+
+	for _, tc := range []struct {
+		name        string
+		lang        string
+		defaultLang string
+		htmlLang    string
+		footer      string
+	}{
+		{"English", "en", "", "en", "This email was sent automatically by New API. Please do not reply."},
+		{"Simplified Chinese", "zhCN", "", "zh-CN", "此邮件由 New API 系统自动发送，请勿直接回复"},
+		{"Traditional Chinese", "zhTW", "", "zh-TW", "此郵件由 New API 系統自動發送，請勿直接回覆"},
+		{"Unspecified language", "", "zh-CN", "zh-CN", "此邮件由 New API 系统自动发送，请勿直接回复"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.defaultLang != "" {
+				previousDefaultLang := common.DefaultLanguage
+				common.DefaultLanguage = tc.defaultLang
+				t.Cleanup(func() { common.DefaultLanguage = previousDefaultLang })
+			}
+			configureEmailDelivery(t, map[string]string{
+				"EmailProvider": "resend",
+				"ResendApiKey":  "test-key",
+				"ResendFrom":    "sender@example.com",
+			})
+			var sentHTML string
+			http.DefaultTransport = emailHTTPTransport(func(request *http.Request) (*http.Response, error) {
+				var payload struct {
+					HTML string `json:"html"`
+				}
+				require.NoError(t, common.DecodeJson(request.Body, &payload))
+				sentHTML = payload.HTML
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(`{"id":"email-test-id"}`)),
+					Header:     make(http.Header),
+				}, nil
+			})
+
+			require.NoError(t, service.NotifyAccountSecurityChange(tc.lang, "one@example.com", i18n.MsgSecurityEventPasswordUpdated))
+			assert.Contains(t, sentHTML, `<!DOCTYPE html>`)
+			assert.Contains(t, sentHTML, `<html lang="`+tc.htmlLang+`">`)
+			assert.Contains(t, sentHTML, tc.footer)
+			assert.Contains(t, sentHTML, i18n.Translate(tc.lang, i18n.MsgEmailSecurityNoticeAdvice))
+			assert.Equal(t, 1, strings.Count(sentHTML, `<!DOCTYPE html>`))
+		})
+	}
+}
+
+func TestAccountSecurityEmailSMTPUsesLocalizedTemplate(t *testing.T) {
+	require.NoError(t, i18n.Init())
+	previousSystemName := common.SystemName
+	common.SystemName = "New API"
+	t.Cleanup(func() { common.SystemName = previousSystemName })
+	configureEmailDelivery(t, map[string]string{"EmailProvider": "smtp"})
+	mailbox := newSecurityMailbox(t)
+
+	require.NoError(t, service.NotifyAccountSecurityChange("en", "one@example.com", i18n.MsgSecurityEventPasswordUpdated))
+	mailbox.mutex.Lock()
+	messages := append([]string(nil), mailbox.mail["one@example.com"]...)
+	mailbox.mutex.Unlock()
+	require.Len(t, messages, 1)
+	assert.Contains(t, messages[0], `<html lang="en">`)
+	assert.Contains(t, messages[0], "This email was sent automatically by New API. Please do not reply.")
+	assert.Contains(t, messages[0], i18n.Translate("en", i18n.MsgEmailSecurityNoticeAdvice))
+	assert.Equal(t, 1, strings.Count(messages[0], `<!DOCTYPE html>`))
+}
