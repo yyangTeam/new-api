@@ -2,10 +2,10 @@ package service
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/bytedance/gopkg/util/gopool"
@@ -179,18 +179,24 @@ func formatNotifyChannelErrorType(channelId int) string {
 }
 
 func notifyChannelConsecutiveError(channelId int, channelName string, count int64, lastError string) {
-	subject := fmt.Sprintf("通道「%s」（#%d）连续错误 %d 次", channelName, channelId, count)
-	var content strings.Builder
-	content.WriteString(fmt.Sprintf("通道「%s」（#%d）已连续出现 %d 次请求错误。\n", channelName, channelId, count))
-	if lastError != "" {
-		content.WriteString(fmt.Sprintf("最近错误：%s", lastError))
-	}
-	NotifyRootUser(formatNotifyChannelErrorType(channelId), subject, content.String())
+	params := map[string]any{"Name": channelName, "Id": channelId, "Count": count}
+	NotifyChannelWatchers(formatNotifyChannelErrorType(channelId), func(lang string) (string, string) {
+		subject := i18n.Translate(lang, i18n.MsgChannelConsecutiveErrorSubject, params)
+		content := i18n.Translate(lang, i18n.MsgChannelConsecutiveErrorContent, params)
+		if lastError != "" {
+			content += "\n" + i18n.Translate(lang, i18n.MsgChannelLatestError, map[string]any{"Error": lastError})
+		}
+		return subject, content
+	})
 }
 
 func notifyChannelErrorRate(channelId int, channelName string, errCount, total int, rate float64, windowMinutes int) {
-	subject := fmt.Sprintf("通道「%s」（#%d）错误率 %.0f%%", channelName, channelId, rate*100)
-	content := fmt.Sprintf("通道「%s」（#%d）在最近 %d 分钟内错误率为 %.1f%%（%d/%d 请求失败）。",
-		channelName, channelId, windowMinutes, rate*100, errCount, total)
-	NotifyRootUser(formatNotifyChannelErrorType(channelId), subject, content)
+	params := map[string]any{
+		"Name": channelName, "Id": channelId, "Rate": fmt.Sprintf("%.1f", rate*100),
+		"Window": windowMinutes, "Errors": errCount, "Total": total,
+	}
+	NotifyChannelWatchers(formatNotifyChannelErrorType(channelId), func(lang string) (string, string) {
+		return i18n.Translate(lang, i18n.MsgChannelErrorRateSubject, params),
+			i18n.Translate(lang, i18n.MsgChannelErrorRateContent, params)
+	})
 }

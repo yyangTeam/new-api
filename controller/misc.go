@@ -25,10 +25,7 @@ import (
 func TestStatus(c *gin.Context) {
 	err := model.PingDB()
 	if err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"success": false,
-			"message": "数据库连接失败",
-		})
+		writeAccountStatusError(c, http.StatusServiceUnavailable, "Database connection failed")
 		return
 	}
 	// 获取HTTP统计信息
@@ -129,6 +126,10 @@ func GetStatus(c *gin.Context) {
 		"user_agreement_enabled":      legalSetting.UserAgreement != "",
 		"privacy_policy_enabled":      legalSetting.PrivacyPolicy != "",
 		"checkin_enabled":             operation_setting.GetCheckinSetting().Enabled,
+		"log_export_enabled":          operation_setting.GetLogSetting().UserExportEnabled,
+		"log_max_range_days":          operation_setting.GetLogSetting().MaxRangeDays,
+		"quota_remind_enabled":        common.QuotaRemindEnabled,
+		"quota_remind_threshold":      common.QuotaRemindThreshold,
 	}
 
 	// 根据启用状态注入可选内容
@@ -226,20 +227,24 @@ func SendEmailVerification(c *gin.Context) {
 	}
 
 	if model.IsEmailAlreadyTaken(email) {
-		common.ApiErrorI18n(c, i18n.MsgUserEmailAlreadyTaken)
+		common.ApiErrorT(c, "Email address is already in use")
 		return
 	}
 	code := common.GenerateVerificationCode(6)
 	common.RegisterVerificationCodeWithKey(email, code, common.EmailVerificationPurpose)
-	subject := fmt.Sprintf("%s邮箱验证邮件", common.SystemName)
+	// The address may not belong to an account yet, so the mail follows the
+	// request language.
+	systemName := map[string]any{"SystemName": common.SystemName}
+	subject := i18n.T(c, i18n.MsgEmailVerificationSubject, systemName)
 	content := fmt.Sprintf(
-		`<p style="margin:0 0 20px;font-size:16px;color:#1e293b;">您好，</p>`+
-			`<p style="margin:0 0 24px;color:#475569;">您正在进行 <strong>%s</strong> 邮箱验证，请使用以下验证码完成操作：</p>`+
+		`<p style="margin:0 0 24px;font-size:16px;color:#1e293b;">%s</p>`+
 			`<table width="100%%" cellpadding="0" cellspacing="0" role="presentation"><tr><td align="center" style="padding:20px 0 28px;">`+
-			`<div style="display:inline-block;background:linear-gradient(135deg,#f0f0ff,#f5f3ff);border:2px solid #e0e7ff;border-radius:12px;padding:18px 40px;font-size:32px;font-weight:700;letter-spacing:8px;color:#4f46e5;font-family:'Courier New',Courier,monospace;">%s</div>`+
+			`<div style="display:inline-block;background:linear-gradient(135deg,#f0f0ff,#f5f3ff);border:2px solid #e0e7ff;border-radius:12px;padding:18px 40px;font-size:18px;font-weight:700;color:#4f46e5;">%s</div>`+
 			`</td></tr></table>`+
-			`<p style="margin:0;color:#94a3b8;font-size:13px;">验证码 %d 分钟内有效，如果不是本人操作，请忽略此邮件。</p>`,
-		common.SystemName, code, common.VerificationValidMinutes)
+			`<p style="margin:0;color:#94a3b8;font-size:13px;">%s</p>`,
+		i18n.T(c, i18n.MsgEmailVerificationGreeting, systemName),
+		i18n.T(c, i18n.MsgEmailVerificationCode, map[string]any{"Code": code}),
+		i18n.T(c, i18n.MsgEmailVerificationValidity, map[string]any{"Minutes": common.VerificationValidMinutes}))
 	err = common.SendEmail(subject, email, content)
 	if err != nil {
 		common.ApiError(c, err)
@@ -255,30 +260,35 @@ func SendEmailVerification(c *gin.Context) {
 func SendPasswordResetEmail(c *gin.Context) {
 	email := model.NormalizeEmail(c.Query("email"))
 	if err := common.Validate.Var(email, "required,email"); err != nil {
-		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		common.ApiErrorT(c, "Invalid parameters")
 		return
 	}
-	if _, err := model.GetUniqueUserByEmail(email); err == nil {
+	if user, err := model.GetUniqueUserByEmail(email); err == nil {
 		code := common.GenerateVerificationCode(0)
 		common.RegisterVerificationCodeWithKey(email, code, common.PasswordResetPurpose)
 		link := fmt.Sprintf("%s/user/reset?email=%s&token=%s", system_setting.ServerAddress, email, code)
-		subject := fmt.Sprintf("%s密码重置", common.SystemName)
+		lang := user.GetSetting().Language
+		if lang == "" {
+			lang = i18n.StatedLang(c)
+		}
+		systemName := map[string]any{"SystemName": common.SystemName}
+		linkParams := map[string]any{"Link": link}
+		subject := i18n.Translate(lang, i18n.MsgEmailPasswordResetSubject, systemName)
 		content := fmt.Sprintf(
-			`<p style="margin:0 0 20px;font-size:16px;color:#1e293b;">您好，</p>`+
-				`<p style="margin:0 0 28px;color:#475569;">您正在进行 <strong>%s</strong> 密码重置，请点击下方按钮设置新密码：</p>`+
-				`<table width="100%%" cellpadding="0" cellspacing="0" role="presentation"><tr><td align="center" style="padding:4px 0 28px;">`+
-				`<a href="%s" style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 48px;border-radius:8px;">重置密码</a>`+
-				`</td></tr></table>`+
-				`<p style="margin:0 0 8px;color:#94a3b8;font-size:13px;">如果按钮无法点击，请复制以下链接到浏览器中打开：</p>`+
+			`<p style="margin:0 0 28px;font-size:16px;color:#1e293b;">%s</p>`+
+				`<table width="100%%" cellpadding="0" cellspacing="0" role="presentation"><tr><td align="center" style="padding:4px 0 28px;background:linear-gradient(135deg,#f0f0ff,#f5f3ff);border-radius:8px;">%s</td></tr></table>`+
 				`<p style="margin:0 0 20px;word-break:break-all;color:#6366f1;font-size:13px;">%s</p>`+
-				`<p style="margin:0;color:#94a3b8;font-size:13px;">链接 %d 分钟内有效，如果不是本人操作，请忽略此邮件。</p>`,
-			common.SystemName, link, link, common.VerificationValidMinutes)
+				`<p style="margin:0;color:#94a3b8;font-size:13px;">%s</p>`,
+			i18n.Translate(lang, i18n.MsgEmailPasswordResetGreeting, systemName),
+			i18n.Translate(lang, i18n.MsgEmailPasswordResetLink, linkParams),
+			i18n.Translate(lang, i18n.MsgEmailPasswordResetLinkFallback, linkParams),
+			i18n.Translate(lang, i18n.MsgEmailPasswordResetValidity, map[string]any{"Minutes": common.VerificationValidMinutes}))
 		err := common.SendEmail(subject, email, content)
 		if err != nil {
-			logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send password reset email to %s: %s", email, err.Error()))
+			logger.LogError(c.Request.Context(), common.LogText("failed to send password reset email to %s: %s", email, err.Error()))
 		}
 	} else if err != nil && !errors.Is(err, model.ErrEmailNotFound) {
-		logger.LogWarn(c.Request.Context(), fmt.Sprintf("skip password reset email for %s: %s", email, err.Error()))
+		logger.LogWarn(c.Request.Context(), common.LogText("skip password reset email for %s: %s", email, err.Error()))
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -300,18 +310,18 @@ func ResetPassword(c *gin.Context) {
 	}
 	req.Email = model.NormalizeEmail(req.Email)
 	if req.Email == "" || req.Token == "" {
-		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		common.ApiErrorT(c, "Invalid parameters")
 		return
 	}
 	if !common.VerifyCodeWithKey(req.Email, req.Token, common.PasswordResetPurpose) {
-		common.ApiErrorI18n(c, i18n.MsgUserPasswordResetLinkInvalid)
+		common.ApiErrorT(c, "Password reset link is invalid or has expired")
 		return
 	}
 	password := common.GenerateVerificationCode(12)
 	err = model.ResetUserPasswordByEmail(req.Email, password)
 	if err != nil {
 		if errors.Is(err, model.ErrEmailNotFound) || errors.Is(err, model.ErrEmailAmbiguous) {
-			common.ApiErrorI18n(c, i18n.MsgUserPasswordResetLinkInvalid)
+			common.ApiErrorT(c, "Password reset link is invalid or has expired")
 			return
 		}
 		common.ApiError(c, err)
