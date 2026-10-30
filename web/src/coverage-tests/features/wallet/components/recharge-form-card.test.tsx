@@ -120,6 +120,7 @@ vi.mock('@/features/wallet/components/creem-products-section', () => ({
 }))
 
 vi.mock('lucide-react', () => ({
+  AlertTriangle: () => <span />,
   Gift: () => <span />,
   ExternalLink: () => <span />,
   Loader2: () => <span data-testid="loader" />,
@@ -318,14 +319,14 @@ describe('RechargeFormCard', () => {
     expect(screen.getByText('Redeem')).toBeDisabled()
   })
 
-  it('shows topup link when provided', () => {
+  it('shows online-topup-unavailable notice with link when topupLink is provided', () => {
     render(
-      <RechargeFormCard {...defaultProps} topupLink="https://buy.example.com" />
+      <RechargeFormCard {...defaultProps} topupLink='https://buy.example.com' />
     )
-    expect(screen.getByText('Need a redemption code?')).toBeInTheDocument()
-    expect(screen.getByText('Get one here')).toBeInTheDocument()
-    const link = screen.getByText('Get one here').closest('a')
-    expect(link).toHaveAttribute('href', 'https://buy.example.com')
+    expect(screen.getByText(/temporarily unavailable/i)).toBeInTheDocument()
+    const link = screen.getByText('click here to get one')
+    expect(link).toBeInTheDocument()
+    expect(link.closest('a')).toHaveAttribute('href', 'https://buy.example.com')
   })
 
   it('shows alert when topup is disabled', () => {
