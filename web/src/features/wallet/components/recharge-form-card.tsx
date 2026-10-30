@@ -16,7 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Gift, Loader2, Receipt, WalletCards } from 'lucide-react'
+import {
+  AlertTriangle,
+  Gift,
+  Loader2,
+  Receipt,
+  WalletCards,
+} from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 
@@ -216,6 +222,73 @@ export function RechargeFormCard({
       }
       contentClassName='space-y-4 sm:space-y-6'
     >
+      {/* Redemption Code Section */}
+      {redemptionEnabled ? (
+        <div className='border-primary/40 bg-primary/5 space-y-2.5 rounded-lg border p-3 sm:space-y-3 sm:p-4'>
+          <div className='flex items-center gap-2'>
+            <IconBadge tone='warning' size='xs'>
+              <Gift />
+            </IconBadge>
+            <Label
+              htmlFor='redemption-code'
+              className='text-muted-foreground text-xs font-medium tracking-wider uppercase'
+            >
+              {t('Have a Code?')}
+            </Label>
+          </div>
+          <div className='grid grid-cols-[minmax(0,1fr)_auto] gap-2'>
+            <Input
+              id='redemption-code'
+              value={redemptionCode}
+              onChange={(e) => onRedemptionCodeChange(e.target.value)}
+              placeholder={t('Enter your redemption code')}
+              className='h-9 min-w-0'
+            />
+            <Button
+              onClick={onRedeem}
+              disabled={redeeming}
+              variant='default'
+              className='h-9 px-4'
+            >
+              {redeeming && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+              {t('Redeem')}
+            </Button>
+          </div>
+          {topupLink && (
+            <div className='flex items-start gap-2 rounded-md border-2 border-red-500 bg-red-500/10 p-2 text-xs text-red-900 dark:text-red-100'>
+              <AlertTriangle
+                className='mt-0.5 size-4 shrink-0 text-red-500'
+                aria-hidden='true'
+              />
+              <span>
+                <Trans
+                  t={t}
+                  i18nKey='Online topup is temporarily unavailable. Please purchase a redemption code, <getLink>click here to get one</getLink>.'
+                  components={{
+                    getLink: (
+                      <a
+                        href={topupLink}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='font-bold text-red-600 underline underline-offset-4 dark:text-red-400'
+                      />
+                    ),
+                  }}
+                />
+              </span>
+            </div>
+          )}
+        </div>
+      ) : (
+        <Alert className='border-t'>
+          <AlertDescription>
+            {t(
+              'Redemption codes are disabled until the administrator confirms compliance terms.'
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Online Topup Section */}
       {hasAnyTopup ? (
         <div className='space-y-4 sm:space-y-6'>
@@ -502,67 +575,6 @@ export function RechargeFormCard({
             />
           </div>
         )}
-
-      {/* Redemption Code Section */}
-      {redemptionEnabled ? (
-        <div className='border-primary/40 bg-primary/5 space-y-2.5 rounded-lg border p-3 sm:space-y-3 sm:p-4'>
-          <div className='flex items-center gap-2'>
-            <IconBadge tone='warning' size='xs'>
-              <Gift />
-            </IconBadge>
-            <Label
-              htmlFor='redemption-code'
-              className='text-muted-foreground text-xs font-medium tracking-wider uppercase'
-            >
-              {t('Have a Code?')}
-            </Label>
-          </div>
-          <div className='grid grid-cols-[minmax(0,1fr)_auto] gap-2'>
-            <Input
-              id='redemption-code'
-              value={redemptionCode}
-              onChange={(e) => onRedemptionCodeChange(e.target.value)}
-              placeholder={t('Enter your redemption code')}
-              className='h-9 min-w-0'
-            />
-            <Button
-              onClick={onRedeem}
-              disabled={redeeming}
-              variant='default'
-              className='h-9 px-4'
-            >
-              {redeeming && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-              {t('Redeem')}
-            </Button>
-          </div>
-          {topupLink && (
-            <p className='text-muted-foreground text-xs'>
-              <Trans
-                t={t}
-                i18nKey='Online topup is temporarily unavailable. Please purchase a redemption code, <getLink>click here to get one</getLink>.'
-                components={{
-                  getLink: (
-                    <a
-                      href={topupLink}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      className='font-medium underline-offset-4 hover:underline'
-                    />
-                  ),
-                }}
-              />
-            </p>
-          )}
-        </div>
-      ) : (
-        <Alert className='border-t'>
-          <AlertDescription>
-            {t(
-              'Redemption codes are disabled until the administrator confirms compliance terms.'
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
     </TitledCard>
   )
 }
