@@ -120,6 +120,7 @@ vi.mock('@/features/wallet/components/creem-products-section', () => ({
 }))
 
 vi.mock('lucide-react', () => ({
+  AlertTriangle: () => <span />,
   Gift: () => <span />,
   ExternalLink: () => <span />,
   Loader2: () => <span data-testid="loader" />,
