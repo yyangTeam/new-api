@@ -16,9 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Gift, ExternalLink, Loader2, Receipt, WalletCards } from 'lucide-react'
+import { Gift, Loader2, Receipt, WalletCards } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -505,7 +505,7 @@ export function RechargeFormCard({
 
       {/* Redemption Code Section */}
       {redemptionEnabled ? (
-        <div className='space-y-2.5 border-t pt-4 sm:space-y-3 sm:pt-6'>
+        <div className='border-primary/40 bg-primary/5 space-y-2.5 rounded-lg border p-3 sm:space-y-3 sm:p-4'>
           <div className='flex items-center gap-2'>
             <IconBadge tone='warning' size='xs'>
               <Gift />
@@ -528,7 +528,7 @@ export function RechargeFormCard({
             <Button
               onClick={onRedeem}
               disabled={redeeming}
-              variant='outline'
+              variant='default'
               className='h-9 px-4'
             >
               {redeeming && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
@@ -537,16 +537,20 @@ export function RechargeFormCard({
           </div>
           {topupLink && (
             <p className='text-muted-foreground text-xs'>
-              {t('Need a redemption code?')}{' '}
-              <a
-                href={topupLink}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='inline-flex items-center gap-1 underline-offset-4 hover:underline'
-              >
-                {t('Get one here')}
-                <ExternalLink className='h-3 w-3' />
-              </a>
+              <Trans
+                t={t}
+                i18nKey='Online topup is temporarily unavailable. Please purchase a redemption code, <getLink>click here to get one</getLink>.'
+                components={{
+                  getLink: (
+                    <a
+                      href={topupLink}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='font-medium underline-offset-4 hover:underline'
+                    />
+                  ),
+                }}
+              />
             </p>
           )}
         </div>
