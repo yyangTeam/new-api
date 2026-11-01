@@ -26,7 +26,7 @@ import { useTheme } from '@/context/theme-provider'
 import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { EditorialLanding } from './components/editorial-landing'
+import { ImmersiveLanding } from './components/immersive-landing'
 import { useHomePageContent } from './hooks'
 
 export function Home() {
@@ -121,8 +121,8 @@ export function Home() {
   }
 
   return (
-    <PublicLayout showMainContainer={false} className='home-editorial'>
-      <EditorialLanding isAuthenticated={isAuthenticated} />
+    <PublicLayout showMainContainer={false} className='home-immersive'>
+      <ImmersiveLanding isAuthenticated={isAuthenticated} />
       <Footer />
     </PublicLayout>
   )

@@ -112,6 +112,15 @@ export function ConnectionPanel(props: { origin: string; docsUrl: string }) {
         onValueChange={(value) => setSelected(String(value))}
         className='home-request'
       >
+        <div className='home-terminal-heading'>
+          <div className='home-terminal-dots' aria-hidden='true'>
+            <span />
+            <span />
+            <span />
+          </div>
+          <span>{protocol.name} API</span>
+          <code>POST</code>
+        </div>
         <div className='home-request-toolbar'>
           <TabsList variant='line' aria-label={t('API protocol')}>
             {protocols.map((item) => (
@@ -121,6 +130,10 @@ export function ConnectionPanel(props: { origin: string; docsUrl: string }) {
             ))}
           </TabsList>
           <CopyButton value={request} aria-label={t('Copy request example')} />
+        </div>
+        <div className='home-request-endpoint'>
+          <span aria-hidden='true'>↳</span>
+          <code>{protocol.path}</code>
         </div>
         {protocols.map((item) => (
           <TabsContent key={item.id} value={item.id}>

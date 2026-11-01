@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Claude, DeepSeek, Gemini, OpenAI } from '@lobehub/icons'
 import { Link } from '@tanstack/react-router'
 import {
   ArrowDown,
@@ -26,18 +25,25 @@ import {
   GitBranch,
   KeyRound,
   Layers,
+  Pause,
+  Play,
+  Sparkles,
 } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { Glow } from '@/components/layout/components/glow'
 import { Button } from '@/components/ui/button'
 import { useStatus } from '@/hooks/use-status'
 
-import '@/styles/home-editorial.css'
+import '@/styles/home-immersive.css'
 
 import { ConnectionPanel } from './connection-panel'
+import { ModelConstellation } from './model-constellation'
 
-export function EditorialLanding(props: { isAuthenticated?: boolean }) {
+export function ImmersiveLanding(props: { isAuthenticated?: boolean }) {
   const { t } = useTranslation()
+  const [paused, setPaused] = useState(false)
   const { status } = useStatus()
   const systemName = status?.system_name || 'New API'
   const docsUrl =
@@ -81,16 +87,38 @@ export function EditorialLanding(props: { isAuthenticated?: boolean }) {
   ]
 
   return (
-    <main className='home-page'>
-      <div className='home-masthead'>
-        <span className='home-kicker'>{t('The connection layer for AI')}</span>
-        <a href='#connect' className='home-section-link'>
-          {t('From idea to API')}
-          <ArrowDown aria-hidden='true' size={13} />
-        </a>
-      </div>
-
+    <main className='home-page' data-motion={paused ? 'paused' : 'running'}>
       <section className='home-hero' aria-labelledby='home-title'>
+        <Glow variant='center' className='home-aurora' aria-hidden='true' />
+        <div className='home-starfield' aria-hidden='true' />
+        <div className='home-masthead'>
+          <span className='home-kicker'>
+            <Sparkles aria-hidden='true' size={14} />
+            {t('The connection layer for AI')}
+          </span>
+          <div className='home-masthead-actions'>
+            <a href='#connect' className='home-section-link'>
+              {t('From idea to API')}
+              <ArrowDown aria-hidden='true' size={13} />
+            </a>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='home-motion-control'
+              aria-label={
+                paused ? t('Resume animations') : t('Pause animations')
+              }
+              title={paused ? t('Resume animations') : t('Pause animations')}
+              onClick={() => setPaused(!paused)}
+            >
+              {paused ? (
+                <Play aria-hidden='true' />
+              ) : (
+                <Pause aria-hidden='true' />
+              )}
+            </Button>
+          </div>
+        </div>
         <div className='home-hero-copy'>
           <h1 id='home-title' className='home-title'>
             {t('Many models.')}
@@ -127,63 +155,7 @@ export function EditorialLanding(props: { isAuthenticated?: boolean }) {
           </p>
         </div>
 
-        <div className='home-switchboard-group'>
-          <div
-            className='home-switchboard'
-            role='img'
-            aria-label={`${t('AI providers connected through one gateway')}: ${systemName}`}
-          >
-            <svg
-              viewBox='0 0 480 380'
-              className='home-switchboard-lines'
-              aria-hidden='true'
-            >
-              <circle cx='240' cy='190' r='145' />
-              <circle cx='240' cy='190' r='99' />
-              <path d='M92 77H180V190H240 M385 85H310V190H240 M76 292H175V190H240 M390 298H310V190H240' />
-              <path className='home-active-line' d='M92 77H180V190H240' />
-              <path d='M22 20h12m-6-6v12M446 20h12m-6-6v12M22 360h12m-6-6v12M446 360h12m-6-6v12' />
-            </svg>
-            <div
-              className='home-provider home-provider-openai'
-              aria-hidden='true'
-            >
-              <OpenAI size={24} />
-              <span>OpenAI</span>
-            </div>
-            <div
-              className='home-provider home-provider-claude'
-              aria-hidden='true'
-            >
-              <Claude size={25} />
-              <span>Anthropic</span>
-            </div>
-            <div
-              className='home-provider home-provider-gemini'
-              aria-hidden='true'
-            >
-              <Gemini size={25} />
-              <span>Gemini</span>
-            </div>
-            <div
-              className='home-provider home-provider-deepseek'
-              aria-hidden='true'
-            >
-              <DeepSeek size={25} />
-              <span>DeepSeek</span>
-            </div>
-            <div className='home-gateway' aria-hidden='true'>
-              <span>API</span>
-              <ArrowUpRight size={32} />
-            </div>
-          </div>
-          <div className='home-gateway-name' title={systemName}>
-            {systemName}
-          </div>
-          <span className='home-switchboard-caption' aria-hidden='true'>
-            {t('Different models. Common ground.')}
-          </span>
-        </div>
+        <ModelConstellation systemName={systemName} />
       </section>
 
       <div className='home-protocol-strip'>
@@ -222,12 +194,21 @@ export function EditorialLanding(props: { isAuthenticated?: boolean }) {
         <div className='home-capability-list'>
           {capabilities.map((item) => (
             <div key={item.number} className='home-capability'>
+              <div className='home-capability-icon'>
+                <item.icon size={25} strokeWidth={1.6} aria-hidden='true' />
+              </div>
               <span className='home-capability-number'>{item.number}</span>
               <div>
                 <h3>{item.title}</h3>
                 <p>{item.description}</p>
               </div>
-              <item.icon size={23} strokeWidth={1.4} aria-hidden='true' />
+              <div className='home-capability-signal' aria-hidden='true'>
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+              </div>
             </div>
           ))}
         </div>
