@@ -6,6 +6,10 @@ vi.mock('@/lib/lobe-icon', () => ({
 
 vi.mock('@/features/pricing/lib/filters', () => ({
   parseTags: (tags?: string) => (tags ? tags.split(',') : []),
+  // PricingSidebar imports getModelQuotaType to tally quota-type counts; the
+  // sidebar tests do not assert those counts, so a no-op stub keeps rendering
+  // working without duplicating production classification logic.
+  getModelQuotaType: () => undefined,
 }))
 
 import { PricingSidebar, type PricingSidebarProps } from '@/features/pricing/components/pricing-sidebar'

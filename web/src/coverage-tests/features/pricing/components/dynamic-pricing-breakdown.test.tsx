@@ -96,7 +96,9 @@ describe('DynamicPricingBreakdown', () => {
       screen.getByText('Special billing expression')
     ).toBeInTheDocument()
     expect(
-      screen.getByText('Unable to parse structured pricing')
+      screen.getByText(
+        'This expression cannot be expanded into a price table. View the original expression below.'
+      )
     ).toBeInTheDocument()
   })
 })

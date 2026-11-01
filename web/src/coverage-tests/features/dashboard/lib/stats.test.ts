@@ -40,6 +40,8 @@ describe('calculateDashboardStats', () => {
       totalQuota: 0,
       totalCount: 0,
       totalTokens: 0,
+      totalCacheReadTokens: 0,
+      totalCacheCreationTokens: 0,
     })
   })
 
@@ -52,6 +54,8 @@ describe('calculateDashboardStats', () => {
       totalQuota: 300,
       totalCount: 15,
       totalTokens: 3000,
+      totalCacheReadTokens: 0,
+      totalCacheCreationTokens: 0,
     })
   })
 
@@ -61,6 +65,8 @@ describe('calculateDashboardStats', () => {
       totalQuota: 50,
       totalCount: 0,
       totalTokens: 0,
+      totalCacheReadTokens: 0,
+      totalCacheCreationTokens: 0,
     })
   })
 
@@ -77,6 +83,8 @@ describe('calculateDashboardStats', () => {
       totalQuota: 100,
       totalCount: 5,
       totalTokens: 500,
+      totalCacheReadTokens: 0,
+      totalCacheCreationTokens: 0,
     })
   })
 })
