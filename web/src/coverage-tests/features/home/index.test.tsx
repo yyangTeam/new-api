@@ -91,6 +91,23 @@ describe('Home', () => {
     ).not.toBeInTheDocument()
   })
 
+  test('keeps the full site name available when the diagram label is shortened', () => {
+    const siteName =
+      'A long gateway name for multiple applications and development teams'
+    vi.mocked(useStatus).mockReturnValue({
+      status: { system_name: siteName },
+      loading: false,
+      error: null,
+    })
+    render(<Home />)
+    expect(
+      screen.getByRole('img', {
+        name: `AI providers connected through one gateway: ${siteName}`,
+      })
+    ).toBeInTheDocument()
+    expect(screen.getByTitle(siteName)).toHaveTextContent(siteName)
+  })
+
   test('switching protocols changes the visible and copied request together', async () => {
     const user = userEvent.setup()
     const writeText = vi
@@ -122,14 +139,17 @@ describe('Home', () => {
     )
   })
 
-  test('copies the current site origin as the API base URL', async () => {
+  test('copies the SDK base URL for the selected protocol', async () => {
     const user = userEvent.setup()
     const writeText = vi
       .spyOn(navigator.clipboard, 'writeText')
       .mockResolvedValue()
     render(<Home />)
     await user.click(screen.getByRole('button', { name: 'Copy API base URL' }))
-    expect(writeText).toHaveBeenCalledWith(window.location.origin)
+    expect(writeText).toHaveBeenLastCalledWith(`${window.location.origin}/v1`)
+    await user.click(screen.getByRole('tab', { name: 'Anthropic' }))
+    await user.click(screen.getByRole('button', { name: 'Copy API base URL' }))
+    expect(writeText).toHaveBeenLastCalledWith(window.location.origin)
   })
 
   test.each(['https://docs.example.com', '/integration-guide'])(
