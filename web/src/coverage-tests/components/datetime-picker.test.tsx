@@ -70,6 +70,6 @@ describe('DateTimePicker', () => {
     const timeInput = container.querySelector(
       'input[type="time"]'
     ) as HTMLInputElement
-    expect(timeInput?.value).toBe('14:30')
+    expect(timeInput?.value).toBe('14:30:00')
   })
 })

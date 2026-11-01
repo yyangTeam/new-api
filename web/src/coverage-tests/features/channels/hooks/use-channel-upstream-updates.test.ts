@@ -50,22 +50,25 @@ describe('useChannelUpstreamUpdates', () => {
     expect(result.current.applyAllLoading).toBe(false)
   })
 
-  it('openModal shows toast.info when record is null', () => {
+  it('openModal does nothing when record is null', () => {
     const { result } = renderHook(() => useChannelUpstreamUpdates(refresh))
     act(() => {
       result.current.openModal(null, ['model-a'], ['model-b'])
     })
-    expect(toast.info).toHaveBeenCalled()
+    expect(toast.info).not.toHaveBeenCalled()
     expect(result.current.showModal).toBe(false)
   })
 
-  it('openModal shows toast.info when no add/remove models', () => {
+  it('openModal opens modal even when no add/remove models', () => {
     const { result } = renderHook(() => useChannelUpstreamUpdates(refresh))
     act(() => {
       result.current.openModal({ id: 1 }, [], [])
     })
-    expect(toast.info).toHaveBeenCalled()
-    expect(result.current.showModal).toBe(false)
+    expect(toast.info).not.toHaveBeenCalled()
+    expect(result.current.showModal).toBe(true)
+    expect(result.current.channel).toEqual({ id: 1 })
+    expect(result.current.addModels).toEqual([])
+    expect(result.current.removeModels).toEqual([])
   })
 
   it('openModal opens modal with valid data', () => {
@@ -95,7 +98,7 @@ describe('useChannelUpstreamUpdates', () => {
     expect(result.current.removeModels).toEqual([])
   })
 
-  it('applyUpdates calls API and shows success toast', async () => {
+  it('applyUpdates calls API and stages result without closing modal', async () => {
     mockPost.mockResolvedValue({
       data: {
         success: true,
@@ -121,8 +124,10 @@ describe('useChannelUpstreamUpdates', () => {
       expect.objectContaining({ id: 1, add_models: ['gpt-4'] }),
       expect.anything()
     )
-    expect(toast.success).toHaveBeenCalled()
-    expect(result.current.showModal).toBe(false)
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(result.current.showModal).toBe(true)
+    expect(result.current.result).not.toBeNull()
+    expect(result.current.result?.addedModels).toEqual(['gpt-4'])
     expect(refresh).toHaveBeenCalled()
   })
 
@@ -202,7 +207,7 @@ describe('useChannelUpstreamUpdates', () => {
     expect(toast.error).toHaveBeenCalled()
   })
 
-  it('detectChannelUpdates calls API with channel id', async () => {
+  it('detectChannelUpdates calls API and stages detected models', async () => {
     mockPost.mockResolvedValue({
       data: {
         success: true,
@@ -218,8 +223,10 @@ describe('useChannelUpstreamUpdates', () => {
       { id: 5 },
       expect.anything()
     )
-    expect(toast.success).toHaveBeenCalled()
-    expect(refresh).toHaveBeenCalled()
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(refresh).not.toHaveBeenCalled()
+    expect(result.current.showModal).toBe(true)
+    expect(result.current.addModels).toEqual(['new-model'])
   })
 
   it('detectChannelUpdates does nothing for null channel', async () => {

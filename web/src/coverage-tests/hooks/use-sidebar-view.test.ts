@@ -25,6 +25,10 @@ vi.mock('@/hooks/use-sidebar-data', () => ({
   useSidebarData: vi.fn(),
 }))
 
+vi.mock('@/features/system-settings/models/pricing-issues', () => ({
+  useModelPricingIssueBadge: () => undefined,
+}))
+
 import { useLocation } from '@tanstack/react-router'
 import { resolveSidebarView } from '@/components/layout/lib/sidebar-view-registry'
 import { useAuthStore } from '@/stores/auth-store'
@@ -108,7 +112,7 @@ describe('useSidebarView', () => {
   it('returns nested view when resolveSidebarView matches', () => {
     const mockView = {
       id: 'settings-view',
-      getNavGroups: (t: (s: string) => string) => [
+      getNavGroups: (t: (s: string) => string, _badges: unknown) => [
         { id: 'settings', title: t('Settings'), items: [] },
       ],
     }

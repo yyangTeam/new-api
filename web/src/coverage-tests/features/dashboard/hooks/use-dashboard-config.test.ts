@@ -14,19 +14,21 @@ vi.mock('react-i18next', () => ({
 }))
 
 describe('useModelStatCardsConfig', () => {
-  it('returns 5 stat card configurations', () => {
+  it('returns 7 stat card configurations', () => {
     const { result } = renderHook(() => useModelStatCardsConfig())
 
-    expect(result.current).toHaveLength(5)
+    expect(result.current).toHaveLength(7)
   })
 
-  it('includes count, quota, tokens, avgRpm, avgTpm cards', () => {
+  it('includes count, quota, tokens, cacheRead, cacheCreation, avgRpm, avgTpm cards', () => {
     const { result } = renderHook(() => useModelStatCardsConfig())
     const keys = result.current.map((c) => c.key)
 
     expect(keys).toContain('count')
     expect(keys).toContain('quota')
     expect(keys).toContain('tokens')
+    expect(keys).toContain('cacheRead')
+    expect(keys).toContain('cacheCreation')
     expect(keys).toContain('avgRpm')
     expect(keys).toContain('avgTpm')
   })
