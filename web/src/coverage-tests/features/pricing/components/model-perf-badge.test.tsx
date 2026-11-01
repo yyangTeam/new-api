@@ -31,8 +31,13 @@ describe('ModelPerfBadge', () => {
       avg_tps: 45,
     }
     const { container } = render(<ModelPerfBadge perf={perf} />)
-    // The latency label is the i18n value for "Latency short" ("Lat." in en)
-    expect(container.textContent).toContain('Lat.')
+    // All three sections render: status (success rate), latency, throughput.
+    // i18n is not initialized in this suite so labels render as their keys;
+    // assert on the formatted values, which the mocked formatters make
+    // deterministic and i18n-independent.
+    expect(container.textContent).toContain('99.5')
+    expect(container.textContent).toContain('500ms')
+    expect(container.textContent).toContain('45.0t/s')
   })
 
   test('formats latency in ms for values < 1000', () => {
