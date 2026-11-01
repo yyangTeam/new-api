@@ -36,7 +36,7 @@ describe('resolveSidebarView', () => {
 
 describe('system settings sidebar navigation', () => {
   test('returns nav groups for system-settings path', () => {
-    const groups = resolveSidebarView('/system-settings')?.getNavGroups(t)
+    const groups = resolveSidebarView('/system-settings')?.getNavGroups(t, {})
     expect(groups).toBeDefined()
     expect(Array.isArray(groups)).toBe(true)
     expect(groups!.length).toBeGreaterThan(0)
@@ -44,7 +44,8 @@ describe('system settings sidebar navigation', () => {
 
   test('nav groups contain items', () => {
     const groups = resolveSidebarView('/system-settings/general')?.getNavGroups(
-      t
+      t,
+      {}
     )
     expect(groups).toBeDefined()
     groups!.forEach((group) => {

@@ -31,8 +31,13 @@ describe('ModelPerfBadge', () => {
       avg_tps: 45,
     }
     const { container } = render(<ModelPerfBadge perf={perf} />)
-    // Uses translated keys; in test env i18n returns the key itself
-    expect(container.textContent).toContain('Latency short')
+    // All three sections render: status (success rate), latency, throughput.
+    // i18n is not initialized in this suite so labels render as their keys;
+    // assert on the formatted values, which the mocked formatters make
+    // deterministic and i18n-independent.
+    expect(container.textContent).toContain('99.5')
+    expect(container.textContent).toContain('500ms')
+    expect(container.textContent).toContain('45.0t/s')
   })
 
   test('formats latency in ms for values < 1000', () => {
@@ -100,9 +105,9 @@ describe('ModelPerfBadge', () => {
       ],
     }
     const { container } = render(<ModelPerfBadge perf={perf} />)
-    // Always renders 24 status bar slots using rounded-xs class
+    // Renders one rounded-xs bar per provided sample (capped at 24)
     const bars = container.querySelectorAll('.rounded-xs')
-    expect(bars.length).toBe(24)
+    expect(bars.length).toBe(3)
   })
 
   test('shows fractional value for throughput < 1', () => {

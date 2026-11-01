@@ -68,14 +68,20 @@ async function mockBaseApis(page: Page) {
   });
 }
 
-function mockSettingsApis(page: Page) {
-  // Sub-path option endpoints (e.g. /api/option/rest_model_ratio).
-  return page.route("**/api/option/**", async (route) => {
+async function mockSettingsApis(page: Page) {
+  // Sub-path option endpoints (e.g. /api/option/rest_model_ratio). Most return
+  // an object, but /api/option/model_pricing/issues returns ModelPricingIssue[].
+  // Returning `{}` for that endpoint reaches useModelPricingIssueBadge as
+  // non-nullish `data`, bypasses the `?? []` fallback, and crashes the sidebar
+  // with `issues.map is not a function` — so return an array for it.
+  await page.route("**/api/option/**", async (route) => {
+    const url = route.request().url();
+    const data = url.includes("/model_pricing/issues") ? [] : {};
     await route.fulfill({
       json: {
         success: true,
         message: "",
-        data: {},
+        data,
       },
     });
   });

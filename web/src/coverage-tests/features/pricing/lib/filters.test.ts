@@ -122,12 +122,12 @@ describe('sortModels', () => {
   })
 
   test('sorts by price low to high', () => {
-    const sorted = sortModels(models, 'price-low')
+    const sorted = sortModels(models, 'input-price-low')
     expect(sorted.map((m) => m.model_ratio)).toEqual([1, 2, 3])
   })
 
   test('sorts by price high to low', () => {
-    const sorted = sortModels(models, 'price-high')
+    const sorted = sortModels(models, 'input-price-high')
     expect(sorted.map((m) => m.model_ratio)).toEqual([3, 2, 1])
   })
 
@@ -148,7 +148,7 @@ describe('sortModels', () => {
       makeModel({ id: 1, quota_type: 1, model_ratio: 100, model_price: 5 }),
       makeModel({ id: 2, quota_type: 1, model_ratio: 100, model_price: 1 }),
     ]
-    const sorted = sortModels(requestModels, 'price-low')
+    const sorted = sortModels(requestModels, 'request-price-low')
     expect(sorted[0].model_price).toBe(1)
     expect(sorted[1].model_price).toBe(5)
   })

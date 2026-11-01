@@ -445,6 +445,35 @@ git commit
 - Push: `git push origin merge/main-into-dev`
 - Create PR to merge into dev
 
+## Phase 9 — CI green gate (mandatory before merging to dev)
+
+**All CI/CD checks on the `merge/main-into-dev` branch MUST be green before
+this merge is eligible to merge into `dev`.** A clean local build (Phase 6) is
+necessary but NOT sufficient — CI runs the full matrix (Go tests, frontend
+typecheck, 16-shard vitest, E2E) and catches stale fork-test breakage that
+local-only checks miss.
+
+Workflow:
+
+1. After pushing the branch (Phase 8), watch the PR checks:
+   `gh pr checks <PR> --repo <repo>` until every check reports `pass`.
+2. If any check fails, determine the cause per §6b/§6c/§6e:
+   - Compile errors / signature drift in fork tests → fix the test call
+     (test-only; never modify production to satisfy a stale test).
+   - Stale assertions (counts, formats, ordering, renamed sections) → update
+     the assertion to match the new upstream behavior.
+   - Real production regression introduced by the merge → fix production and
+     tell the user (that is a functional change).
+   Use the "is it merge-introduced or pre-existing?" test (Troubleshooting
+   row) before fixing: only merge-introduced or stale-after-upstream-change
+   failures block this merge; pre-existing flakiness on `origin/dev` does not.
+3. Commit the test-only fixes and push again. Repeat until all checks pass.
+4. Only when `gh pr checks` shows every check `pass` (or the only failures are
+   documented pre-existing flakiness on `origin/dev`, e.g. the known flaky
+   shards 8 & 14) is the PR ready to merge into `dev`.
+
+Do not merge the PR into `dev` while any non-pre-existing CI check is failing.
+
 ---
 
 ## Dev Customizations Registry

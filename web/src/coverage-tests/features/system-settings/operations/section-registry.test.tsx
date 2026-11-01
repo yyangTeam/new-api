@@ -56,7 +56,7 @@ describe('operations section-registry', () => {
       url: '/system-settings/operations/behavior',
     })
     expect(items[2]).toEqual({
-      title: 'SMTP Email',
+      title: 'Email & Notifications',
       url: '/system-settings/operations/email',
     })
   })

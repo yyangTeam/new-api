@@ -78,9 +78,9 @@ describe('NotFoundError (404)', () => {
 })
 
 describe('GeneralError (500)', () => {
-  test('renders 500 status code by default when no error provided', () => {
+  test('does not render a status code by default when no error provided', () => {
     render(<GeneralError />)
-    expect(screen.getByText('500')).toBeInTheDocument()
+    expect(screen.queryByText('500')).not.toBeInTheDocument()
   })
 
   test('displays generic error title', () => {
