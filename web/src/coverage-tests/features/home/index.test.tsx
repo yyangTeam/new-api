@@ -1,59 +1,63 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import type { ComponentProps, ReactNode } from 'react'
+
+import { useHomePageContent } from '@/features/home/hooks'
+import { Home } from '@/features/home/index'
+import { useStatus } from '@/hooks/use-status'
+import { useAuthStore } from '@/stores/auth-store'
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, ...props }: any) => <a {...props}>{children}</a>,
+  Link: (props: ComponentProps<'a'> & { to: string }) => {
+    const { to, ...anchorProps } = props
+    return <a href={to} {...anchorProps} />
+  },
 }))
 
 vi.mock('@/components/layout', () => ({
-  PublicLayout: ({ children }: any) => (
-    <div data-testid='public-layout'>{children}</div>
-  ),
+  PublicLayout: (props: { children: ReactNode }) => <div>{props.children}</div>,
 }))
 
 vi.mock('@/components/layout/components/footer', () => ({
-  Footer: () => <div data-testid='footer' />,
+  Footer: () => <footer />,
 }))
 
 vi.mock('@/components/rich-content', () => ({
-  RichContent: (props: any) => (
-    <div data-testid='rich-content' data-mode={props.mode}>
-      {props.content}
-    </div>
+  RichContent: (props: { mode: string; content: string }) => (
+    <article data-content-mode={props.mode}>{props.content}</article>
   ),
 }))
 
 vi.mock('@/context/theme-provider', () => ({
-  ThemeProvider: ({ children }: any) => <>{children}</>,
   useTheme: () => ({ resolvedTheme: 'light' }),
 }))
 
-vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: vi.fn(),
-}))
-
-vi.mock('@/features/home/hooks', () => ({
-  useHomePageContent: vi.fn(),
-}))
-
-vi.mock('@/features/home/components', () => ({
-  CTA: (_props: any) => <div data-testid='cta' />,
-  Features: () => <div data-testid='features' />,
-  Hero: (props: any) => <div data-testid='hero' data-auth={String(props.isAuthenticated)} />,
-  HowItWorks: () => <div data-testid='how-it-works' />,
-  Stats: () => <div data-testid='stats' />,
-}))
-
-import { useAuthStore } from '@/stores/auth-store'
-import { useHomePageContent } from '@/features/home/hooks'
-import { Home } from '@/features/home/index'
+vi.mock('@/stores/auth-store', () => ({ useAuthStore: vi.fn() }))
+vi.mock('@/features/home/hooks', () => ({ useHomePageContent: vi.fn() }))
+vi.mock('@/hooks/use-status', () => ({ useStatus: vi.fn() }))
 
 describe('Home', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(useAuthStore).mockReturnValue({ auth: { user: null } } as any)
+    vi.mocked(useAuthStore).mockReturnValue({
+      auth: { user: null },
+    } as ReturnType<typeof useAuthStore>)
+    vi.mocked(useStatus).mockReturnValue({
+      status: {
+        system_name: 'Example Gateway',
+        docs_link: 'https://docs.example.com',
+      },
+      loading: false,
+      error: null,
+    })
+    vi.mocked(useHomePageContent).mockReturnValue({
+      content: '',
+      isLoaded: true,
+      isUrl: false,
+    })
   })
 
-  test('renders loading state when not loaded', () => {
+  test('keeps a loading state until custom-home content is resolved', () => {
     vi.mocked(useHomePageContent).mockReturnValue({
       content: '',
       isLoaded: false,
@@ -63,22 +67,87 @@ describe('Home', () => {
     expect(screen.getByText('Loading...')).toBeInTheDocument()
   })
 
-  test('renders default homepage when no custom content', () => {
-    vi.mocked(useHomePageContent).mockReturnValue({
-      content: '',
-      isLoaded: true,
-      isUrl: false,
-    })
+  test('gives anonymous visitors a registration and model-discovery destination', () => {
     render(<Home />)
-    expect(screen.getByTestId('hero')).toBeInTheDocument()
-    expect(screen.getByTestId('stats')).toBeInTheDocument()
-    expect(screen.getByTestId('features')).toBeInTheDocument()
-    expect(screen.getByTestId('how-it-works')).toBeInTheDocument()
-    expect(screen.getByTestId('cta')).toBeInTheDocument()
-    expect(screen.getByTestId('footer')).toBeInTheDocument()
+    const main = screen.getByRole('main')
+    expect(
+      within(main).getByRole('link', { name: 'Get Started' })
+    ).toHaveAttribute('href', '/sign-up')
+    expect(
+      within(main).getByRole('link', { name: 'Explore models' })
+    ).toHaveAttribute('href', '/pricing')
   })
 
-  test('renders iframe when content is a URL', () => {
+  test('sends an authenticated visitor to the dashboard', () => {
+    vi.mocked(useAuthStore).mockReturnValue({
+      auth: { user: { id: 1, username: 'Test' } },
+    } as ReturnType<typeof useAuthStore>)
+    render(<Home />)
+    expect(
+      screen.getByRole('link', { name: 'Go to Dashboard' })
+    ).toHaveAttribute('href', '/dashboard')
+    expect(
+      screen.queryByRole('link', { name: 'Get Started' })
+    ).not.toBeInTheDocument()
+  })
+
+  test('switching protocols changes the visible and copied request together', async () => {
+    const user = userEvent.setup()
+    const writeText = vi
+      .spyOn(navigator.clipboard, 'writeText')
+      .mockResolvedValue()
+    render(<Home />)
+    await user.click(screen.getByRole('tab', { name: 'Anthropic' }))
+    const example = screen.getByLabelText('Request example')
+    expect(example).toHaveTextContent(`${window.location.origin}/v1/messages`)
+    expect(example).toHaveTextContent('anthropic-version: 2023-06-01')
+    await user.click(
+      screen.getByRole('button', { name: 'Copy request example' })
+    )
+    expect(writeText).toHaveBeenCalledWith(example.textContent)
+    expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument()
+  })
+
+  test('keyboard selection exposes the Gemini request', async () => {
+    const user = userEvent.setup()
+    render(<Home />)
+    screen.getByRole('tab', { name: 'OpenAI' }).focus()
+    await user.keyboard('{End}{Enter}')
+    expect(screen.getByRole('tab', { name: 'Gemini' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
+    expect(screen.getByLabelText('Request example')).toHaveTextContent(
+      '/v1beta/models/your-model:generateContent'
+    )
+  })
+
+  test('copies the current site origin as the API base URL', async () => {
+    const user = userEvent.setup()
+    const writeText = vi
+      .spyOn(navigator.clipboard, 'writeText')
+      .mockResolvedValue()
+    render(<Home />)
+    await user.click(screen.getByRole('button', { name: 'Copy API base URL' }))
+    expect(writeText).toHaveBeenCalledWith(window.location.origin)
+  })
+
+  test.each(['https://docs.example.com', '/integration-guide'])(
+    'uses configured documentation destination %s',
+    (docsUrl) => {
+      vi.mocked(useStatus).mockReturnValue({
+        status: { docs_link: docsUrl },
+        loading: false,
+        error: null,
+      })
+      render(<Home />)
+      expect(
+        screen.getByRole('link', { name: 'Read the integration guide' })
+      ).toHaveAttribute('href', docsUrl)
+    }
+  )
+
+  test('keeps the custom iframe URL and its sandbox', () => {
     vi.mocked(useHomePageContent).mockReturnValue({
       content: 'https://example.com/custom-home',
       isLoaded: true,
@@ -86,53 +155,31 @@ describe('Home', () => {
     })
     render(<Home />)
     const iframe = screen.getByTitle('Custom Home Page')
-    expect(iframe).toBeInTheDocument()
     expect(iframe).toHaveAttribute('src', 'https://example.com/custom-home')
+    expect(iframe).toHaveAttribute(
+      'sandbox',
+      'allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts allow-top-navigation-by-user-activation'
+    )
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
   })
 
-  test('renders HTML content via RichContent', () => {
+  test.each([
+    ['<html><body><h1>Custom</h1></body></html>', 'html'],
+    ['# Welcome\n\nMarkdown content here.', 'markdown'],
+  ])('keeps custom content rendering in %s mode', (content, mode) => {
     vi.mocked(useHomePageContent).mockReturnValue({
-      content: '<html><body><h1>Custom</h1></body></html>',
+      content,
       isLoaded: true,
       isUrl: false,
     })
     render(<Home />)
-    const richContent = screen.getByTestId('rich-content')
-    expect(richContent).toHaveAttribute('data-mode', 'html')
-  })
-
-  test('renders markdown content via RichContent', () => {
-    vi.mocked(useHomePageContent).mockReturnValue({
-      content: '# Welcome\n\nMarkdown content here.',
-      isLoaded: true,
-      isUrl: false,
-    })
-    render(<Home />)
-    const richContent = screen.getByTestId('rich-content')
-    expect(richContent).toHaveAttribute('data-mode', 'markdown')
-  })
-
-  test('passes isAuthenticated to Hero', () => {
-    vi.mocked(useAuthStore).mockReturnValue({
-      auth: { user: { id: 1, name: 'Test' } },
-    } as any)
-    vi.mocked(useHomePageContent).mockReturnValue({
-      content: '',
-      isLoaded: true,
-      isUrl: false,
-    })
-    render(<Home />)
-    expect(screen.getByTestId('hero')).toHaveAttribute('data-auth', 'true')
-  })
-
-  test('passes isAuthenticated false when no user', () => {
-    vi.mocked(useAuthStore).mockReturnValue({ auth: { user: null } } as any)
-    vi.mocked(useHomePageContent).mockReturnValue({
-      content: '',
-      isLoaded: true,
-      isUrl: false,
-    })
-    render(<Home />)
-    expect(screen.getByTestId('hero')).toHaveAttribute('data-auth', 'false')
+    expect(screen.getByRole('article')).toHaveAttribute(
+      'data-content-mode',
+      mode
+    )
+    expect(screen.getByRole('article')).toHaveTextContent(
+      content.replaceAll(/\s+/g, ' ')
+    )
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
   })
 })
