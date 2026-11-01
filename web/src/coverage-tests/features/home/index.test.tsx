@@ -139,6 +139,18 @@ describe('Home', () => {
     )
   })
 
+  test('pauses animation by click and resumes it with the keyboard', async () => {
+    const user = userEvent.setup()
+    render(<Home />)
+    await user.click(screen.getByRole('button', { name: 'Pause animations' }))
+    const resume = screen.getByRole('button', { name: 'Resume animations' })
+    expect(resume).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(
+      screen.getByRole('button', { name: 'Pause animations' })
+    ).toHaveFocus()
+  })
+
   test('copies the SDK base URL for the selected protocol', async () => {
     const user = userEvent.setup()
     const writeText = vi
