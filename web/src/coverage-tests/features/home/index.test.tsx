@@ -91,6 +91,107 @@ describe('Home', () => {
     ).not.toBeInTheDocument()
   })
 
+  test('shows the same configured purchase link in the hero and guide for anonymous visitors', () => {
+    const purchaseLink = 'https://cards.example.com/buy?product=api'
+    vi.mocked(useStatus).mockReturnValue({
+      status: { topup_link: purchaseLink, enable_redemption: true },
+      loading: false,
+      error: null,
+    })
+    render(<Home />)
+    const purchaseLinks = screen.getAllByRole('link', {
+      name: 'Buy a redemption code',
+    })
+    expect(purchaseLinks).toHaveLength(2)
+    for (const link of purchaseLinks) {
+      expect(link).toHaveAttribute('href', purchaseLink)
+      expect(link).toHaveAttribute('target', '_blank')
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    }
+    expect(screen.getByRole('link', { name: 'Redeem a code' })).toHaveAttribute(
+      'href',
+      '/wallet'
+    )
+  })
+
+  test('updating the existing purchase configuration updates both homepage links', () => {
+    vi.mocked(useStatus).mockReturnValue({
+      status: {
+        topup_link: 'https://cards.example.com/old',
+        enable_redemption: true,
+      },
+      loading: false,
+      error: null,
+    })
+    const { rerender } = render(<Home />)
+    vi.mocked(useStatus).mockReturnValue({
+      status: {
+        topup_link: 'https://cards.example.com/new',
+        enable_redemption: true,
+      },
+      loading: false,
+      error: null,
+    })
+    rerender(<Home />)
+    for (const link of screen.getAllByRole('link', {
+      name: 'Buy a redemption code',
+    })) {
+      expect(link).toHaveAttribute('href', 'https://cards.example.com/new')
+    }
+  })
+
+  test.each(['', 'javascript:alert(1)', 'data:text/html,<h1>Store</h1>'])(
+    'hides the purchase guide when the configured link is empty or unsafe: %s',
+    (purchaseLink) => {
+      vi.mocked(useStatus).mockReturnValue({
+        status: { topup_link: purchaseLink, enable_redemption: true },
+        loading: false,
+        error: null,
+      })
+      render(<Home />)
+      expect(
+        screen.queryByRole('link', { name: 'Buy a redemption code' })
+      ).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('region', { name: 'Fuel your next request.' })
+      ).not.toBeInTheDocument()
+    }
+  )
+
+  test('hides the purchase guide when redemption is disabled', () => {
+    vi.mocked(useStatus).mockReturnValue({
+      status: {
+        topup_link: 'https://cards.example.com/buy',
+        enable_redemption: false,
+      },
+      loading: false,
+      error: null,
+    })
+    render(<Home />)
+    expect(
+      screen.queryByRole('link', { name: 'Buy a redemption code' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Fuel your next request.' })
+    ).not.toBeInTheDocument()
+  })
+
+  test('uses a configured relative purchase link without replacing its destination', () => {
+    vi.mocked(useStatus).mockReturnValue({
+      status: {
+        topup_link: '/store/codes?pack=starter',
+        enable_redemption: true,
+      },
+      loading: false,
+      error: null,
+    })
+    render(<Home />)
+    const links = screen.getAllByRole('link', { name: 'Buy a redemption code' })
+    expect(links).toHaveLength(2)
+    for (const link of links)
+      expect(link).toHaveAttribute('href', '/store/codes?pack=starter')
+  })
+
   test('keeps the full site name available when the diagram label is shortened', () => {
     const siteName =
       'A long gateway name for multiple applications and development teams'
@@ -165,9 +266,10 @@ describe('Home', () => {
       const model = screen.getByRole('button', { name: provider })
       await user.click(model)
       expect(model).toHaveAttribute('aria-pressed', 'true')
-      expect(
-        screen.getByRole('tab', { name: protocol })
-      ).toHaveAttribute('aria-selected', 'true')
+      expect(screen.getByRole('tab', { name: protocol })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
       const request = screen.getByLabelText('Request example')
       expect(request).toHaveTextContent(`${window.location.origin}${path}`)
       await user.click(
@@ -184,9 +286,7 @@ describe('Home', () => {
   test('keyboard selection of DeepSeek uses the OpenAI compatible request', async () => {
     const user = userEvent.setup()
     render(<Home />)
-    await user.click(
-      screen.getByRole('button', { name: 'Gemini' })
-    )
+    await user.click(screen.getByRole('button', { name: 'Gemini' }))
     const deepseek = screen.getByRole('button', {
       name: 'DeepSeek',
     })
@@ -194,9 +294,10 @@ describe('Home', () => {
     await user.keyboard('{Enter}')
     expect(deepseek).toHaveFocus()
     expect(deepseek).toHaveAttribute('aria-pressed', 'true')
-    expect(
-      screen.getByRole('tab', { name: 'OpenAI' })
-    ).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'OpenAI' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
     expect(screen.getByLabelText('Request example')).toHaveTextContent(
       '/v1/chat/completions'
     )
@@ -205,18 +306,16 @@ describe('Home', () => {
   test('changing a protocol tab also updates the selected provider in the scene', async () => {
     const user = userEvent.setup()
     render(<Home />)
-    await user.click(
-      screen.getByRole('button', { name: 'DeepSeek' })
+    await user.click(screen.getByRole('button', { name: 'DeepSeek' }))
+    await user.click(screen.getByRole('tab', { name: 'Anthropic' }))
+    expect(screen.getByRole('button', { name: 'Anthropic' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
     )
-    await user.click(
-      screen.getByRole('tab', { name: 'Anthropic' })
+    expect(screen.getByRole('button', { name: 'DeepSeek' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
     )
-    expect(
-      screen.getByRole('button', { name: 'Anthropic' })
-    ).toHaveAttribute('aria-pressed', 'true')
-    expect(
-      screen.getByRole('button', { name: 'DeepSeek' })
-    ).toHaveAttribute('aria-pressed', 'false')
   })
 
   test('copies the SDK base URL for the selected protocol', async () => {
