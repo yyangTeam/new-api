@@ -188,8 +188,9 @@ describe('Home', () => {
     render(<Home />)
     const links = screen.getAllByRole('link', { name: 'Buy a redemption code' })
     expect(links).toHaveLength(2)
-    for (const link of links)
+    for (const link of links) {
       expect(link).toHaveAttribute('href', '/store/codes?pack=starter')
+    }
   })
 
   test('keeps the full site name available when the diagram label is shortened', () => {
