@@ -162,11 +162,11 @@ describe('Home', () => {
         .spyOn(navigator.clipboard, 'writeText')
         .mockResolvedValue()
       render(<Home />)
-      const model = screen.getByRole('button', { name: provider, exact: true })
+      const model = screen.getByRole('button', { name: provider })
       await user.click(model)
       expect(model).toHaveAttribute('aria-pressed', 'true')
       expect(
-        screen.getByRole('tab', { name: protocol, exact: true })
+        screen.getByRole('tab', { name: protocol })
       ).toHaveAttribute('aria-selected', 'true')
       const request = screen.getByLabelText('Request example')
       expect(request).toHaveTextContent(`${window.location.origin}${path}`)
@@ -185,18 +185,17 @@ describe('Home', () => {
     const user = userEvent.setup()
     render(<Home />)
     await user.click(
-      screen.getByRole('button', { name: 'Gemini', exact: true })
+      screen.getByRole('button', { name: 'Gemini' })
     )
     const deepseek = screen.getByRole('button', {
       name: 'DeepSeek',
-      exact: true,
     })
     deepseek.focus()
     await user.keyboard('{Enter}')
     expect(deepseek).toHaveFocus()
     expect(deepseek).toHaveAttribute('aria-pressed', 'true')
     expect(
-      screen.getByRole('tab', { name: 'OpenAI', exact: true })
+      screen.getByRole('tab', { name: 'OpenAI' })
     ).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByLabelText('Request example')).toHaveTextContent(
       '/v1/chat/completions'
@@ -207,16 +206,16 @@ describe('Home', () => {
     const user = userEvent.setup()
     render(<Home />)
     await user.click(
-      screen.getByRole('button', { name: 'DeepSeek', exact: true })
+      screen.getByRole('button', { name: 'DeepSeek' })
     )
     await user.click(
-      screen.getByRole('tab', { name: 'Anthropic', exact: true })
+      screen.getByRole('tab', { name: 'Anthropic' })
     )
     expect(
-      screen.getByRole('button', { name: 'Anthropic', exact: true })
+      screen.getByRole('button', { name: 'Anthropic' })
     ).toHaveAttribute('aria-pressed', 'true')
     expect(
-      screen.getByRole('button', { name: 'DeepSeek', exact: true })
+      screen.getByRole('button', { name: 'DeepSeek' })
     ).toHaveAttribute('aria-pressed', 'false')
   })
 
