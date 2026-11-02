@@ -17,121 +17,221 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Claude, DeepSeek, Gemini, OpenAI } from '@lobehub/icons'
-import { useId } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-export function ModelConstellation(props: { systemName: string }) {
+import { Button } from '@/components/ui/button'
+import { useMediaQuery } from '@/hooks/use-media-query'
+
+const providers = [
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    api: 'OpenAI API',
+    Icon: OpenAI,
+    route: 'M100 110H195L280 195V245L360 290',
+  },
+  {
+    id: 'claude',
+    name: 'Anthropic',
+    api: 'Anthropic API',
+    Icon: Claude.Color,
+    route: 'M620 135H535L450 220V250L360 290',
+  },
+  {
+    id: 'gemini',
+    name: 'Gemini',
+    api: 'Gemini API',
+    Icon: Gemini.Color,
+    route: 'M100 450H195L280 365V335L360 290',
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    api: 'OpenAI API',
+    Icon: DeepSeek.Color,
+    route: 'M620 440H535L450 355V325L360 290',
+  },
+] as const
+
+export type ModelProvider = (typeof providers)[number]['id']
+
+export function ModelConstellation(props: {
+  systemName: string
+  selected: ModelProvider
+  onSelect: (provider: ModelProvider) => void
+  paused: boolean
+}) {
   const { t } = useTranslation()
   const gradientId = useId()
+  const sceneRef = useRef<HTMLDivElement>(null)
+  const boundsRef = useRef<DOMRect | null>(null)
+  const [hovered, setHovered] = useState<ModelProvider | null>(null)
+  const limitedMotion = useMediaQuery(
+    '(prefers-reduced-motion: reduce), (pointer: coarse)'
+  )
+  const motionDisabled = props.paused || limitedMotion
+
+  useEffect(() => {
+    if (motionDisabled) {
+      sceneRef.current?.style.setProperty('--scene-x', '0deg')
+      sceneRef.current?.style.setProperty('--scene-y', '0deg')
+    }
+  }, [motionDisabled])
 
   return (
     <div className='home-switchboard-group'>
       <div
         className='home-switchboard'
-        role='img'
-        aria-label={`${t('AI providers connected through one gateway')}: ${props.systemName}`}
+        data-route={hovered ?? props.selected}
+        onPointerEnter={(event) => {
+          boundsRef.current = event.currentTarget.getBoundingClientRect()
+        }}
+        onPointerMove={(event) => {
+          const bounds = boundsRef.current
+          if (motionDisabled || event.pointerType !== 'mouse' || !bounds) return
+          const x = Math.max(
+            -1,
+            Math.min(1, ((event.clientX - bounds.left) / bounds.width) * 2 - 1)
+          )
+          const y = Math.max(
+            -1,
+            Math.min(1, ((event.clientY - bounds.top) / bounds.height) * 2 - 1)
+          )
+          sceneRef.current?.style.setProperty('--scene-y', `${x * 12}deg`)
+          sceneRef.current?.style.setProperty('--scene-x', `${-y * 9}deg`)
+        }}
+        onPointerLeave={() => {
+          boundsRef.current = null
+          setHovered(null)
+          sceneRef.current?.style.setProperty('--scene-x', '0deg')
+          sceneRef.current?.style.setProperty('--scene-y', '0deg')
+        }}
       >
-        <svg
-          viewBox='0 0 800 360'
-          preserveAspectRatio='none'
-          className='home-switchboard-lines'
-          aria-hidden='true'
+        <div
+          className='home-scene-art'
+          role='img'
+          aria-label={`${t('AI providers connected through one gateway')}: ${props.systemName}`}
         >
-          <defs>
-            <linearGradient id={gradientId} x1='0' x2='1' y1='0' y2='1'>
-              <stop stopColor='#7cefff' />
-              <stop offset='.5' stopColor='#8b8cff' />
-              <stop offset='1' stopColor='#e089ff' />
-            </linearGradient>
-          </defs>
-          <ellipse
-            cx='400'
-            cy='180'
-            rx='295'
-            ry='136'
-            className='home-orbit-track'
-          />
-          <ellipse
-            cx='400'
-            cy='180'
-            rx='345'
-            ry='88'
-            className='home-orbit-track'
-          />
-          <g className='home-model-routes' stroke={`url(#${gradientId})`}>
-            <path d='M150 80C250 80 255 180 400 180' />
-            <path d='M650 80C550 80 545 180 400 180' />
-            <path d='M150 275C255 275 255 180 400 180' />
-            <path d='M650 275C545 275 545 180 400 180' />
-          </g>
-          <g className='home-route-pulses' stroke={`url(#${gradientId})`}>
-            <path d='M150 80C250 80 255 180 400 180' />
-            <path d='M650 80C550 80 545 180 400 180' />
-            <path d='M150 275C255 275 255 180 400 180' />
-            <path d='M650 275C545 275 545 180 400 180' />
-          </g>
-          <g className='home-orbit-stars'>
-            <circle cx='105' cy='180' r='3' />
-            <circle cx='695' cy='180' r='3' />
-            <circle cx='400' cy='44' r='2' />
-            <circle cx='400' cy='316' r='2' />
-            <path d='M60 40h10m-5-5v10M730 320h10m-5-5v10' />
-          </g>
-        </svg>
-        <div
-          className='home-orbital-ring home-orbital-ring-one'
-          aria-hidden='true'
-        />
-        <div
-          className='home-orbital-ring home-orbital-ring-two'
-          aria-hidden='true'
-        />
-        <div className='home-provider home-provider-openai' aria-hidden='true'>
-          <OpenAI size={26} />
-          <span>OpenAI</span>
-          <i />
-        </div>
-        <div className='home-provider home-provider-claude' aria-hidden='true'>
-          <Claude.Color size={27} />
-          <span>Anthropic</span>
-          <i />
-        </div>
-        <div className='home-provider home-provider-gemini' aria-hidden='true'>
-          <Gemini.Color size={27} />
-          <span>Gemini</span>
-          <i />
-        </div>
-        <div
-          className='home-provider home-provider-deepseek'
-          aria-hidden='true'
-        >
-          <DeepSeek.Color size={27} />
-          <span>DeepSeek</span>
-          <i />
-        </div>
-        <div className='home-gateway' aria-hidden='true'>
-          <svg viewBox='0 0 200 200' className='home-core-grid'>
-            <circle cx='100' cy='100' r='94' />
-            <ellipse cx='100' cy='100' rx='70' ry='94' />
-            <ellipse cx='100' cy='100' rx='34' ry='94' />
-            <ellipse cx='100' cy='100' rx='94' ry='32' />
-            <ellipse cx='100' cy='100' rx='94' ry='65' />
-            <path d='M6 100H194M100 6V194' />
+          <div className='home-scene-halo' aria-hidden='true' />
+          <svg
+            viewBox='0 0 720 580'
+            preserveAspectRatio='none'
+            className='home-switchboard-lines'
+            aria-hidden='true'
+          >
+            <defs>
+              <linearGradient id={gradientId} x1='0' x2='1' y1='0' y2='1'>
+                <stop stopColor='#64f4ff' />
+                <stop offset='.5' stopColor='#7794ff' />
+                <stop offset='1' stopColor='#c1a1ff' />
+              </linearGradient>
+            </defs>
+            <g className='home-circuit-traces'>
+              <path d='M0 180H120L185 245H260M720 195H600L535 260H475M0 385H125L195 320H265M720 375H600L540 315H475M215 0V80L310 175M505 0V95L430 170M230 580V500L310 415M490 580V485L425 415' />
+              <path d='M0 200H100L160 260H240M720 215H620L555 280H500M0 365H105L170 300H245M720 395H620L550 335H505' />
+              <circle cx='120' cy='180' r='4' />
+              <circle cx='600' cy='195' r='4' />
+              <circle cx='125' cy='385' r='4' />
+              <circle cx='600' cy='375' r='4' />
+            </g>
+            {providers.map((provider) => (
+              <g
+                key={provider.id}
+                className='home-model-route'
+                data-provider={provider.id}
+                stroke={`url(#${gradientId})`}
+              >
+                <path d={provider.route} className='home-route-track' />
+                <path d={provider.route} className='home-route-pulse' />
+              </g>
+            ))}
+            <g className='home-scene-markers'>
+              <path d='M35 45h20m-10-10v20M665 525h20m-10-10v20M340 65h40M340 515h40' />
+              <circle cx='360' cy='65' r='3' />
+              <circle cx='360' cy='515' r='3' />
+            </g>
           </svg>
-          <div className='home-core-emblem'>
-            <span />
-            <span />
-            <span />
+          <div
+            ref={sceneRef}
+            className='home-scene-parallax'
+            aria-hidden='true'
+          >
+            <div className='home-energy-ring home-energy-ring-one' />
+            <div className='home-energy-ring home-energy-ring-two' />
+            <div className='home-core-stage'>
+              <div className='home-core-shadow' />
+              <div className='home-chip-base' />
+              <div className='home-chip-mid' />
+              <div className='home-chip-pins'>
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className='home-chip-top'>
+                <svg viewBox='0 0 260 260' className='home-chip-circuits'>
+                  <path d='M0 45H35L60 70H90M0 65H25L60 100H75M260 45H225L200 70H170M260 65H235L200 100H185M0 215H35L60 190H90M0 195H25L60 160H75M260 215H225L200 190H170M260 195H235L200 160H185M95 0V25L110 40V65M165 0V25L150 40V65M95 260V235L110 220V195M165 260V235L150 220V195' />
+                  <circle cx='90' cy='70' r='3' />
+                  <circle cx='170' cy='70' r='3' />
+                  <circle cx='90' cy='190' r='3' />
+                  <circle cx='170' cy='190' r='3' />
+                </svg>
+                <div className='home-chip-die'>
+                  <div className='home-core-emblem'>
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                  <strong>API</strong>
+                  <span className='home-chip-die-label'>NEW API</span>
+                </div>
+                <span className='home-chip-corner home-chip-corner-one' />
+                <span className='home-chip-corner home-chip-corner-two' />
+              </div>
+              <div className='home-chip-glass' />
+            </div>
+            <div className='home-core-axis' />
           </div>
-          <strong>API</strong>
+          <span className='home-scene-coordinate' aria-hidden='true'>
+            01 / API
+          </span>
+        </div>
+        <div
+          className='home-model-controls'
+          role='group'
+          aria-label={t('API protocol')}
+        >
+          {providers.map((provider) => (
+            <Button
+              key={provider.id}
+              variant='outline'
+              className={`home-provider home-provider-${provider.id}`}
+              aria-label={provider.name}
+              aria-pressed={props.selected === provider.id}
+              aria-controls='connect'
+              onClick={() => props.onSelect(provider.id)}
+              onPointerEnter={() => setHovered(provider.id)}
+              onPointerLeave={() => setHovered(null)}
+              onFocus={() => setHovered(provider.id)}
+              onBlur={() => setHovered(null)}
+            >
+              <provider.Icon size={28} aria-hidden='true' />
+              <span>
+                <strong>{provider.name}</strong>
+                <small>{provider.api}</small>
+              </span>
+              <i aria-hidden='true' />
+            </Button>
+          ))}
         </div>
       </div>
       <div className='home-gateway-name' title={props.systemName}>
         {props.systemName}
       </div>
-      <span className='home-switchboard-caption' aria-hidden='true'>
-        {t('Different models. Common ground.')}
-      </span>
+      <p className='home-switchboard-caption'>
+        {t('Select a model to explore its connection.')}
+      </p>
     </div>
   )
 }

@@ -38,12 +38,27 @@ import { useStatus } from '@/hooks/use-status'
 
 import '@/styles/home-immersive.css'
 
-import { ConnectionPanel } from './connection-panel'
-import { ModelConstellation } from './model-constellation'
+import { ConnectionPanel, type ApiProtocol } from './connection-panel'
+import { ModelConstellation, type ModelProvider } from './model-constellation'
+
+const providerProtocols: Record<ModelProvider, ApiProtocol> = {
+  openai: 'openai',
+  claude: 'anthropic',
+  gemini: 'gemini',
+  deepseek: 'openai',
+}
+
+const protocolNames = {
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  gemini: 'Gemini',
+}
 
 export function ImmersiveLanding(props: { isAuthenticated?: boolean }) {
   const { t } = useTranslation()
   const [paused, setPaused] = useState(false)
+  const [provider, setProvider] = useState<ModelProvider>('openai')
+  const protocol = providerProtocols[provider]
   const { status } = useStatus()
   const systemName = status?.system_name || 'New API'
   const docsUrl =
@@ -91,6 +106,10 @@ export function ImmersiveLanding(props: { isAuthenticated?: boolean }) {
       <section className='home-hero' aria-labelledby='home-title'>
         <Glow variant='center' className='home-aurora' aria-hidden='true' />
         <div className='home-starfield' aria-hidden='true' />
+        <div className='home-floor' aria-hidden='true'>
+          <div />
+        </div>
+        <div className='home-horizon' aria-hidden='true' />
         <div className='home-masthead'>
           <span className='home-kicker'>
             <Sparkles aria-hidden='true' size={14} />
@@ -119,43 +138,61 @@ export function ImmersiveLanding(props: { isAuthenticated?: boolean }) {
             </Button>
           </div>
         </div>
-        <div className='home-hero-copy'>
-          <h1 id='home-title' className='home-title'>
-            {t('Many models.')}
-            <em>{t('One connection.')}</em>
-          </h1>
-          <p className='home-lead'>
-            {t(
-              'A clear path from your application to the AI models it needs. One address, familiar protocols, and room to build.'
-            )}
-          </p>
-          <div className='home-actions'>
-            <Button
-              role='link'
-              render={
-                <Link to={props.isAuthenticated ? '/dashboard' : '/sign-up'} />
-              }
-              className='home-action'
-            >
-              {props.isAuthenticated ? t('Go to Dashboard') : t('Get Started')}
-              <ArrowUpRight aria-hidden='true' />
-            </Button>
-            <Button
-              variant='outline'
-              role='link'
-              render={<Link to='/pricing' />}
-              className='home-action'
-            >
-              {t('Explore models')}
-              <ArrowRight aria-hidden='true' />
-            </Button>
+        <div className='home-hero-body'>
+          <div className='home-hero-copy'>
+            <h1 id='home-title' className='home-title'>
+              {t('Many models.')}
+              <em>{t('One connection.')}</em>
+            </h1>
+            <p className='home-lead'>
+              {t(
+                'A clear path from your application to the AI models it needs. One address, familiar protocols, and room to build.'
+              )}
+            </p>
+            <div className='home-actions'>
+              <Button
+                role='link'
+                render={
+                  <Link
+                    to={props.isAuthenticated ? '/dashboard' : '/sign-up'}
+                  />
+                }
+                className='home-action'
+              >
+                {props.isAuthenticated
+                  ? t('Go to Dashboard')
+                  : t('Get Started')}
+                <ArrowUpRight aria-hidden='true' />
+              </Button>
+              <Button
+                variant='outline'
+                role='link'
+                render={<Link to='/pricing' />}
+                className='home-action'
+              >
+                {t('Explore models')}
+                <ArrowRight aria-hidden='true' />
+              </Button>
+            </div>
+            <p className='home-hero-footnote'>
+              {t('Your tools. Your models. Your next idea.')}
+            </p>
+            <div className='home-signal-path' aria-hidden='true'>
+              <span>SDK / CLI</span>
+              <ArrowRight size={14} />
+              <strong>API</strong>
+              <ArrowRight size={14} />
+              <span>{protocolNames[protocol]} API</span>
+            </div>
           </div>
-          <p className='home-hero-footnote'>
-            {t('Your tools. Your models. Your next idea.')}
-          </p>
-        </div>
 
-        <ModelConstellation systemName={systemName} />
+          <ModelConstellation
+            systemName={systemName}
+            selected={provider}
+            onSelect={setProvider}
+            paused={paused}
+          />
+        </div>
       </section>
 
       <div className='home-protocol-strip'>
@@ -171,7 +208,12 @@ export function ImmersiveLanding(props: { isAuthenticated?: boolean }) {
         </span>
       </div>
 
-      <ConnectionPanel origin={origin} docsUrl={docsUrl} />
+      <ConnectionPanel
+        origin={origin}
+        docsUrl={docsUrl}
+        selected={protocol}
+        onSelect={(next) => setProvider(next === 'anthropic' ? 'claude' : next)}
+      />
 
       <section
         className='home-capabilities'

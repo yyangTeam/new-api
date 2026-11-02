@@ -18,7 +18,6 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
 import { ArrowUpRight } from 'lucide-react'
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
@@ -55,11 +54,17 @@ const protocols = [
   },
 ] as const
 
-export function ConnectionPanel(props: { origin: string; docsUrl: string }) {
+export type ApiProtocol = (typeof protocols)[number]['id']
+
+export function ConnectionPanel(props: {
+  origin: string
+  docsUrl: string
+  selected: ApiProtocol
+  onSelect: (protocol: ApiProtocol) => void
+}) {
   const { t } = useTranslation()
-  const [selected, setSelected] = useState('openai')
   const protocol =
-    protocols.find((item) => item.id === selected) ?? protocols[0]
+    protocols.find((item) => item.id === props.selected) ?? protocols[0]
   const baseUrl = `${props.origin}${protocol.basePath}`
   const request = [
     `curl '${props.origin}${protocol.path}'`,
@@ -108,8 +113,11 @@ export function ConnectionPanel(props: { origin: string; docsUrl: string }) {
       </div>
 
       <Tabs
-        value={selected}
-        onValueChange={(value) => setSelected(String(value))}
+        value={props.selected}
+        onValueChange={(value) => {
+          const next = protocols.find((item) => item.id === value)
+          if (next) props.onSelect(next.id)
+        }}
         className='home-request'
       >
         <div className='home-terminal-heading'>
