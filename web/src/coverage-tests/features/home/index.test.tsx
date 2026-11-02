@@ -1,11 +1,46 @@
-import { render, screen, within } from '@testing-library/react'
+import { QueryClientProvider } from '@tanstack/react-query'
+import {
+  act,
+  cleanup,
+  render as renderWithProviders,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ComponentProps, ReactNode } from 'react'
+import type { ComponentProps, ReactElement, ReactNode } from 'react'
 
 import { useHomePageContent } from '@/features/home/hooks'
 import { Home } from '@/features/home/index'
+import { getTopupInfo } from '@/features/wallet/api'
+import type { TopupInfo } from '@/features/wallet/types'
 import { useStatus } from '@/hooks/use-status'
+import { createAppQueryClient } from '@/lib/query-client'
 import { useAuthStore } from '@/stores/auth-store'
+import { createTestQueryClient } from '@/test/test-utils'
+
+let queryClient: ReturnType<typeof createTestQueryClient>
+const topupInfo: TopupInfo = {
+  enable_online_topup: false,
+  enable_stripe_topup: false,
+  pay_methods: [],
+  min_topup: 1,
+  stripe_min_topup: 1,
+  amount_options: [],
+  discount: {},
+  topup_link: 'https://cards.example.com/buy?product=api',
+  enable_redemption: true,
+}
+
+function render(ui: ReactElement) {
+  return renderWithProviders(ui, {
+    wrapper: (props: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>
+        {props.children}
+      </QueryClientProvider>
+    ),
+  })
+}
 
 vi.mock('@tanstack/react-router', () => ({
   Link: (props: ComponentProps<'a'> & { to: string }) => {
@@ -32,16 +67,19 @@ vi.mock('@/context/theme-provider', () => ({
   useTheme: () => ({ resolvedTheme: 'light' }),
 }))
 
-vi.mock('@/stores/auth-store', () => ({ useAuthStore: vi.fn() }))
+vi.mock('@/features/wallet/api', () => ({ getTopupInfo: vi.fn() }))
 vi.mock('@/features/home/hooks', () => ({ useHomePageContent: vi.fn() }))
 vi.mock('@/hooks/use-status', () => ({ useStatus: vi.fn() }))
 
 describe('Home', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(useAuthStore).mockReturnValue({
-      auth: { user: null },
-    } as ReturnType<typeof useAuthStore>)
+    queryClient = createTestQueryClient()
+    useAuthStore.getState().auth.reset()
+    vi.mocked(getTopupInfo).mockResolvedValue({
+      success: true,
+      data: topupInfo,
+    })
     vi.mocked(useStatus).mockReturnValue({
       status: {
         system_name: 'Example Gateway',
@@ -55,6 +93,12 @@ describe('Home', () => {
       isLoaded: true,
       isUrl: false,
     })
+  })
+
+  afterEach(() => {
+    cleanup()
+    queryClient.clear()
+    useAuthStore.getState().auth.reset()
   })
 
   test('keeps a loading state until custom-home content is resolved', () => {
@@ -79,9 +123,7 @@ describe('Home', () => {
   })
 
   test('sends an authenticated visitor to the dashboard', () => {
-    vi.mocked(useAuthStore).mockReturnValue({
-      auth: { user: { id: 1, username: 'Test' } },
-    } as ReturnType<typeof useAuthStore>)
+    useAuthStore.getState().auth.setUser({ id: 1, username: 'Test', role: 1 })
     render(<Home />)
     expect(
       screen.getByRole('link', { name: 'Go to Dashboard' })
@@ -91,79 +133,9 @@ describe('Home', () => {
     ).not.toBeInTheDocument()
   })
 
-  test('shows the same configured purchase link in the hero and guide for anonymous visitors', () => {
-    const purchaseLink = 'https://cards.example.com/buy?product=api'
+  test('hides purchase links from anonymous visitors without requesting wallet configuration', () => {
     vi.mocked(useStatus).mockReturnValue({
-      status: { topup_link: purchaseLink, enable_redemption: true },
-      loading: false,
-      error: null,
-    })
-    render(<Home />)
-    const purchaseLinks = screen.getAllByRole('link', {
-      name: 'Buy a redemption code',
-    })
-    expect(purchaseLinks).toHaveLength(2)
-    for (const link of purchaseLinks) {
-      expect(link).toHaveAttribute('href', purchaseLink)
-      expect(link).toHaveAttribute('target', '_blank')
-      expect(link).toHaveAttribute('rel', 'noopener noreferrer')
-    }
-    expect(screen.getByRole('link', { name: 'Redeem a code' })).toHaveAttribute(
-      'href',
-      '/wallet'
-    )
-  })
-
-  test('updating the existing purchase configuration updates both homepage links', () => {
-    vi.mocked(useStatus).mockReturnValue({
-      status: {
-        topup_link: 'https://cards.example.com/old',
-        enable_redemption: true,
-      },
-      loading: false,
-      error: null,
-    })
-    const { rerender } = render(<Home />)
-    vi.mocked(useStatus).mockReturnValue({
-      status: {
-        topup_link: 'https://cards.example.com/new',
-        enable_redemption: true,
-      },
-      loading: false,
-      error: null,
-    })
-    rerender(<Home />)
-    for (const link of screen.getAllByRole('link', {
-      name: 'Buy a redemption code',
-    })) {
-      expect(link).toHaveAttribute('href', 'https://cards.example.com/new')
-    }
-  })
-
-  test.each(['', 'javascript:alert(1)', 'data:text/html,<h1>Store</h1>'])(
-    'hides the purchase guide when the configured link is empty or unsafe: %s',
-    (purchaseLink) => {
-      vi.mocked(useStatus).mockReturnValue({
-        status: { topup_link: purchaseLink, enable_redemption: true },
-        loading: false,
-        error: null,
-      })
-      render(<Home />)
-      expect(
-        screen.queryByRole('link', { name: 'Buy a redemption code' })
-      ).not.toBeInTheDocument()
-      expect(
-        screen.queryByRole('region', { name: 'Fuel your next request.' })
-      ).not.toBeInTheDocument()
-    }
-  )
-
-  test('hides the purchase guide when redemption is disabled', () => {
-    vi.mocked(useStatus).mockReturnValue({
-      status: {
-        topup_link: 'https://cards.example.com/buy',
-        enable_redemption: false,
-      },
+      status: { topup_link: topupInfo.topup_link, enable_redemption: true },
       loading: false,
       error: null,
     })
@@ -174,23 +146,253 @@ describe('Home', () => {
     expect(
       screen.queryByRole('region', { name: 'Fuel your next request.' })
     ).not.toBeInTheDocument()
+    expect(getTopupInfo).not.toHaveBeenCalled()
   })
 
-  test('uses a configured relative purchase link without replacing its destination', () => {
-    vi.mocked(useStatus).mockReturnValue({
-      status: {
-        topup_link: '/store/codes?pack=starter',
-        enable_redemption: true,
-      },
-      loading: false,
-      error: null,
+  test('shows the wallet purchase destination in both homepage links for signed-in users', async () => {
+    useAuthStore.getState().auth.setUser({ id: 1, username: 'Test', role: 1 })
+    render(<Home />)
+    const purchaseLinks = await screen.findAllByRole('link', {
+      name: 'Buy a redemption code',
+    })
+    expect(purchaseLinks).toHaveLength(2)
+    for (const link of purchaseLinks) {
+      expect(link).toHaveAttribute('href', topupInfo.topup_link)
+      expect(link).toHaveAttribute('target', '_blank')
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    }
+    expect(screen.getByRole('link', { name: 'Redeem a code' })).toHaveAttribute(
+      'href',
+      '/wallet'
+    )
+    expect(getTopupInfo).toHaveBeenCalledTimes(1)
+  })
+
+  test('signing in enables the purchase guide without reloading the homepage', async () => {
+    render(<Home />)
+    expect(getTopupInfo).not.toHaveBeenCalled()
+    act(() => {
+      useAuthStore.getState().auth.setUser({ id: 1, username: 'Test', role: 1 })
+    })
+    expect(
+      await screen.findByRole('region', { name: 'Fuel your next request.' })
+    ).toBeInTheDocument()
+    expect(getTopupInfo).toHaveBeenCalledTimes(1)
+  })
+
+  test('signing out immediately hides a previously loaded purchase guide', async () => {
+    useAuthStore.getState().auth.setUser({ id: 1, username: 'Test', role: 1 })
+    render(<Home />)
+    await screen.findByRole('region', { name: 'Fuel your next request.' })
+    act(() => useAuthStore.getState().auth.setUser(null))
+    expect(
+      screen.queryByRole('link', { name: 'Buy a redemption code' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Fuel your next request.' })
+    ).not.toBeInTheDocument()
+    expect(getTopupInfo).toHaveBeenCalledTimes(1)
+  })
+
+  test('a wallet response arriving after sign-out cannot reveal purchase links', async () => {
+    let resolveRequest!: (
+      response: Awaited<ReturnType<typeof getTopupInfo>>
+    ) => void
+    const pendingRequest = new Promise<
+      Awaited<ReturnType<typeof getTopupInfo>>
+    >((resolve) => {
+      resolveRequest = resolve
+    })
+    vi.mocked(getTopupInfo).mockReturnValue(pendingRequest)
+    useAuthStore.getState().auth.setUser({ id: 1, username: 'Test', role: 1 })
+    render(<Home />)
+    await waitFor(() => expect(getTopupInfo).toHaveBeenCalledTimes(1))
+    act(() => useAuthStore.getState().auth.setUser(null))
+    await act(async () => {
+      resolveRequest({ success: true, data: topupInfo })
+      await pendingRequest
+    })
+    expect(
+      screen.queryByRole('link', { name: 'Buy a redemption code' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Fuel your next request.' })
+    ).not.toBeInTheDocument()
+  })
+
+  test('switching accounts does not expose the previous account purchase configuration', async () => {
+    useAuthStore.getState().auth.setUser({ id: 1, username: 'First', role: 1 })
+    render(<Home />)
+    await screen.findByRole('region', { name: 'Fuel your next request.' })
+    vi.mocked(getTopupInfo).mockResolvedValue({
+      success: true,
+      data: { ...topupInfo, topup_link: 'https://cards.example.com/second' },
+    })
+    act(() =>
+      useAuthStore
+        .getState()
+        .auth.setUser({ id: 2, username: 'Second', role: 1 })
+    )
+    expect(
+      screen.queryByRole('link', { name: 'Buy a redemption code' })
+    ).not.toBeInTheDocument()
+    await screen.findByRole('region', { name: 'Fuel your next request.' })
+    for (const link of screen.getAllByRole('link', {
+      name: 'Buy a redemption code',
+    })) {
+      expect(link).toHaveAttribute('href', 'https://cards.example.com/second')
+    }
+    expect(getTopupInfo).toHaveBeenCalledTimes(2)
+  })
+
+  test('refreshing the wallet configuration updates both homepage links', async () => {
+    useAuthStore.getState().auth.setUser({ id: 1, username: 'Test', role: 1 })
+    render(<Home />)
+    await screen.findByRole('region', { name: 'Fuel your next request.' })
+    vi.mocked(getTopupInfo).mockResolvedValue({
+      success: true,
+      data: { ...topupInfo, topup_link: 'https://cards.example.com/new' },
+    })
+    await act(async () => {
+      await queryClient.invalidateQueries()
+    })
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('link', {
+          name: 'Buy a redemption code',
+        })[0]
+      ).toHaveAttribute('href', 'https://cards.example.com/new')
+    )
+    for (const link of screen.getAllByRole('link', {
+      name: 'Buy a redemption code',
+    })) {
+      expect(link).toHaveAttribute('href', 'https://cards.example.com/new')
+    }
+  })
+
+  test.each([
+    undefined,
+    '',
+    'javascript:alert(1)',
+    'data:text/html,<h1>Store</h1>',
+  ])(
+    'hides the purchase guide when the configured link is empty or unsafe: %s',
+    async (purchaseLink) => {
+      useAuthStore.getState().auth.setUser({ id: 1, username: 'Test', role: 1 })
+      vi.mocked(getTopupInfo).mockResolvedValue({
+        success: true,
+        data: { ...topupInfo, topup_link: purchaseLink },
+      })
+      render(<Home />)
+      await waitFor(() => {
+        expect(getTopupInfo).toHaveBeenCalledTimes(1)
+        expect(queryClient.isFetching()).toBe(0)
+      })
+      expect(
+        screen.queryByRole('link', { name: 'Buy a redemption code' })
+      ).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('region', { name: 'Fuel your next request.' })
+      ).not.toBeInTheDocument()
+    }
+  )
+
+  test('hides the purchase guide when redemption is disabled', async () => {
+    useAuthStore.getState().auth.setUser({ id: 1, username: 'Test', role: 1 })
+    vi.mocked(getTopupInfo).mockResolvedValue({
+      success: true,
+      data: { ...topupInfo, enable_redemption: false },
     })
     render(<Home />)
-    const links = screen.getAllByRole('link', { name: 'Buy a redemption code' })
+    await waitFor(() => {
+      expect(getTopupInfo).toHaveBeenCalledTimes(1)
+      expect(queryClient.isFetching()).toBe(0)
+    })
+    expect(
+      screen.queryByRole('link', { name: 'Buy a redemption code' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Fuel your next request.' })
+    ).not.toBeInTheDocument()
+  })
+
+  test.each([
+    { success: false, data: topupInfo, message: 'Unavailable' },
+    { success: true },
+  ])(
+    'hides the purchase guide when the wallet response fails or has no data: %j',
+    async (response) => {
+      useAuthStore.getState().auth.setUser({ id: 1, username: 'Test', role: 1 })
+      vi.mocked(getTopupInfo).mockResolvedValue(response)
+      render(<Home />)
+      await waitFor(() => {
+        expect(getTopupInfo).toHaveBeenCalledTimes(1)
+        expect(queryClient.isFetching()).toBe(0)
+      })
+      expect(
+        screen.queryByRole('link', { name: 'Buy a redemption code' })
+      ).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('region', { name: 'Fuel your next request.' })
+      ).not.toBeInTheDocument()
+    }
+  )
+
+  test('hides a previously loaded guide when refreshing its wallet request fails', async () => {
+    useAuthStore.getState().auth.setUser({ id: 1, username: 'Test', role: 1 })
+    render(<Home />)
+    await screen.findByRole('region', { name: 'Fuel your next request.' })
+    vi.mocked(getTopupInfo).mockRejectedValue(new Error('Network unavailable'))
+    await act(async () => {
+      await queryClient.invalidateQueries()
+    })
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('region', { name: 'Fuel your next request.' })
+      ).not.toBeInTheDocument()
+    )
+    expect(
+      screen.queryByRole('link', { name: 'Buy a redemption code' })
+    ).not.toBeInTheDocument()
+    expect(getTopupInfo).toHaveBeenCalledTimes(2)
+  })
+
+  test('uses a configured relative purchase link without replacing its destination', async () => {
+    useAuthStore.getState().auth.setUser({ id: 1, username: 'Test', role: 1 })
+    vi.mocked(getTopupInfo).mockResolvedValue({
+      success: true,
+      data: { ...topupInfo, topup_link: '/store/codes?pack=starter' },
+    })
+    render(<Home />)
+    const links = await screen.findAllByRole('link', {
+      name: 'Buy a redemption code',
+    })
     expect(links).toHaveLength(2)
     for (const link of links) {
       expect(link).toHaveAttribute('href', '/store/codes?pack=starter')
     }
+  })
+
+  test('a wallet HTTP 500 hides the optional guide without triggering the application error page', async () => {
+    const onInternalServerError = vi.fn()
+    queryClient = createAppQueryClient(onInternalServerError)
+    useAuthStore.getState().auth.setUser({ id: 1, username: 'Test', role: 1 })
+    vi.mocked(getTopupInfo).mockRejectedValue(
+      new Error('Wallet unavailable', { cause: { response: { status: 500 } } })
+    )
+    render(<Home />)
+    await waitFor(() => {
+      expect(getTopupInfo).toHaveBeenCalledTimes(1)
+      expect(queryClient.isFetching()).toBe(0)
+    })
+    expect(onInternalServerError).not.toHaveBeenCalled()
+    expect(screen.getByRole('main')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: 'Fuel your next request.' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Buy a redemption code' })
+    ).not.toBeInTheDocument()
   })
 
   test('keeps the full site name available when the diagram label is shortened', () => {

@@ -21,7 +21,6 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service"
-	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -50,63 +49,6 @@ func TestParseStatusFilter(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.in, func(t *testing.T) {
 			assert.Equal(t, tc.want, parseStatusFilter(tc.in))
-		})
-	}
-}
-
-func TestGetStatusSharesWalletRedemptionPurchaseConfiguration(t *testing.T) {
-	common.OptionMapRWMutex.Lock()
-	originalLink := common.TopUpLink
-	paymentSetting := operation_setting.GetPaymentSetting()
-	originalConfirmed := paymentSetting.ComplianceConfirmed
-	originalVersion := paymentSetting.ComplianceTermsVersion
-	common.OptionMapRWMutex.Unlock()
-	t.Cleanup(func() {
-		common.OptionMapRWMutex.Lock()
-		defer common.OptionMapRWMutex.Unlock()
-		common.TopUpLink = originalLink
-		paymentSetting.ComplianceConfirmed = originalConfirmed
-		paymentSetting.ComplianceTermsVersion = originalVersion
-	})
-
-	for _, tc := range []struct {
-		name      string
-		link      string
-		confirmed bool
-	}{
-		{name: "configured purchase link", link: "https://cards.example.com/buy?product=api", confirmed: true},
-		{name: "updated purchase link", link: "https://store.example.com/codes", confirmed: true},
-		{name: "cleared purchase link", confirmed: true},
-		{name: "redemption disabled", link: "https://cards.example.com/buy", confirmed: false},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			common.OptionMapRWMutex.Lock()
-			common.TopUpLink = tc.link
-			paymentSetting.ComplianceConfirmed = tc.confirmed
-			paymentSetting.ComplianceTermsVersion = operation_setting.CurrentComplianceTermsVersion
-			common.OptionMapRWMutex.Unlock()
-
-			for _, endpoint := range []struct {
-				path    string
-				handler gin.HandlerFunc
-			}{
-				{path: "/api/status", handler: GetStatus},
-				{path: "/api/user/topup/info", handler: GetTopUpInfo},
-			} {
-				recorder := httptest.NewRecorder()
-				context, _ := gin.CreateTestContext(recorder)
-				context.Request = httptest.NewRequest(http.MethodGet, endpoint.path, nil)
-				endpoint.handler(context)
-				require.Equal(t, http.StatusOK, recorder.Code, endpoint.path)
-				var response struct {
-					Success bool           `json:"success"`
-					Data    map[string]any `json:"data"`
-				}
-				require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &response))
-				require.True(t, response.Success)
-				assert.Equal(t, tc.link, response.Data["topup_link"], endpoint.path)
-				assert.Equal(t, tc.confirmed, response.Data["enable_redemption"], endpoint.path)
-			}
 		})
 	}
 }
