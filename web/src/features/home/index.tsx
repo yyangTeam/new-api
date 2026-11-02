@@ -26,7 +26,7 @@ import { useTheme } from '@/context/theme-provider'
 import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { CTA, Features, Hero, HowItWorks, Stats } from './components'
+import { ImmersiveLanding } from './components/immersive-landing'
 import { useHomePageContent } from './hooks'
 
 export function Home() {
@@ -34,7 +34,6 @@ export function Home() {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const { resolvedTheme } = useTheme()
   const { auth } = useAuthStore()
-  const isAuthenticated = !!auth.user
   const { content, isLoaded, isUrl } = useHomePageContent()
 
   const syncIframePreferences = useCallback(() => {
@@ -121,12 +120,8 @@ export function Home() {
   }
 
   return (
-    <PublicLayout showMainContainer={false}>
-      <Hero isAuthenticated={isAuthenticated} />
-      <Stats />
-      <Features />
-      <HowItWorks />
-      <CTA isAuthenticated={isAuthenticated} />
+    <PublicLayout showMainContainer={false} className='home-immersive'>
+      <ImmersiveLanding userId={auth.user?.id} />
       <Footer />
     </PublicLayout>
   )
