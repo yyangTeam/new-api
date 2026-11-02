@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import {
   ArrowDown,
@@ -34,7 +35,9 @@ import { useTranslation } from 'react-i18next'
 
 import { Glow } from '@/components/layout/components/glow'
 import { Button } from '@/components/ui/button'
+import { getTopupInfo } from '@/features/wallet/api'
 import { useStatus } from '@/hooks/use-status'
+import { requireServerSuccess } from '@/lib/server-error-message'
 
 import '@/styles/home-immersive.css'
 
@@ -55,20 +58,38 @@ const protocolNames = {
   gemini: 'Gemini',
 }
 
-export function ImmersiveLanding(props: { isAuthenticated?: boolean }) {
+export function ImmersiveLanding(props: { userId?: number }) {
   const { t } = useTranslation()
+  const isAuthenticated = props.userId !== undefined
   const [paused, setPaused] = useState(false)
   const [provider, setProvider] = useState<ModelProvider>('openai')
   const protocol = providerProtocols[provider]
   const { status } = useStatus()
+  const topupQuery = useQuery({
+    queryKey: ['home', 'redemption-purchase', props.userId],
+    queryFn: async () => {
+      try {
+        return requireServerSuccess(await getTopupInfo())
+      } catch {
+        // This optional guide must not send homepage visitors to an error page.
+        return null
+      }
+    },
+    enabled: isAuthenticated,
+    retry: false,
+    meta: { errorToast: false },
+  })
+  const topupInfo = topupQuery.data?.data
   const systemName = status?.system_name || 'New API'
   const origin = typeof window === 'undefined' ? '' : window.location.origin
   let purchaseLink = ''
   if (
-    typeof status?.topup_link === 'string' &&
-    status.enable_redemption !== false
+    isAuthenticated &&
+    topupQuery.isSuccess &&
+    typeof topupInfo?.topup_link === 'string' &&
+    topupInfo.enable_redemption !== false
   ) {
-    const configuredLink = status.topup_link.trim()
+    const configuredLink = topupInfo.topup_link.trim()
     if (configuredLink) {
       try {
         const url = new URL(configuredLink, origin || undefined)
@@ -171,15 +192,11 @@ export function ImmersiveLanding(props: { isAuthenticated?: boolean }) {
               <Button
                 role='link'
                 render={
-                  <Link
-                    to={props.isAuthenticated ? '/dashboard' : '/sign-up'}
-                  />
+                  <Link to={isAuthenticated ? '/dashboard' : '/sign-up'} />
                 }
                 className='home-action'
               >
-                {props.isAuthenticated
-                  ? t('Go to Dashboard')
-                  : t('Get Started')}
+                {isAuthenticated ? t('Go to Dashboard') : t('Get Started')}
                 <ArrowUpRight aria-hidden='true' />
               </Button>
               <Button
@@ -308,7 +325,7 @@ export function ImmersiveLanding(props: { isAuthenticated?: boolean }) {
         <div className='home-start-actions'>
           <Button
             role='link'
-            render={<Link to={props.isAuthenticated ? '/keys' : '/sign-up'} />}
+            render={<Link to={isAuthenticated ? '/keys' : '/sign-up'} />}
             className='home-action'
           >
             {t('Create an API key')}

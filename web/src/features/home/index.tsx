@@ -34,7 +34,6 @@ export function Home() {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const { resolvedTheme } = useTheme()
   const { auth } = useAuthStore()
-  const isAuthenticated = !!auth.user
   const { content, isLoaded, isUrl } = useHomePageContent()
 
   const syncIframePreferences = useCallback(() => {
@@ -122,7 +121,7 @@ export function Home() {
 
   return (
     <PublicLayout showMainContainer={false} className='home-immersive'>
-      <ImmersiveLanding isAuthenticated={isAuthenticated} />
+      <ImmersiveLanding userId={auth.user?.id} />
       <Footer />
     </PublicLayout>
   )
