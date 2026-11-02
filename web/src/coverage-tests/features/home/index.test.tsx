@@ -151,6 +151,75 @@ describe('Home', () => {
     ).toHaveFocus()
   })
 
+  test.each([
+    ['Anthropic', 'Anthropic', '/v1/messages'],
+    ['Gemini', 'Gemini', '/v1beta/models/your-model:generateContent'],
+  ])(
+    'selecting %s in the scene updates the protocol and copied request',
+    async (provider, protocol, path) => {
+      const user = userEvent.setup()
+      const writeText = vi
+        .spyOn(navigator.clipboard, 'writeText')
+        .mockResolvedValue()
+      render(<Home />)
+      const model = screen.getByRole('button', { name: provider, exact: true })
+      await user.click(model)
+      expect(model).toHaveAttribute('aria-pressed', 'true')
+      expect(
+        screen.getByRole('tab', { name: protocol, exact: true })
+      ).toHaveAttribute('aria-selected', 'true')
+      const request = screen.getByLabelText('Request example')
+      expect(request).toHaveTextContent(`${window.location.origin}${path}`)
+      await user.click(
+        screen.getByRole('button', { name: 'Copy request example' })
+      )
+      expect(writeText).toHaveBeenLastCalledWith(request.textContent)
+      await user.click(
+        screen.getByRole('button', { name: 'Copy API base URL' })
+      )
+      expect(writeText).toHaveBeenLastCalledWith(window.location.origin)
+    }
+  )
+
+  test('keyboard selection of DeepSeek uses the OpenAI compatible request', async () => {
+    const user = userEvent.setup()
+    render(<Home />)
+    await user.click(
+      screen.getByRole('button', { name: 'Gemini', exact: true })
+    )
+    const deepseek = screen.getByRole('button', {
+      name: 'DeepSeek',
+      exact: true,
+    })
+    deepseek.focus()
+    await user.keyboard('{Enter}')
+    expect(deepseek).toHaveFocus()
+    expect(deepseek).toHaveAttribute('aria-pressed', 'true')
+    expect(
+      screen.getByRole('tab', { name: 'OpenAI', exact: true })
+    ).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByLabelText('Request example')).toHaveTextContent(
+      '/v1/chat/completions'
+    )
+  })
+
+  test('changing a protocol tab also updates the selected provider in the scene', async () => {
+    const user = userEvent.setup()
+    render(<Home />)
+    await user.click(
+      screen.getByRole('button', { name: 'DeepSeek', exact: true })
+    )
+    await user.click(
+      screen.getByRole('tab', { name: 'Anthropic', exact: true })
+    )
+    expect(
+      screen.getByRole('button', { name: 'Anthropic', exact: true })
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(
+      screen.getByRole('button', { name: 'DeepSeek', exact: true })
+    ).toHaveAttribute('aria-pressed', 'false')
+  })
+
   test('copies the SDK base URL for the selected protocol', async () => {
     const user = userEvent.setup()
     const writeText = vi
