@@ -40,6 +40,7 @@ import '@/styles/home-immersive.css'
 
 import { ConnectionPanel, type ApiProtocol } from './connection-panel'
 import { ModelConstellation, type ModelProvider } from './model-constellation'
+import { RedemptionPurchaseCard } from './redemption-purchase-card'
 
 const providerProtocols: Record<ModelProvider, ApiProtocol> = {
   openai: 'openai',
@@ -61,11 +62,28 @@ export function ImmersiveLanding(props: { isAuthenticated?: boolean }) {
   const protocol = providerProtocols[provider]
   const { status } = useStatus()
   const systemName = status?.system_name || 'New API'
+  const origin = typeof window === 'undefined' ? '' : window.location.origin
+  let purchaseLink = ''
+  if (
+    typeof status?.topup_link === 'string' &&
+    status.enable_redemption !== false
+  ) {
+    const configuredLink = status.topup_link.trim()
+    if (configuredLink) {
+      try {
+        const url = new URL(configuredLink, origin || undefined)
+        if (url.protocol === 'https:' || url.protocol === 'http:') {
+          purchaseLink = configuredLink
+        }
+      } catch {
+        // An invalid destination must not become a purchase link.
+      }
+    }
+  }
   const docsUrl =
     typeof status?.docs_link === 'string' && status.docs_link
       ? status.docs_link
       : 'https://docs.newapi.pro'
-  const origin = typeof window === 'undefined' ? '' : window.location.origin
   const capabilities = [
     {
       number: '01',
@@ -173,6 +191,23 @@ export function ImmersiveLanding(props: { isAuthenticated?: boolean }) {
                 {t('Explore models')}
                 <ArrowRight aria-hidden='true' />
               </Button>
+              {purchaseLink && (
+                <Button
+                  variant='link'
+                  role='link'
+                  render={
+                    <a
+                      href={purchaseLink}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                    />
+                  }
+                  className='home-purchase-shortcut'
+                >
+                  {t('Buy a redemption code')}
+                  <ArrowUpRight aria-hidden='true' />
+                </Button>
+              )}
             </div>
             <p className='home-hero-footnote'>
               {t('Your tools. Your models. Your next idea.')}
@@ -207,6 +242,8 @@ export function ImmersiveLanding(props: { isAuthenticated?: boolean }) {
           {t('Available models depend on configured channels.')}
         </span>
       </div>
+
+      {purchaseLink && <RedemptionPurchaseCard purchaseLink={purchaseLink} />}
 
       <ConnectionPanel
         origin={origin}
