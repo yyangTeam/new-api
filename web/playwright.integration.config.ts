@@ -39,7 +39,7 @@ export default defineConfig({
     {
       name: "authenticated",
       dependencies: ["setup"],
-      testMatch: /(?:0[2-9]|[12][0-9])-.*\.spec\.ts/,
+      testMatch: /(?:0[2-9]|[1-3][0-9])-.*\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         storageState: path.join(
