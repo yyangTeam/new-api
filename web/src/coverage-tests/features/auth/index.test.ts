@@ -63,7 +63,6 @@ describe('auth barrel exports', () => {
 
   it('exports constants', () => {
     expect(typeof authIndex.PASSWORD_MIN_LENGTH).toBe('number')
-    expect(typeof authIndex.PASSWORD_MAX_LENGTH).toBe('number')
     expect(typeof authIndex.OTP_LENGTH).toBe('number')
     expect(typeof authIndex.BACKUP_CODE_LENGTH).toBe('number')
     expect(authIndex.BACKUP_CODE_REGEX).toBeInstanceOf(RegExp)

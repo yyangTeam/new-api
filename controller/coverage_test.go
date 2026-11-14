@@ -113,33 +113,36 @@ func TestClearChannelInfo(t *testing.T) {
 }
 
 func TestGetVertexArrayKeys(t *testing.T) {
-	t.Run("empty input returns nil nil", func(t *testing.T) {
-		keys, err := getVertexArrayKeys("")
+	t.Run("empty input returns nil keys and indices", func(t *testing.T) {
+		keys, indices, err := getVertexArrayKeys("")
 		require.NoError(t, err)
 		assert.Nil(t, keys)
+		assert.Nil(t, indices)
 	})
 
 	t.Run("string array is trimmed and empties dropped", func(t *testing.T) {
-		keys, err := getVertexArrayKeys(`["  k1  ", "", "k2"]`)
+		keys, indices, err := getVertexArrayKeys(`["  k1  ", "", "k2"]`)
 		require.NoError(t, err)
 		assert.Equal(t, []string{"k1", "k2"}, keys)
+		assert.Equal(t, []int{0, 2}, indices)
 	})
 
 	t.Run("object array is JSON-encoded back to a string", func(t *testing.T) {
-		keys, err := getVertexArrayKeys(`[{"k":"v"}, {"k":"v2"}]`)
+		keys, indices, err := getVertexArrayKeys(`[{"k":"v"}, {"k":"v2"}]`)
 		require.NoError(t, err)
 		require.Len(t, keys, 2)
+		assert.Equal(t, []int{0, 1}, indices)
 		assert.Contains(t, keys[0], `"k":"v"`)
 		assert.Contains(t, keys[1], `"k":"v2"`)
 	})
 
 	t.Run("invalid JSON returns error", func(t *testing.T) {
-		_, err := getVertexArrayKeys(`[not json`)
+		_, _, err := getVertexArrayKeys(`[not json`)
 		assert.Error(t, err)
 	})
 
 	t.Run("all-empty array returns error", func(t *testing.T) {
-		_, err := getVertexArrayKeys(`["", "  "]`)
+		_, _, err := getVertexArrayKeys(`["", "  "]`)
 		assert.Error(t, err)
 	})
 }

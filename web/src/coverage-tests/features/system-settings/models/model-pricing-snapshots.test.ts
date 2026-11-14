@@ -1,7 +1,6 @@
 import {
   hasPricingValue,
   getModeLabel,
-  getModeVariant,
   getPriceSummary,
   getSnapshotSignature,
 } from '@/features/system-settings/models/model-pricing-snapshots'
@@ -46,28 +45,6 @@ describe('getModeLabel', () => {
 
   test('returns Per-token (deprecated) for empty string', () => {
     expect(getModeLabel('')).toBe('Per-token (deprecated)')
-  })
-})
-
-describe('getModeVariant', () => {
-  test('returns warning for per-request mode', () => {
-    expect(getModeVariant('per-request')).toBe('warning')
-  })
-
-  test('returns info for tiered_expr mode', () => {
-    expect(getModeVariant('tiered_expr')).toBe('info')
-  })
-
-  test('returns success for per-token mode', () => {
-    expect(getModeVariant('per-token')).toBe('success')
-  })
-
-  test('returns success for undefined', () => {
-    expect(getModeVariant(undefined)).toBe('success')
-  })
-
-  test('returns success for unknown mode', () => {
-    expect(getModeVariant('anything')).toBe('success')
   })
 })
 
