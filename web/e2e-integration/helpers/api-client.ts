@@ -185,10 +185,14 @@ export class ApiClient {
     return resp.json();
   }
 
-  async manageUser(data: { id: number; action: string; value?: number; mode?: string }): Promise<any> {
+  async manageUser(data: { id: number; action: string; value?: number; mode?: string; proof?: string }): Promise<any> {
+    const headers = this.headers();
+    if (data.proof) {
+      headers["X-Security-Proof"] = data.proof;
+    }
     const resp = await fetch(`${this.baseUrl}/api/user/manage`, {
       method: "POST",
-      headers: this.headers(),
+      headers,
       body: JSON.stringify({
         id: data.id,
         action: data.action,
@@ -197,6 +201,22 @@ export class ApiClient {
       }),
     });
     return resp.json();
+  }
+
+  // Step-up verification: exchange the operator's password for a single-use
+  // proof token bound to (scope, context). Sensitive admin actions require it
+  // in the X-Security-Proof header.
+  async securityVerify(scope: string, context: Record<string, unknown>, password: string): Promise<string> {
+    const resp = await fetch(`${this.baseUrl}/api/verify`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({ method: "password", scope, context, password }),
+    });
+    const body = await resp.json();
+    if (!body.success || !body.data?.proof_token) {
+      throw new Error(`Security verification failed: ${body.message} (code: ${body.code})`);
+    }
+    return body.data.proof_token as string;
   }
 
   async deleteUser(id: number): Promise<any> {

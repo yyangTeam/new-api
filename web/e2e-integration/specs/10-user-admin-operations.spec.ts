@@ -1,4 +1,4 @@
-import { test, expect } from "../fixtures";
+import { test, expect, ROOT_PASS } from "../fixtures";
 
 test.describe("用户管理员操作", () => {
   test("01 - 创建用户并管理额度", async ({ page, apiClient }) => {
@@ -56,7 +56,14 @@ test.describe("用户管理员操作", () => {
       const users = await apiClient.getUsers();
       const user = users.data?.find?.((u: any) => u.username === "banuser");
 
-      const banResult = await apiClient.manageUser({ id: user.id, action: "disable" });
+      // Step-up verification (upstream 6cbb1c7ed): sensitive user-management
+      // actions require a single-use proof bound to (scope, user_id, action).
+      const proof = await apiClient.securityVerify(
+        "admin.user.manage",
+        { user_id: user.id, action: "disable" },
+        ROOT_PASS,
+      );
+      const banResult = await apiClient.manageUser({ id: user.id, action: "disable", proof });
       expect(banResult.success).toBe(true);
 
       const usersAfterBan = await apiClient.getUsers();
@@ -68,7 +75,13 @@ test.describe("用户管理员操作", () => {
       const users = await apiClient.getUsers();
       const user = users.data?.find?.((u: any) => u.username === "banuser");
 
-      const unbanResult = await apiClient.manageUser({ id: user.id, action: "enable" });
+      // A fresh proof is required — tokens are single-use and action-bound.
+      const enableProof = await apiClient.securityVerify(
+        "admin.user.manage",
+        { user_id: user.id, action: "enable" },
+        ROOT_PASS,
+      );
+      const unbanResult = await apiClient.manageUser({ id: user.id, action: "enable", proof: enableProof });
       expect(unbanResult.success).toBe(true);
 
       await page.goto("/users");
@@ -102,7 +115,13 @@ test.describe("用户管理员操作", () => {
       const users = await apiClient.getUsers();
       const user = users.data?.find?.((u: any) => u.username === "roleuser");
 
-      const roleResult = await apiClient.manageUser({ id: user.id, action: "promote" });
+      // Role changes are also gated by step-up verification.
+      const promoteProof = await apiClient.securityVerify(
+        "admin.user.manage",
+        { user_id: user.id, action: "promote" },
+        ROOT_PASS,
+      );
+      const roleResult = await apiClient.manageUser({ id: user.id, action: "promote", proof: promoteProof });
       expect(roleResult.success).toBe(true);
 
       const usersAfter = await apiClient.getUsers();
