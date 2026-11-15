@@ -161,11 +161,14 @@
   pointer-events: none;
 }
 
+/* The scan band is the middle 60% of this full-size overlay and travels the
+   floor via transform: translating a compositor layer keeps the animation off
+   the main thread, unlike animating background-position (repaint per frame). */
 .home-floor > div {
   position: absolute;
   inset: 0;
-  background: linear-gradient(transparent 40%, #5ce7ff45 50%, transparent 60%);
-  background-size: 100% 300%;
+  background: linear-gradient(transparent 20%, #5ce7ff45 50%, transparent 80%);
+  transform: translateY(-100%);
   animation: home-floor-scan 9s linear infinite;
 }
 
@@ -1557,10 +1560,10 @@
 
 @keyframes home-floor-scan {
   from {
-    background-position: 0 100%;
+    transform: translateY(-100%);
   }
   to {
-    background-position: 0 0;
+    transform: translateY(100%);
   }
 }
 
@@ -1795,8 +1798,21 @@
     font-size: 11px;
     margin-top: 14px;
   }
+  /* Mobile GPUs pay heavily for the decorative rasters: the floor grid is a
+     180%-wide masked layer of which only a ~150px sliver is visible, the
+     aurora blur dominates its raster time, and the SVG dash animation runs
+     on the main thread where it competes with scrolling. */
   .home-floor {
-    bottom: -580px;
+    display: none;
+  }
+  .home-aurora > div:where(:first-child),
+  .home-aurora > div:where(:last-child) {
+    width: 300px;
+    height: 200px;
+    filter: blur(45px);
+  }
+  .home-route-pulse {
+    animation: none;
   }
   .home-horizon {
     bottom: 70px;
