@@ -29,13 +29,19 @@ type channelErrorState struct {
 
 var channelErrorStates sync.Map
 
-func init() {
-	gopool.Go(func() {
-		for {
-			time.Sleep(10 * time.Minute)
+const channelErrorCleanupInterval = 10 * time.Minute
+
+// StartChannelErrorCleanup periodically trims idle channel error states.
+// Started from main (not init) so test binaries stay free of background
+// workers: router tests wait for gopool.WorkerCount() to reach zero.
+func StartChannelErrorCleanup() {
+	go func() {
+		ticker := time.NewTicker(channelErrorCleanupInterval)
+		defer ticker.Stop()
+		for range ticker.C {
 			cleanupChannelErrorStates()
 		}
-	})
+	}()
 }
 
 func cleanupChannelErrorStates() {

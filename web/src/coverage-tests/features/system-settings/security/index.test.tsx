@@ -32,7 +32,8 @@ describe('SecuritySettings page component', () => {
     const defaults = props.defaultSettings
     expect(defaults.ModelRequestRateLimitEnabled).toBe(false)
     expect(defaults.ModelRequestRateLimitSuccessCount).toBe(1000)
-    expect(defaults.CheckSensitiveEnabled).toBe(false)
+    // CheckSensitiveEnabled was replaced upstream by automatic disable
+    // keywords; the key no longer exists in defaultSecuritySettings.
     expect(defaults['fetch_setting.enable_ssrf_protection']).toBe(true)
     expect(defaults['fetch_setting.allow_private_ip']).toBe(false)
     expect(defaults['token_setting.max_user_tokens']).toBe(1000)
