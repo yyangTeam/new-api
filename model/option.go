@@ -232,6 +232,11 @@ func LoadOptionsFromDatabase() error {
 }
 
 func SyncOptions(frequency int) {
+	// frequency <= 0 disables periodic sync; without this guard a 0 would
+	// spin with time.Sleep(0) and flood the log (one instance wrote 90+ GB).
+	if frequency <= 0 {
+		return
+	}
 	for {
 		time.Sleep(time.Duration(frequency) * time.Second)
 		common.SysLog(common.LogText("syncing options from database"))

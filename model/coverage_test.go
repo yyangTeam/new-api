@@ -656,7 +656,6 @@ func TestAssignDisplayLogIds_FromOffset(t *testing.T) {
 	assert.Equal(t, 7, logs[1].Id)
 }
 
-
 func TestEnsureLogRequestId_BackfillsEmpty(t *testing.T) {
 	log := &Log{RequestId: ""}
 	ensureLogRequestId(log)
@@ -1762,4 +1761,12 @@ func TestSearchUserTokens_ExactMatch(t *testing.T) {
 	assert.Equal(t, int64(1), total)
 	require.Len(t, tokens, 1)
 	assert.Equal(t, "alpha-token", tokens[0].Name)
+}
+
+// A non-positive sync frequency disables the periodic sync loops. Without the
+// guard they spin with time.Sleep(0); on regression these calls hang until
+// the go test timeout (or panic on the nil test DB), which fails the test.
+func TestSyncLoops_NonPositiveFrequencyDisabled(t *testing.T) {
+	SyncOptions(0)
+	SyncChannelCache(-1)
 }

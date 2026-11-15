@@ -113,6 +113,11 @@ func InitChannelCache() {
 }
 
 func SyncChannelCache(frequency int) {
+	// frequency <= 0 disables periodic sync; a 0 would otherwise spin with
+	// time.Sleep(0) and flood the log (same guard as SyncOptions).
+	if frequency <= 0 {
+		return
+	}
 	for {
 		time.Sleep(time.Duration(frequency) * time.Second)
 		common.SysLog(common.LogText("syncing channels from database"))
