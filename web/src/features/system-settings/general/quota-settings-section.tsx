@@ -55,6 +55,11 @@ const quotaSchema = z.object({
   QuotaForNewUser: z.coerce.number().min(0),
   QuotaForInviter: z.coerce.number().min(0),
   QuotaForInvitee: z.coerce.number().min(0),
+  InviterRebatePercent: z.coerce
+    .number({ error: () => i18next.t('Please enter a valid number') })
+    .int({ error: () => i18next.t('Must be an integer') })
+    .min(0, { error: () => i18next.t('Must be greater than or equal to 0') })
+    .max(100, { error: () => i18next.t('Must be less than or equal to 100') }),
   TopUpLink: z.string(),
   quota_setting: z.object({
     enable_free_model_pre_consume: z.boolean(),
@@ -273,6 +278,35 @@ export function QuotaSettingsSection({
                     {t('Quota given to invited users ({{formattedQuota}})', {
                       formattedQuota: formatQuotaInputValue(field.value),
                     })}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='InviterRebatePercent'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Inviter Rebate Percentage')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={field.value ?? ''}
+                      onChange={handleNumberChange(field.onChange)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Percentage of an invitee\'s credited top-up quota (online payments and redemption codes) credited to the inviter\'s invitation quota. 0 disables the rebate.'
+                    )}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

@@ -130,6 +130,10 @@ var TelegramBotName = ""
 var QuotaForNewUser = 0
 var QuotaForInviter = 0
 var QuotaForInvitee = 0
+
+// InviterRebatePercent is the percentage of an invitee's credited top-up
+// quota awarded to the inviter's invitation quota (0 disables the rebate).
+var InviterRebatePercent = 0
 var ChannelDisableThreshold = 5.0
 var AutomaticDisableChannelEnabled = false
 var AutomaticEnableChannelEnabled = false
