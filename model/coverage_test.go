@@ -906,3 +906,153 @@ func TestInviterRebateSelfInviteCheckDisabled(t *testing.T) {
 	assert.Zero(t, updatedInviter.AffQuotaLocked)
 	assert.Zero(t, countSelfInviteAdminLogsForTest(t))
 }
+
+func setInviterRebateLockExpiryForTest(t *testing.T, days int) {
+	t.Helper()
+	original := common.InviterRebateLockExpiryDays
+	t.Cleanup(func() {
+		common.InviterRebateLockExpiryDays = original
+	})
+	common.InviterRebateLockExpiryDays = days
+}
+
+// backdateInviterRebateForTest moves one ledger row's created_at into the
+// past so the lock-expiry sweep sees it as overdue.
+func backdateInviterRebateForTest(t *testing.T, rowId int, ageDays int64) {
+	t.Helper()
+	require.NoError(t, DB.Model(&InviterRebate{}).Where("id = ?", rowId).
+		Update("created_at", common.GetTimestamp()-ageDays*86400).Error)
+}
+
+func countLockExpiryAdminLogsForTest(t *testing.T) int64 {
+	t.Helper()
+	var count int64
+	require.NoError(t, DB.Model(&Log{}).Where("user_id = 0 AND type = ? AND content LIKE ?", LogTypeSystem, "%expired from the locked pool%").Count(&count).Error)
+	return count
+}
+
+// TestInviterRebateLockExpiryVoidsOverdueRows covers the lock-expiry sweep
+// (decision 3): with InviterRebateLockExpiryDays > 0 only overdue
+// locked(awaiting_consume) rows are voided, the frozen pool drops by exactly
+// the voided amount, one admin log is written, and a later consume-unlock
+// release still credits the surviving row — a voided row never comes back.
+func TestInviterRebateLockExpiryVoidsOverdueRows(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	rebate := creditedQuota * 10 / 100
+	setInviterRebateConsumeUnlockForTest(t, creditedQuota*3/5)
+	setInviterRebateLockExpiryForTest(t, 30)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	rechargeForTest(t, invitee.Id, "rebate-epay-expiry-1")
+	rechargeForTest(t, invitee.Id, "rebate-epay-expiry-2")
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 2)
+	require.Equal(t, 2*rebate, reloadUserForTest(t, inviter.Id).AffQuotaLocked)
+
+	// Row 1 is 31 days old (overdue); row 2 stays fresh.
+	backdateInviterRebateForTest(t, ledgers[0].Id, 31)
+
+	expired, err := ExpireInviterRebateLocks(300)
+	require.NoError(t, err)
+	assert.Equal(t, 1, expired)
+
+	ledgers = listInviterRebatesForTest(t)
+	assert.Equal(t, InviterRebateStatusVoided, ledgers[0].Status)
+	assert.Equal(t, InviterRebateVoidedLockExpired, ledgers[0].VoidedReason)
+	assert.Empty(t, ledgers[0].LockedReason)
+	assert.Equal(t, InviterRebateStatusLocked, ledgers[1].Status)
+	assert.Equal(t, rebate, reloadUserForTest(t, inviter.Id).AffQuotaLocked)
+	assert.EqualValues(t, 1, countLockExpiryAdminLogsForTest(t))
+
+	// Reaching the consume threshold still releases the surviving row only.
+	UpdateUserUsedQuotaAndRequestCount(invitee.Id, creditedQuota*3/5)
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, rebate, updatedInviter.AffQuota)
+	assert.Zero(t, updatedInviter.AffQuotaLocked)
+}
+
+// TestInviterRebateLockExpiryNeverVoidsSelfInviteSuspect: self-invite
+// suspicion rows are locked for manual review (decision 2) and must survive
+// the expiry sweep no matter how old they are.
+func TestInviterRebateLockExpiryNeverVoidsSelfInviteSuspect(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	setInviterRebateLockExpiryForTest(t, 1)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	insertUserSessionForTest(t, invitee.Id, "203.0.113.40", 0)
+	insertUserSessionForTest(t, inviter.Id, "203.0.113.40", 0)
+	rechargeForTest(t, invitee.Id, "rebate-epay-expiry-suspect")
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	require.Equal(t, InviterRebateLockedSelfInviteSuspect, ledgers[0].LockedReason)
+	backdateInviterRebateForTest(t, ledgers[0].Id, 10)
+
+	expired, err := ExpireInviterRebateLocks(300)
+	require.NoError(t, err)
+	assert.Zero(t, expired)
+
+	ledgers = listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusLocked, ledgers[0].Status)
+	assert.Equal(t, InviterRebateLockedSelfInviteSuspect, ledgers[0].LockedReason)
+	assert.NotZero(t, reloadUserForTest(t, inviter.Id).AffQuotaLocked)
+	assert.Zero(t, countLockExpiryAdminLogsForTest(t))
+}
+
+// TestInviterRebateLockExpiryDisabledNoop: 0 (the default) means locked
+// rebates never expire — the sweep is a no-op even for very old rows.
+func TestInviterRebateLockExpiryDisabledNoop(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	setInviterRebateConsumeUnlockForTest(t, creditedQuota*3/5)
+	setInviterRebateLockExpiryForTest(t, 0)
+
+	_, invitee := createRebateUsersForTest(t)
+	rechargeForTest(t, invitee.Id, "rebate-epay-expiry-off")
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	backdateInviterRebateForTest(t, ledgers[0].Id, 365)
+
+	expired, err := ExpireInviterRebateLocks(300)
+	require.NoError(t, err)
+	assert.Zero(t, expired)
+
+	ledgers = listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusLocked, ledgers[0].Status)
+	assert.Equal(t, InviterRebateLockedAwaitingConsume, ledgers[0].LockedReason)
+	assert.Zero(t, countLockExpiryAdminLogsForTest(t))
+}
+
+// TestInviterRebateLockExpiryWithInviterHardDeleted: an overdue row whose
+// inviter was hard-deleted is still voided (the ledger record matters), and
+// the missing user update is not an error.
+func TestInviterRebateLockExpiryWithInviterHardDeleted(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	setInviterRebateConsumeUnlockForTest(t, creditedQuota*3/5)
+	setInviterRebateLockExpiryForTest(t, 7)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	rechargeForTest(t, invitee.Id, "rebate-epay-expiry-gone")
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	backdateInviterRebateForTest(t, ledgers[0].Id, 8)
+	require.NoError(t, DB.Unscoped().Where("id = ?", inviter.Id).Delete(&User{}).Error)
+
+	expired, err := ExpireInviterRebateLocks(300)
+	require.NoError(t, err)
+	assert.Equal(t, 1, expired)
+
+	ledgers = listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusVoided, ledgers[0].Status)
+	assert.Equal(t, InviterRebateVoidedLockExpired, ledgers[0].VoidedReason)
+	assert.EqualValues(t, 1, countLockExpiryAdminLogsForTest(t), "the void is still logged for the ledger trail even though no pool was lowered")
+}

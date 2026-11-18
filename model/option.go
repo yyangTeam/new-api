@@ -151,6 +151,7 @@ func InitOptionMap() {
 	common.OptionMap["InviterRebateMaxPerTopup"] = strconv.Itoa(common.InviterRebateMaxPerTopup)
 	common.OptionMap["InviterRebateMonthlyMax"] = strconv.Itoa(common.InviterRebateMonthlyMax)
 	common.OptionMap["InviterRebateSelfInviteCheck"] = strconv.FormatBool(common.InviterRebateSelfInviteCheck)
+	common.OptionMap["InviterRebateLockExpiryDays"] = strconv.Itoa(common.InviterRebateLockExpiryDays)
 	common.OptionMap["QuotaRemindEnabled"] = strconv.FormatBool(common.QuotaRemindEnabled)
 	common.OptionMap["QuotaRemindThreshold"] = strconv.Itoa(common.QuotaRemindThreshold)
 	common.OptionMap["PreConsumedQuota"] = strconv.Itoa(common.PreConsumedQuota)
@@ -677,6 +678,8 @@ func updateOptionMap(key string, value string) (err error) {
 		common.InviterRebateMaxPerTopup, _ = strconv.Atoi(value)
 	case "InviterRebateMonthlyMax":
 		common.InviterRebateMonthlyMax, _ = strconv.Atoi(value)
+	case "InviterRebateLockExpiryDays":
+		common.InviterRebateLockExpiryDays, _ = strconv.Atoi(value)
 	case "DataExportInterval":
 		common.DataExportInterval, _ = strconv.Atoi(value)
 	case "DataExportDefaultTime":

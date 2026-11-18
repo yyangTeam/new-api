@@ -29,7 +29,8 @@ const (
 	InviterRebateLockedAwaitingConsume   = "awaiting_consume"    // 消费解锁未达标（P1.2）
 	InviterRebateLockedSelfInviteSuspect = "self_invite_suspect" // 自邀嫌疑（P1.3）
 	InviterRebateVoidedInviterMissing    = "inviter_missing"
-	InviterRebateVoidedMonthlyCap        = "monthly_cap" // 邀请人月度返利封顶（P1.1）
+	InviterRebateVoidedMonthlyCap        = "monthly_cap"  // 邀请人月度返利封顶（P1.1）
+	InviterRebateVoidedLockExpired       = "lock_expired" // 冻结池超期未解锁自动作废
 )
 
 type InviterRebate struct {
@@ -387,6 +388,77 @@ func releaseInviterRebatesOnConsume(inviteeId int) {
 	if releasedQuota > 0 {
 		RecordLog(inviterId, LogTypeSystem, common.NewMessage("Invitation rebate {{quota}} released after invitee consumption", map[string]any{"quota": logger.FormatQuota(releasedQuota)}))
 	}
+}
+
+// ExpireInviterRebateLocks 作废一个批次的超期冻结返利（InviterRebateLockExpiryDays，
+// 决策③）：locked(awaiting_consume) 且 created_at 早于「现在 − 过期天数」的台账行
+// 翻成 voided(lock_expired)，并按邀请人聚合等额回落 aff_quota_locked 冻结池。
+// self_invite_suspect 行永不自动作废（人工裁，决策②），只圈 awaiting_consume。
+// 返回本批作废的行数：调用方据此判断是否还有剩余批次（返回值 < batchSize
+// 表示扫完）。整个批次在一个事务里（台账行加行锁，与释放钩子互斥防竞态），
+// 失败整体回滚只记控制台错误，等下一次清扫重试，不会重复回落。作废成功后
+// 按邀请人写管理员侧日志（与封顶/自邀告警同通道，仅管理员可见）。
+func ExpireInviterRebateLocks(batchSize int) (int, error) {
+	if common.InviterRebateLockExpiryDays <= 0 || batchSize <= 0 {
+		return 0, nil
+	}
+	cutoff := common.GetTimestamp() - int64(common.InviterRebateLockExpiryDays)*86400
+	var ids []int
+	if err := DB.Model(&InviterRebate{}).
+		Where("status = ? AND locked_reason = ? AND created_at < ?", InviterRebateStatusLocked, InviterRebateLockedAwaitingConsume, cutoff).
+		Order("id").Limit(batchSize).Pluck("id", &ids).Error; err != nil {
+		return 0, err
+	}
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	expiredByInviter := map[int]int{}
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var rows []InviterRebate
+		if err := lockForUpdate(tx).
+			Where("id IN ? AND status = ? AND locked_reason = ? AND created_at < ?", ids, InviterRebateStatusLocked, InviterRebateLockedAwaitingConsume, cutoff).
+			Find(&rows).Error; err != nil {
+			return err
+		}
+		if len(rows) == 0 {
+			return nil
+		}
+		rowIds := make([]int, len(rows))
+		for i, row := range rows {
+			rowIds[i] = row.Id
+			expiredByInviter[row.InviterId] += row.Quota
+		}
+		if err := tx.Model(&InviterRebate{}).Where("id IN ?", rowIds).Updates(map[string]any{
+			"status":        InviterRebateStatusVoided,
+			"locked_reason": "",
+			"voided_reason": InviterRebateVoidedLockExpired,
+		}).Error; err != nil {
+			return err
+		}
+		// 回落冻结池；邀请人已被硬删除时无行可更新，作废照常（钱无处可去）
+		for inviterId, quota := range expiredByInviter {
+			if err := tx.Model(&User{}).Where("id = ?", inviterId).
+				Update("aff_quota_locked", gorm.Expr("aff_quota_locked - ?", quota)).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		common.SysError(common.LogText("inviter rebate lock expiry failed: error=%s", err.Error()))
+		return 0, err
+	}
+	for inviterId, quota := range expiredByInviter {
+		recordInviterRebateLockExpiryLog(inviterId, quota)
+	}
+	return len(expiredByInviter), nil
+}
+
+// recordInviterRebateLockExpiryLog 在作废批次提交后记录冻结池过期告警，
+// 与失败/封顶/自邀日志同一通道：user_id=0（系统）+ LogTypeSystem，仅管理员可见，
+// 供站长核对过期策略执行情况。
+func recordInviterRebateLockExpiryLog(inviterId, quota int) {
+	RecordLog(0, LogTypeSystem, common.NewMessage("Invitation rebate {{quota}} expired from the locked pool and voided", map[string]any{"quota": logger.FormatQuota(quota), "inviter_id": inviterId}))
 }
 
 // recordInviterRebateLog 在充值事务提交后给邀请人记录返利系统日志。

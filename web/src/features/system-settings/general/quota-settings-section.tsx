@@ -73,6 +73,10 @@ const quotaSchema = z.object({
     .int({ error: () => i18next.t('Must be an integer') })
     .min(0, { error: () => i18next.t('Must be greater than or equal to 0') }),
   InviterRebateSelfInviteCheck: z.boolean(),
+  InviterRebateLockExpiryDays: z.coerce
+    .number({ error: () => i18next.t('Please enter a valid number') })
+    .int({ error: () => i18next.t('Must be an integer') })
+    .min(0, { error: () => i18next.t('Must be greater than or equal to 0') }),
   TopUpLink: z.string(),
   quota_setting: z.object({
     enable_free_model_pre_consume: z.boolean(),
@@ -450,6 +454,34 @@ export function QuotaSettingsSection({
                 )}
               />
             </SettingsFormGridItem>
+
+            <FormField
+              control={form.control}
+              name='InviterRebateLockExpiryDays'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Inviter Rebate Lock Expiry Days')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      step={1}
+                      value={field.value ?? ''}
+                      onChange={handleNumberChange(field.onChange)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Void frozen rebates that the invitee has not unlocked by consumption after this many days, checked hourly on the master node. Does not apply to rebates frozen for self-invite suspicion, which always require manual review. 0 means frozen rebates never expire.'
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <SettingsFormGridItem span='full'>
               <FormField

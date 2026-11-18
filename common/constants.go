@@ -160,6 +160,13 @@ var InviterRebateMonthlyMax = 0
 // administrator reviews the admin-side alert log and decides.
 var InviterRebateSelfInviteCheck = true
 
+// InviterRebateLockExpiryDays voids locked(awaiting_consume) rebate rows
+// that stayed unreleased longer than this many days (0 = locked rebates
+// never expire). A periodic task on the master node sweeps the overdue rows
+// to voided(lock_expired) and lowers the inviter's frozen pool
+// accordingly. self_invite_suspect rows are never auto-voided.
+var InviterRebateLockExpiryDays = 0
+
 var ChannelDisableThreshold = 5.0
 var AutomaticDisableChannelEnabled = false
 var AutomaticEnableChannelEnabled = false

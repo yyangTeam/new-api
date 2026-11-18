@@ -412,5 +412,9 @@ func InitResources() error {
 
 	service.StartAuthArtifactCleanup()
 
+	// Void invitee-rebate locks that stayed unreleased past the configured
+	// expiry (InviterRebateLockExpiryDays, 0 = never). Master node only.
+	service.StartInviterRebateLockExpiry()
+
 	return nil
 }

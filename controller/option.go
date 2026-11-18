@@ -232,6 +232,12 @@ func UpdateOption(c *gin.Context) {
 			common.ApiErrorT(c, "Inviter rebate monthly cap must be a non-negative integer")
 			return
 		}
+	case "InviterRebateLockExpiryDays":
+		days, err := strconv.Atoi(strings.TrimSpace(option.Value.(string)))
+		if err != nil || days < 0 {
+			common.ApiErrorT(c, "Inviter rebate lock expiry days must be a non-negative integer")
+			return
+		}
 	default:
 		if isPaymentComplianceOptionKey(option.Key) {
 			common.ApiErrorT(c, "Compliance confirmation fields cannot be changed through the general settings API")

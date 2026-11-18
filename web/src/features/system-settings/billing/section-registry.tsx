@@ -69,6 +69,7 @@ const BILLING_SECTIONS = [
           InviterRebateMaxPerTopup: settings.InviterRebateMaxPerTopup,
           InviterRebateMonthlyMax: settings.InviterRebateMonthlyMax,
           InviterRebateSelfInviteCheck: settings.InviterRebateSelfInviteCheck,
+          InviterRebateLockExpiryDays: settings.InviterRebateLockExpiryDays,
           TopUpLink: settings.TopUpLink,
           quota_setting: {
             trust_quota_usd: settings['quota_setting.trust_quota_usd'],
