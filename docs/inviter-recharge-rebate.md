@@ -258,11 +258,19 @@ v1 的已知漏洞：A 注册小号 B 自己充值，等于拿 110% 价值（B �
 
 | 信号 | 来源 | 强度 |
 | --- | --- | --- |
-| 登录 IP 重合 | `user_sessions.ip`：B 的 IP 与 A 近 90 天 IP 交集 | 强 |
-| 支付账号重合 | `stripe_customer` 相同 / 同一 epay 账号 | 强 |
-| 邮箱相似 | 同域 + local part 高相似 | 弱（需两个弱信号叠加） |
+| 登录 IP 精确重合 | `user_sessions.ip`：双方近 90 天 IP 交集（`net.ParseIP` 归一化，IPv4-mapped IPv6 折叠） | 强 |
+| 支付账号重合 | `users.stripe_customer` 双方非空且相同（epay 无对应字段，暂不覆盖） | 强 |
+| 邮箱相似 | 同域 + local part 小写公共前缀 ≥ 较短方一半（不足 3 字符视为不相似） | 弱（需两个弱信号叠加） |
+| IPv4 同 /24 | 双方近 90 天 IP 的前三字节相同且无精确重合 | 弱（需两个弱信号叠加） |
 
-打分制而非硬规则：判中 → `locked(self_invite_suspect)` 永不自动释放 + 管理员告警日志，人工裁 void / release。不做自动 void——误杀真实推荐的成本高于漏放。配置 `InviterRebateSelfInviteCheck`（默认开）。
+实现口径（P1.3 已上线）：
+
+- 配置 `InviterRebateSelfInviteCheck`（默认开）；截断顺序中位于**月度封顶之后、消费解锁判定之前**——即使 B 累计消费已达标也照样冻结，嫌疑优先于解锁
+- 判中：整笔进冻结池 `aff_quota_locked` + 台账 `locked(self_invite_suspect)`，**永不自动释放**（`releaseInviterRebatesOnConsume` 只圈 `awaiting_consume` 行）；锁后 B 继续消费也不解锁。人工 void / release 操作随 P3 台账页提供
+- 管理员告警：`creditInviterRebateTx` 增第五个返回值 `suspectRebate`（嫌疑冻结全额，即使冻结失败/作废也告警，与失败日志互补），调用方在事务提交后写 `user_id=0` System 日志（key：`Invitation rebate {{quota}} held for self-invite suspicion, manual review required`，含 inviter_id/invitee_id）
+- 信号查询失败按无嫌疑处理（失败方向：漏放有封顶 + 消费解锁兜底，误冻需要人工善后）；某一方近 90 天无会话记录时 IP 类信号自然不命中，Stripe 与邮箱信号不受影响
+- 冻结分支与消费解锁共用 `lockInviterRebateTx(lockedReason)`；锁定失败语义同消费解锁（failedRebate 走人工通道）
+- 测试覆盖：精确 IP 重合冻结、嫌疑压过消费解锁且后续消费不解锁、Stripe 账号重合、单弱信号不触发 / 双弱信号叠加触发 / 90 天窗口外的旧会话忽略、开关关闭时正常发放
 
 ### Phase 2 激励：改动小、效果直接
 

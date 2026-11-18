@@ -153,6 +153,13 @@ var InviterRebateMaxPerTopup = 0
 // voided with a monthly_cap ledger record and an admin-side log.
 var InviterRebateMonthlyMax = 0
 
+// InviterRebateSelfInviteCheck enables the self-invite suspicion check on
+// each rebate (enabled by default). When the invitee looks like the
+// inviter's own second account, the rebate is locked with
+// locked_reason=self_invite_suspect and never auto-released; an
+// administrator reviews the admin-side alert log and decides.
+var InviterRebateSelfInviteCheck = true
+
 var ChannelDisableThreshold = 5.0
 var AutomaticDisableChannelEnabled = false
 var AutomaticEnableChannelEnabled = false

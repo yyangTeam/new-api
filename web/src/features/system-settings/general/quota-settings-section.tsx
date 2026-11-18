@@ -72,6 +72,7 @@ const quotaSchema = z.object({
     .number({ error: () => i18next.t('Please enter a valid number') })
     .int({ error: () => i18next.t('Must be an integer') })
     .min(0, { error: () => i18next.t('Must be greater than or equal to 0') }),
+  InviterRebateSelfInviteCheck: z.boolean(),
   TopUpLink: z.string(),
   quota_setting: z.object({
     enable_free_model_pre_consume: z.boolean(),
@@ -421,6 +422,34 @@ export function QuotaSettingsSection({
                 </FormItem>
               )}
             />
+
+            <SettingsFormGridItem span='full'>
+              <FormField
+                control={form.control}
+                name='InviterRebateSelfInviteCheck'
+                render={({ field }) => (
+                  <SettingsSwitchItem>
+                    <SettingsSwitchContent>
+                      <FormLabel>
+                        {t('Inviter Rebate Self-Invite Check')}
+                      </FormLabel>
+                      <FormDescription>
+                        {t(
+                          'Freeze the rebate for manual review when the invitee looks like the inviter\'s own second account (shared login IP or Stripe account, or two weaker signals combined). The frozen rebate never auto-releases; check the admin log to approve or void it. Enabled by default.'
+                        )}
+                      </FormDescription>
+                    </SettingsSwitchContent>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={updateOption.isPending}
+                      />
+                    </FormControl>
+                  </SettingsSwitchItem>
+                )}
+              />
+            </SettingsFormGridItem>
 
             <SettingsFormGridItem span='full'>
               <FormField

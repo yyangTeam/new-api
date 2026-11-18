@@ -2,6 +2,8 @@ package model
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -56,14 +58,15 @@ func setInviterRebateCapsForTest(t *testing.T, maxPerTopup, monthlyMax int) {
 }
 
 // createRebateUsersForTest creates an inviter/invitee pair and wipes the
-// user, top-up and inviter-rebate ledger tables around the test.
+// user, top-up, session and inviter-rebate ledger tables around the test.
 func createRebateUsersForTest(t *testing.T) (inviter *User, invitee *User) {
 	t.Helper()
-	require.NoError(t, DB.AutoMigrate(&User{}, &TopUp{}, &InviterRebate{}))
+	require.NoError(t, DB.AutoMigrate(&User{}, &TopUp{}, &UserSession{}, &InviterRebate{}))
 	wipe := func() {
 		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&TopUp{}).Error)
 		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Log{}).Error)
 		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&User{}).Error)
+		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&UserSession{}).Error)
 		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&InviterRebate{}).Error)
 	}
 	wipe()
@@ -718,4 +721,188 @@ func TestInviterRebateMonthlyCapIgnoresPriorMonth(t *testing.T) {
 	require.Len(t, ledgers, 2)
 	assert.Equal(t, InviterRebateStatusReleased, ledgers[1].Status)
 	assert.Zero(t, countMonthlyCapAdminLogsForTest(t))
+}
+
+func setInviterRebateSelfInviteCheckForTest(t *testing.T, enabled bool) {
+	t.Helper()
+	original := common.InviterRebateSelfInviteCheck
+	t.Cleanup(func() {
+		common.InviterRebateSelfInviteCheck = original
+	})
+	common.InviterRebateSelfInviteCheck = enabled
+}
+
+// insertUserSessionForTest records one login-session IP for a user at the
+// given age (days). Only the self-invite check reads this table, so a minimal
+// active row suffices.
+func insertUserSessionForTest(t *testing.T, userId int, ip string, ageDays int64) {
+	t.Helper()
+	at := common.GetTimestamp() - ageDays*86400
+	require.NoError(t, DB.Create(&UserSession{
+		SID:          fmt.Sprintf("sess-%d-%s-%d", userId, strings.ReplaceAll(ip, ".", "-"), ageDays),
+		UserID:       userId,
+		Status:       UserSessionStatusActive,
+		RefreshHash:  strings.Repeat("a", 64),
+		LoginMethod:  "password",
+		IP:           ip,
+		CreatedAt:    at,
+		LastActiveAt: at,
+		ExpiresAt:    at + 86400,
+	}).Error)
+}
+
+// countSelfInviteAdminLogsForTest counts the admin-side (user_id=0) system
+// logs about rebates held for self-invite suspicion.
+func countSelfInviteAdminLogsForTest(t *testing.T) int64 {
+	t.Helper()
+	var count int64
+	require.NoError(t, DB.Model(&Log{}).Where("user_id = 0 AND type = ? AND content LIKE ?", LogTypeSystem, "%self-invite suspicion%").Count(&count).Error)
+	return count
+}
+
+// TestInviterRebateSelfInviteLockedOnIPOverlap: an exact login-IP overlap
+// within the 90-day window freezes the whole rebate as
+// locked(self_invite_suspect) with an admin alert; the invitee's top-up is
+// unaffected.
+func TestInviterRebateSelfInviteLockedOnIPOverlap(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	rebate := creditedQuota * 10 / 100
+
+	inviter, invitee := createRebateUsersForTest(t)
+	insertUserSessionForTest(t, invitee.Id, "203.0.113.7", 0)
+	insertUserSessionForTest(t, inviter.Id, "203.0.113.7", 0)
+
+	rechargeForTest(t, invitee.Id, "rebate-epay-self-invite-ip")
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusLocked, ledgers[0].Status)
+	assert.Equal(t, InviterRebateLockedSelfInviteSuspect, ledgers[0].LockedReason)
+	assert.Zero(t, ledgers[0].ReleasedAt)
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Zero(t, updatedInviter.AffQuota)
+	assert.Zero(t, updatedInviter.AffHistoryQuota)
+	assert.Equal(t, rebate, updatedInviter.AffQuotaLocked)
+	assert.EqualValues(t, 1, countSelfInviteAdminLogsForTest(t))
+
+	updatedInvitee := reloadUserForTest(t, invitee.Id)
+	assert.Equal(t, creditedQuota, updatedInvitee.Quota)
+}
+
+// TestInviterRebateSelfInviteOverridesConsumeUnlock: a suspect rebate locks
+// even when the invitee's cumulative consumption already meets the threshold,
+// and the locked row never auto-releases on further consumption.
+func TestInviterRebateSelfInviteOverridesConsumeUnlock(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	rebate := creditedQuota * 10 / 100
+	setInviterRebateConsumeUnlockForTest(t, creditedQuota/2)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", invitee.Id).Update("used_quota", creditedQuota).Error)
+	insertUserSessionForTest(t, invitee.Id, "198.51.100.9", 0)
+	insertUserSessionForTest(t, inviter.Id, "198.51.100.9", 0)
+
+	rechargeForTest(t, invitee.Id, "rebate-epay-self-invite-consumed")
+
+	// Suspect wins over consume-unlock: locked, not released.
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusLocked, ledgers[0].Status)
+	assert.Equal(t, InviterRebateLockedSelfInviteSuspect, ledgers[0].LockedReason)
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Zero(t, updatedInviter.AffQuota)
+	assert.Equal(t, rebate, updatedInviter.AffQuotaLocked)
+
+	// Further consumption must not release a self_invite_suspect row.
+	UpdateUserUsedQuotaAndRequestCount(invitee.Id, creditedQuota/2)
+	updatedInviter = reloadUserForTest(t, inviter.Id)
+	assert.Zero(t, updatedInviter.AffQuota)
+	assert.Equal(t, rebate, updatedInviter.AffQuotaLocked)
+	ledgers = listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusLocked, ledgers[0].Status)
+	assert.Equal(t, InviterRebateLockedSelfInviteSuspect, ledgers[0].LockedReason)
+}
+
+// TestInviterRebateSelfInviteOnStripeCustomerMatch: a shared Stripe payment
+// account is a strong signal on its own, even without any session history.
+func TestInviterRebateSelfInviteOnStripeCustomerMatch(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	require.NoError(t, DB.Model(&User{}).Where("id IN ?", []int{inviter.Id, invitee.Id}).Update("stripe_customer", "cus_shared_001").Error)
+
+	rechargeForTest(t, invitee.Id, "rebate-epay-self-invite-stripe")
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusLocked, ledgers[0].Status)
+	assert.Equal(t, InviterRebateLockedSelfInviteSuspect, ledgers[0].LockedReason)
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.NotZero(t, updatedInviter.AffQuotaLocked)
+	assert.EqualValues(t, 1, countSelfInviteAdminLogsForTest(t))
+}
+
+// TestInviterRebateSelfInviteWeakSignalsRequireTwo: a single weak signal
+// (similar email on the same domain) never triggers; stacking the second weak
+// signal (IPv4 /24 subnet overlap) does. A 100-day-old overlapping session is
+// outside the lookback window and must not count.
+func TestInviterRebateSelfInviteWeakSignalsRequireTwo(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", invitee.Id).Update("email", "ming@example.com").Error)
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", inviter.Id).Update("email", "ming2024@example.com").Error)
+	// Unrelated IPs (different /24); the stale inviter overlap is 100 days old.
+	insertUserSessionForTest(t, invitee.Id, "192.0.2.10", 0)
+	insertUserSessionForTest(t, inviter.Id, "198.51.100.20", 0)
+	insertUserSessionForTest(t, inviter.Id, "192.0.2.99", 100)
+
+	// Stage 1: email similarity alone (one weak signal) + stale overlap only
+	// -> not a suspect, normal release.
+	rechargeForTest(t, invitee.Id, "rebate-epay-self-invite-weak-1")
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusReleased, ledgers[0].Status)
+	assert.Zero(t, countSelfInviteAdminLogsForTest(t))
+
+	// Stage 2: inviter shows up in the invitee's /24 -> second weak signal
+	// stacked -> suspect.
+	insertUserSessionForTest(t, inviter.Id, "192.0.2.77", 0)
+	rechargeForTest(t, invitee.Id, "rebate-epay-self-invite-weak-2")
+	ledgers = listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 2)
+	assert.Equal(t, InviterRebateStatusLocked, ledgers[1].Status)
+	assert.Equal(t, InviterRebateLockedSelfInviteSuspect, ledgers[1].LockedReason)
+	assert.EqualValues(t, 1, countSelfInviteAdminLogsForTest(t))
+}
+
+// TestInviterRebateSelfInviteCheckDisabled: with the check switched off, an
+// exact IP overlap releases normally and writes no admin alert.
+func TestInviterRebateSelfInviteCheckDisabled(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	rebate := creditedQuota * 10 / 100
+	setInviterRebateSelfInviteCheckForTest(t, false)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	insertUserSessionForTest(t, invitee.Id, "203.0.113.30", 0)
+	insertUserSessionForTest(t, inviter.Id, "203.0.113.30", 0)
+
+	rechargeForTest(t, invitee.Id, "rebate-epay-self-invite-off")
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusReleased, ledgers[0].Status)
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, rebate, updatedInviter.AffQuota)
+	assert.Zero(t, updatedInviter.AffQuotaLocked)
+	assert.Zero(t, countSelfInviteAdminLogsForTest(t))
 }

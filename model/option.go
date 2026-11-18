@@ -150,6 +150,7 @@ func InitOptionMap() {
 	common.OptionMap["InviterRebateConsumeUnlockQuota"] = strconv.Itoa(common.InviterRebateConsumeUnlockQuota)
 	common.OptionMap["InviterRebateMaxPerTopup"] = strconv.Itoa(common.InviterRebateMaxPerTopup)
 	common.OptionMap["InviterRebateMonthlyMax"] = strconv.Itoa(common.InviterRebateMonthlyMax)
+	common.OptionMap["InviterRebateSelfInviteCheck"] = strconv.FormatBool(common.InviterRebateSelfInviteCheck)
 	common.OptionMap["QuotaRemindEnabled"] = strconv.FormatBool(common.QuotaRemindEnabled)
 	common.OptionMap["QuotaRemindThreshold"] = strconv.Itoa(common.QuotaRemindThreshold)
 	common.OptionMap["PreConsumedQuota"] = strconv.Itoa(common.PreConsumedQuota)
@@ -417,7 +418,7 @@ func updateOptionMap(key string, value string) (err error) {
 			common.ImageDownloadPermission = intValue
 		}
 	}
-	if strings.HasSuffix(key, "Enabled") || key == "DefaultCollapseSidebar" || key == "DefaultUseAutoGroup" || key == "SMTPForceAuthLogin" || key == "SMTPInsecureSkipVerify" {
+	if strings.HasSuffix(key, "Enabled") || key == "DefaultCollapseSidebar" || key == "DefaultUseAutoGroup" || key == "SMTPForceAuthLogin" || key == "SMTPInsecureSkipVerify" || key == "InviterRebateSelfInviteCheck" {
 		boolValue := value == "true"
 		switch key {
 		case "PasswordRegisterEnabled":
@@ -448,6 +449,8 @@ func updateOptionMap(key string, value string) (err error) {
 			common.AutomaticEnableChannelEnabled = boolValue
 		case "QuotaRemindEnabled":
 			common.QuotaRemindEnabled = boolValue
+		case "InviterRebateSelfInviteCheck":
+			common.InviterRebateSelfInviteCheck = boolValue
 		case "LogConsumeEnabled":
 			common.LogConsumeEnabled = boolValue
 		case "DisplayInCurrencyEnabled":
