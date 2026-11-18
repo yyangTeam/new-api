@@ -134,6 +134,13 @@ var QuotaForInvitee = 0
 // InviterRebatePercent is the percentage of an invitee's credited top-up
 // quota awarded to the inviter's invitation quota (0 disables the rebate).
 var InviterRebatePercent = 0
+
+// InviterRebateConsumeUnlockQuota is the cumulative invitee consumption
+// (users.used_quota, registration gift included) required before a locked
+// rebate is released to the inviter (0 disables consume-unlock: rebates
+// release immediately). Set it above the registration gift quota, otherwise
+// invitees can unlock rebates by burning free quota.
+var InviterRebateConsumeUnlockQuota = 0
 var ChannelDisableThreshold = 5.0
 var AutomaticDisableChannelEnabled = false
 var AutomaticEnableChannelEnabled = false

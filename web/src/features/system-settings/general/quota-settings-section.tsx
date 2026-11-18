@@ -60,6 +60,10 @@ const quotaSchema = z.object({
     .int({ error: () => i18next.t('Must be an integer') })
     .min(0, { error: () => i18next.t('Must be greater than or equal to 0') })
     .max(100, { error: () => i18next.t('Must be less than or equal to 100') }),
+  InviterRebateConsumeUnlockQuota: z.coerce
+    .number({ error: () => i18next.t('Please enter a valid number') })
+    .int({ error: () => i18next.t('Must be an integer') })
+    .min(0, { error: () => i18next.t('Must be greater than or equal to 0') }),
   TopUpLink: z.string(),
   quota_setting: z.object({
     enable_free_model_pre_consume: z.boolean(),
@@ -306,6 +310,39 @@ export function QuotaSettingsSection({
                   <FormDescription>
                     {t(
                       'Percentage of an invitee\'s credited top-up quota (online payments and redemption codes) credited to the inviter\'s invitation quota. 0 disables the rebate.'
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='InviterRebateConsumeUnlockQuota'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {t('Inviter Rebate Consume-Unlock Threshold')}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      step={1}
+                      value={field.value ?? ''}
+                      onChange={handleNumberChange(field.onChange)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Cumulative invitee consumption required before the inviter rebate is released ({{formattedQuota}}). The registration gift counts toward consumption, so set this above the new-user gift. 0 disables consume-unlock and releases rebates immediately.',
+                      {
+                        formattedQuota: formatQuotaInputValue(field.value),
+                      }
                     )}
                   </FormDescription>
                   <FormMessage />

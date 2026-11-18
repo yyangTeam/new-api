@@ -214,6 +214,12 @@ func UpdateOption(c *gin.Context) {
 				return
 			}
 		}
+	case "InviterRebateConsumeUnlockQuota":
+		quota, err := strconv.Atoi(strings.TrimSpace(option.Value.(string)))
+		if err != nil || quota < 0 {
+			common.ApiErrorT(c, "Inviter rebate consume-unlock threshold must be a non-negative integer")
+			return
+		}
 	default:
 		if isPaymentComplianceOptionKey(option.Key) {
 			common.ApiErrorT(c, "Compliance confirmation fields cannot be changed through the general settings API")

@@ -64,6 +64,8 @@ const BILLING_SECTIONS = [
           QuotaForInviter: settings.QuotaForInviter,
           QuotaForInvitee: settings.QuotaForInvitee,
           InviterRebatePercent: settings.InviterRebatePercent,
+          InviterRebateConsumeUnlockQuota:
+            settings.InviterRebateConsumeUnlockQuota,
           TopUpLink: settings.TopUpLink,
           quota_setting: {
             trust_quota_usd: settings['quota_setting.trust_quota_usd'],

@@ -1449,6 +1449,10 @@ func UpdateUserUsedQuota(id int, quota int) {
 	}
 	if err := DB.Model(&User{}).Where("id = ?", id).Update("used_quota", gorm.Expr("used_quota + ?", quota)).Error; err != nil {
 		common.SysLog(common.LogText("failed to update user used quota: %s", err.Error()))
+		return
+	}
+	if quota > 0 {
+		releaseInviterRebatesOnConsume(id)
 	}
 }
 
@@ -1462,6 +1466,9 @@ func updateUserUsedQuotaAndRequestCount(id int, quota int, count int) {
 	if err != nil {
 		common.SysLog(common.LogText("failed to update user used quota and request count: %s", err.Error()))
 		return
+	}
+	if quota > 0 {
+		releaseInviterRebatesOnConsume(id)
 	}
 
 	//// 更新缓存
@@ -1484,6 +1491,10 @@ func updateUserQuotaUsedQuotaAndRequestCount(id int, quota int, usedQuota int, r
 	).Error
 	if err != nil {
 		common.SysLog(common.LogText("failed to batch update user quota, used quota and request count: %s", err.Error()))
+		return
+	}
+	if usedQuota > 0 {
+		releaseInviterRebatesOnConsume(id)
 	}
 }
 

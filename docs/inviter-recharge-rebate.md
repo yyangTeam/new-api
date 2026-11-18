@@ -238,9 +238,11 @@ v1 的已知漏洞：A 注册小号 B 自己充值，等于拿 110% 价值（B �
 
 **1.2 消费解锁（核心防线）**
 
-- 配置 `InviterRebateConsumeUnlockUsd`（默认 0 = 不解锁，维持直接 released）
-- 返利先进 `locked(awaiting_consume)`，B **累计**消费额度（`users.used_quota`）≥ 门槛后释放；充值前的消费同样计数（已拍板：累计口径）
-- 释放钩子：`DecreaseUserQuota`（`model/user.go`，消费扣费唯一收口）后内联检查（一次内存比较 + 命中时一条 UPDATE）；充值到账时若 B 已达标直接 released
+- 配置 `InviterRebateConsumeUnlockQuota`（原始额度整数存储，沿用 `QuotaForInviter` 模式，UI 用 formatQuota 提示换算；默认 0 = 不解锁，维持直接 released）
+- 返利先进 `locked(awaiting_consume)` 冻结池（`users.aff_quota_locked`），B **累计**消费额度（`users.used_quota`）≥ 门槛后释放；充值前的消费同样计数（已拍板：累计口径）；充值到账时若 B 已达标直接 released
+- 释放钩子：`used_quota` 的三个真实落库点（`DecreaseUserQuota` 只减余额、不写 used_quota，**不是**扣费收口）：`UpdateUserUsedQuota` 直写分支 / `updateUserUsedQuotaAndRequestCount` / 批量刷新 `updateUserQuotaUsedQuotaAndRequestCount`（`model/user.go`、`model/utils.go`），quota > 0 时内联触发（负值 = 退款不触发）；释放走单事务：台账行 lockForUpdate 圈定 → 邀请人行锁定 → 行翻 released + 邀请人入账，失败整体回滚、下次消费重试，不会重复入账
+- 释放到账时给邀请人写一条聚合 System 日志（key：`Invitation rebate {{quota}} released after invitee consumption`）；锁定期间不写日志（钱还没到账）
+- 锁定路径沿用"钱先落、台账后记"：`aff_quota_locked` 更新成功但台账插入失败时额度冻结在池中无法释放，只 SysError 不回滚（与 Phase 0 released 路径同口径）
 - 设计依据：小号充了钱不消费，A 永远拿不到——这条本身就是最强的自邀防线
 - 两个口径事实：① `inviter_id` 只在注册时通过邀请码绑定，之后无补绑入口，被邀请人必然是新注册账号；② 累计口径下 B 烧**注册赠送的免费额度**也计数——白送的钱也能凑解锁。规避：**门槛默认值设得高于注册赠送额度**（如赠送 2 美元则门槛 ≥ 10 美元），并在配置描述里注明
 - 冻结池过期：配置 `InviterRebateLockExpiryDays`（默认 0 = 不过期，已拍板）；> 0 时超期未解锁的 locked 返利自动作废（需定时任务）

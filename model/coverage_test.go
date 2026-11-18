@@ -33,6 +33,15 @@ func setInviterRebatePercentForTest(t *testing.T, percent int) {
 	common.InviterRebatePercent = percent
 }
 
+func setInviterRebateConsumeUnlockForTest(t *testing.T, quota int) {
+	t.Helper()
+	original := common.InviterRebateConsumeUnlockQuota
+	t.Cleanup(func() {
+		common.InviterRebateConsumeUnlockQuota = original
+	})
+	common.InviterRebateConsumeUnlockQuota = quota
+}
+
 // createRebateUsersForTest creates an inviter/invitee pair and wipes the
 // user, top-up and inviter-rebate ledger tables around the test.
 func createRebateUsersForTest(t *testing.T) (inviter *User, invitee *User) {
@@ -359,4 +368,176 @@ func TestInviterRebateLedgerVoidedWhenInviterHardDeleted(t *testing.T) {
 	var failureLogs []Log
 	require.NoError(t, DB.Where("user_id = 0 AND type = ?", LogTypeSystem).Find(&failureLogs).Error)
 	assert.Empty(t, failureLogs)
+}
+
+// TestInviterRebateLockedUntilConsumeUnlock covers the consume-unlock cycle:
+// rebates are locked (frozen pool, no inviter credit, no inviter log) while the
+// invitee's cumulative consumption is below the threshold, and one consumption
+// that reaches the threshold releases all locked rows at once. A repeated
+// consumption must not credit anything again.
+func TestInviterRebateLockedUntilConsumeUnlock(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit) // Amount 1
+	expectedRebate := creditedQuota * 10 / 100
+	setInviterRebateConsumeUnlockForTest(t, creditedQuota*3/5)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	for _, tradeNo := range []string{"rebate-epay-lock-1", "rebate-epay-lock-2"} {
+		topUp := &TopUp{
+			UserId:          invitee.Id,
+			Amount:          1,
+			Money:           1.0,
+			TradeNo:         tradeNo,
+			PaymentProvider: PaymentProviderEpay,
+			Status:          common.TopUpStatusPending,
+		}
+		require.NoError(t, DB.Create(topUp).Error)
+		alreadyDone, err := RechargeEpay(topUp.TradeNo, "", "127.0.0.1")
+		require.NoError(t, err)
+		assert.False(t, alreadyDone)
+	}
+
+	// Two locked rows: money frozen, not credited, and no inviter-side log yet.
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 2)
+	for _, row := range ledgers {
+		assert.Equal(t, InviterRebateStatusLocked, row.Status)
+		assert.Equal(t, InviterRebateLockedAwaitingConsume, row.LockedReason)
+		assert.Zero(t, row.ReleasedAt)
+	}
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Zero(t, updatedInviter.AffQuota)
+	assert.Zero(t, updatedInviter.AffHistoryQuota)
+	assert.Equal(t, 2*expectedRebate, updatedInviter.AffQuotaLocked)
+	var rebateLogs []Log
+	require.NoError(t, DB.Where("user_id = ? AND type = ?", inviter.Id, LogTypeSystem).Find(&rebateLogs).Error)
+	assert.Empty(t, rebateLogs, "no rebate log while the rebate is locked")
+
+	// Cumulative consumption reaches the threshold: everything releases at once.
+	UpdateUserUsedQuotaAndRequestCount(invitee.Id, creditedQuota*3/5)
+	updatedInviter = reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, 2*expectedRebate, updatedInviter.AffQuota)
+	assert.Equal(t, 2*expectedRebate, updatedInviter.AffHistoryQuota)
+	assert.Zero(t, updatedInviter.AffQuotaLocked, "frozen pool must drain on release")
+	ledgers = listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 2)
+	for _, row := range ledgers {
+		assert.Equal(t, InviterRebateStatusReleased, row.Status)
+		assert.Empty(t, row.LockedReason)
+		assert.NotZero(t, row.ReleasedAt)
+	}
+	rebateLogs = []Log{}
+	require.NoError(t, DB.Where("user_id = ? AND type = ?", inviter.Id, LogTypeSystem).Find(&rebateLogs).Error)
+	require.Len(t, rebateLogs, 1, "a single release event writes one aggregated log")
+
+	// More consumption after release must not credit anything again.
+	UpdateUserUsedQuotaAndRequestCount(invitee.Id, creditedQuota/5)
+	updatedInviter = reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, 2*expectedRebate, updatedInviter.AffQuota)
+	assert.Zero(t, updatedInviter.AffQuotaLocked)
+}
+
+// TestInviterRebateLockedReleasedViaBatchFlush verifies the release hook on the
+// batch-update flush write path: with BatchUpdateEnabled the used_quota rows
+// are eventually written by updateUserQuotaUsedQuotaAndRequestCount, and the
+// release must fire there just like on the direct write path.
+func TestInviterRebateLockedReleasedViaBatchFlush(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	expectedRebate := creditedQuota * 10 / 100
+	setInviterRebateConsumeUnlockForTest(t, creditedQuota/2)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	topUp := &TopUp{
+		UserId:          invitee.Id,
+		Amount:          1,
+		Money:           1.0,
+		TradeNo:         "rebate-epay-batch-flush",
+		PaymentProvider: PaymentProviderEpay,
+		Status:          common.TopUpStatusPending,
+	}
+	require.NoError(t, DB.Create(topUp).Error)
+	alreadyDone, err := RechargeEpay(topUp.TradeNo, "", "127.0.0.1")
+	require.NoError(t, err)
+	assert.False(t, alreadyDone)
+
+	updateUserQuotaUsedQuotaAndRequestCount(invitee.Id, -creditedQuota, creditedQuota/2, 1)
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, expectedRebate, updatedInviter.AffQuota)
+	assert.Zero(t, updatedInviter.AffQuotaLocked)
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusReleased, ledgers[0].Status)
+}
+
+// TestInviterRebateDirectReleaseWhenAlreadyConsumed: when the invitee's
+// cumulative consumption already reached the threshold before the top-up, the
+// rebate is credited and released immediately, exactly like consume-unlock off.
+func TestInviterRebateDirectReleaseWhenAlreadyConsumed(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	expectedRebate := creditedQuota * 10 / 100
+	setInviterRebateConsumeUnlockForTest(t, creditedQuota/2)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", invitee.Id).Update("used_quota", creditedQuota/2).Error)
+
+	topUp := &TopUp{
+		UserId:          invitee.Id,
+		Amount:          1,
+		Money:           1.0,
+		TradeNo:         "rebate-epay-pre-consumed",
+		PaymentProvider: PaymentProviderEpay,
+		Status:          common.TopUpStatusPending,
+	}
+	require.NoError(t, DB.Create(topUp).Error)
+	alreadyDone, err := RechargeEpay(topUp.TradeNo, "", "127.0.0.1")
+	require.NoError(t, err)
+	assert.False(t, alreadyDone)
+
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, expectedRebate, updatedInviter.AffQuota)
+	assert.Zero(t, updatedInviter.AffQuotaLocked)
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusReleased, ledgers[0].Status)
+	assert.NotZero(t, ledgers[0].ReleasedAt)
+}
+
+// TestInviterRebateReleaseVoidedWhenInviterHardDeleted: a locked rebate whose
+// inviter was hard-deleted before the consumption threshold is reached turns
+// voided(inviter_missing) instead of being released, with nothing credited.
+func TestInviterRebateReleaseVoidedWhenInviterHardDeleted(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	setInviterRebateConsumeUnlockForTest(t, creditedQuota/2)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	topUp := &TopUp{
+		UserId:          invitee.Id,
+		Amount:          1,
+		Money:           1.0,
+		TradeNo:         "rebate-epay-lock-inviter-gone",
+		PaymentProvider: PaymentProviderEpay,
+		Status:          common.TopUpStatusPending,
+	}
+	require.NoError(t, DB.Create(topUp).Error)
+	alreadyDone, err := RechargeEpay(topUp.TradeNo, "", "127.0.0.1")
+	require.NoError(t, err)
+	assert.False(t, alreadyDone)
+	require.Len(t, listInviterRebatesForTest(t), 1)
+
+	require.NoError(t, DB.Unscoped().Delete(&User{}, inviter.Id).Error)
+	UpdateUserUsedQuotaAndRequestCount(invitee.Id, creditedQuota/2)
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusVoided, ledgers[0].Status)
+	assert.Equal(t, InviterRebateVoidedInviterMissing, ledgers[0].VoidedReason)
+	assert.Empty(t, ledgers[0].LockedReason)
+	assert.Zero(t, ledgers[0].ReleasedAt)
 }
