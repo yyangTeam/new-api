@@ -147,6 +147,7 @@ func InitOptionMap() {
 	common.OptionMap["QuotaForInviter"] = strconv.Itoa(common.QuotaForInviter)
 	common.OptionMap["QuotaForInvitee"] = strconv.Itoa(common.QuotaForInvitee)
 	common.OptionMap["InviterRebatePercent"] = strconv.Itoa(common.InviterRebatePercent)
+	common.OptionMap["InviterRebateFirstTopUpPercent"] = strconv.Itoa(common.InviterRebateFirstTopUpPercent)
 	common.OptionMap["InviterRebateConsumeUnlockQuota"] = strconv.Itoa(common.InviterRebateConsumeUnlockQuota)
 	common.OptionMap["InviterRebateMaxPerTopup"] = strconv.Itoa(common.InviterRebateMaxPerTopup)
 	common.OptionMap["InviterRebateMonthlyMax"] = strconv.Itoa(common.InviterRebateMonthlyMax)
@@ -672,6 +673,8 @@ func updateOptionMap(key string, value string) (err error) {
 		common.RetryTimes, _ = strconv.Atoi(value)
 	case "InviterRebatePercent":
 		common.InviterRebatePercent, _ = strconv.Atoi(value)
+	case "InviterRebateFirstTopUpPercent":
+		common.InviterRebateFirstTopUpPercent, _ = strconv.Atoi(value)
 	case "InviterRebateConsumeUnlockQuota":
 		common.InviterRebateConsumeUnlockQuota, _ = strconv.Atoi(value)
 	case "InviterRebateMaxPerTopup":

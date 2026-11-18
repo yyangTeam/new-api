@@ -29,6 +29,7 @@ const defaultBillingSettings: BillingSettings = {
   QuotaForInviter: 0,
   QuotaForInvitee: 0,
   InviterRebatePercent: 0,
+  InviterRebateFirstTopUpPercent: 0,
   InviterRebateConsumeUnlockQuota: 0,
   InviterRebateMaxPerTopup: 0,
   InviterRebateMonthlyMax: 0,

@@ -1056,3 +1056,121 @@ func TestInviterRebateLockExpiryWithInviterHardDeleted(t *testing.T) {
 	assert.Equal(t, InviterRebateVoidedLockExpired, ledgers[0].VoidedReason)
 	assert.EqualValues(t, 1, countLockExpiryAdminLogsForTest(t), "the void is still logged for the ledger trail even though no pool was lowered")
 }
+
+func setInviterRebateFirstTopUpPercentForTest(t *testing.T, percent int) {
+	t.Helper()
+	original := common.InviterRebateFirstTopUpPercent
+	t.Cleanup(func() {
+		common.InviterRebateFirstTopUpPercent = original
+	})
+	common.InviterRebateFirstTopUpPercent = percent
+}
+
+// TestInviterRebateFirstTopUpPercent: the invitee's first successful top-up
+// is rebated at the first-top-up percent (ledger snapshots it), the second
+// falls back to the regular percent.
+func TestInviterRebateFirstTopUpPercent(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 5)
+	setInviterRebateFirstTopUpPercentForTest(t, 15)
+	inviter, invitee := createRebateUsersForTest(t)
+
+	creditedQuota := rechargeForTest(t, invitee.Id, "rebate-first-1")
+	firstRebate := creditedQuota * 15 / 100
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, firstRebate, updatedInviter.AffQuota)
+
+	rechargeForTest(t, invitee.Id, "rebate-first-2")
+	secondRebate := creditedQuota * 5 / 100
+	updatedInviter = reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, firstRebate+secondRebate, updatedInviter.AffQuota)
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 2)
+	assert.Equal(t, 15, ledgers[0].Percent)
+	assert.Equal(t, firstRebate, ledgers[0].Quota)
+	assert.Equal(t, InviterRebateStatusReleased, ledgers[0].Status)
+	assert.Equal(t, 5, ledgers[1].Percent)
+	assert.Equal(t, secondRebate, ledgers[1].Quota)
+}
+
+// TestInviterRebateFirstTopUpPercentWithBaseZero: with the regular percent
+// disabled, only the first top-up earns a rebate; later ones get nothing and
+// leave no ledger row.
+func TestInviterRebateFirstTopUpPercentWithBaseZero(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 0)
+	setInviterRebateFirstTopUpPercentForTest(t, 15)
+	inviter, invitee := createRebateUsersForTest(t)
+
+	creditedQuota := rechargeForTest(t, invitee.Id, "rebate-first-only-1")
+	firstRebate := creditedQuota * 15 / 100
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, firstRebate, updatedInviter.AffQuota)
+
+	rechargeForTest(t, invitee.Id, "rebate-first-only-2")
+	updatedInviter = reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, firstRebate, updatedInviter.AffQuota, "second top-up must not earn a rebate when the regular percent is 0")
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, 15, ledgers[0].Percent)
+}
+
+// TestInviterRebateFirstTopUpPercentNotForRedemption: redemption rebates
+// never use the first-top-up percent, even before any top-up exists.
+func TestInviterRebateFirstTopUpPercentNotForRedemption(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 5)
+	setInviterRebateFirstTopUpPercentForTest(t, 15)
+	inviter, invitee := createRebateUsersForTest(t)
+	require.NoError(t, DB.AutoMigrate(&Redemption{}))
+	require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+	t.Cleanup(func() {
+		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+	})
+
+	redemption := &Redemption{
+		Id:          1,
+		Key:         "rebate-first-redemption-key1",
+		Status:      common.RedemptionCodeStatusEnabled,
+		Quota:       1000,
+		ExpiredTime: 0,
+	}
+	require.NoError(t, DB.Create(redemption).Error)
+
+	_, err := Redeem(redemption.Key, invitee.Id)
+	require.NoError(t, err)
+
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, 50, updatedInviter.AffQuota, "redemption rebate uses the regular 5%, not the first-top-up 15%")
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, 5, ledgers[0].Percent)
+	assert.Equal(t, InviterRebateSourceRedemption, ledgers[0].SourceType)
+}
+
+// TestInviterRebateFirstTopUpPercentOnLockedRow: the effective (first-top-up)
+// percent is snapshotted on locked ledger rows too, and the locked amount is
+// computed from it.
+func TestInviterRebateFirstTopUpPercentOnLockedRow(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 5)
+	setInviterRebateFirstTopUpPercentForTest(t, 15)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	setInviterRebateConsumeUnlockForTest(t, creditedQuota*3/5)
+	inviter, invitee := createRebateUsersForTest(t)
+
+	rechargeForTest(t, invitee.Id, "rebate-first-locked-1")
+
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Zero(t, updatedInviter.AffQuota)
+	assert.Equal(t, creditedQuota*15/100, updatedInviter.AffQuotaLocked, "locked amount uses the first-top-up percent")
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, 15, ledgers[0].Percent)
+	assert.Equal(t, InviterRebateStatusLocked, ledgers[0].Status)
+	assert.Equal(t, InviterRebateLockedAwaitingConsume, ledgers[0].LockedReason)
+}

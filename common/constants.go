@@ -135,6 +135,13 @@ var QuotaForInvitee = 0
 // quota awarded to the inviter's invitation quota (0 disables the rebate).
 var InviterRebatePercent = 0
 
+// InviterRebateFirstTopUpPercent overrides InviterRebatePercent for an
+// invitee's first successful top-up (P2.1 first-top-up bonus, 0 = no bonus:
+// every top-up is rebated at InviterRebatePercent). Only top-up sources
+// qualify — redemption rebates always use the regular percent. The effective
+// percent is snapshotted on the ledger row at credit time.
+var InviterRebateFirstTopUpPercent = 0
+
 // InviterRebateConsumeUnlockQuota is the cumulative invitee consumption
 // (users.used_quota, registration gift included) required before a locked
 // rebate is released to the inviter (0 disables consume-unlock: rebates

@@ -275,6 +275,7 @@ export type BillingSettings = {
   QuotaForInviter: number
   QuotaForInvitee: number
   InviterRebatePercent: number
+  InviterRebateFirstTopUpPercent: number
   InviterRebateConsumeUnlockQuota: number
   InviterRebateMaxPerTopup: number
   InviterRebateMonthlyMax: number

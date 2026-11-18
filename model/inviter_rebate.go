@@ -53,7 +53,29 @@ func (InviterRebate) TableName() string {
 	return "inviter_rebates"
 }
 
-// creditInviterRebateTx 在充值到账事务内，按 InviterRebatePercent 给被邀请人
+// inviterRebatePercentForTx 解析本次返利的生效比例（P2.1 首充加成）：
+// 被邀请人的第一笔成功充值用 InviterRebateFirstTopUpPercent（0 = 无首充
+// 加成，恒用常规比例），之后的充值与兑换码等非充值来源一律用
+// InviterRebatePercent。各 Recharge* 路径在调用返利钩子前已把当前订单置为
+// success，因此成功充值笔数 == 1 即首充。计数失败回退常规比例——返利照发，
+// 只是不享受加成（漏加成可人工补，多发不可收回，失败方向取保守侧）。
+func inviterRebatePercentForTx(tx *gorm.DB, inviteeId int, sourceType string) int {
+	percent := common.InviterRebatePercent
+	if sourceType != InviterRebateSourceTopUp || common.InviterRebateFirstTopUpPercent <= 0 {
+		return percent
+	}
+	var successTopUps int64
+	if err := tx.Model(&TopUp{}).Where("user_id = ? AND status = ?", inviteeId, common.TopUpStatusSuccess).Count(&successTopUps).Error; err != nil {
+		common.SysError(common.LogText("inviter rebate first top-up count failed: invitee_id=%d error=%s", inviteeId, err.Error()))
+		return percent
+	}
+	if successTopUps == 1 {
+		percent = common.InviterRebateFirstTopUpPercent
+	}
+	return percent
+}
+
+// creditInviterRebateTx 在充值到账事务内，按生效比例（常规或首充加成）给被邀请人
 // 的邀请人发放返利，并在台账记一行。先经 P1.1 封顶截断：单笔封顶
 // （InviterRebateMaxPerTopup）超出部分直接丢弃不记台账；月度封顶
 // （InviterRebateMonthlyMax）按自然月统计已发放的 released + locked 台账行
@@ -86,7 +108,7 @@ func (InviterRebate) TableName() string {
 // 查询被邀请人失败的分支只记服务器控制台日志：那种情况下数据库本身已经
 // 异常，日志表写入大概率同样失败。
 func creditInviterRebateTx(tx *gorm.DB, inviteeId int, creditedQuota int, sourceType string, sourceId int) (rebate int, inviterId int, failedRebate int, cappedRebate int, suspectRebate int) {
-	if common.InviterRebatePercent <= 0 || !operation_setting.IsPaymentComplianceConfirmed() {
+	if (common.InviterRebatePercent <= 0 && common.InviterRebateFirstTopUpPercent <= 0) || !operation_setting.IsPaymentComplianceConfirmed() {
 		return 0, 0, 0, 0, 0
 	}
 	var invitee User
@@ -97,7 +119,8 @@ func creditInviterRebateTx(tx *gorm.DB, inviteeId int, creditedQuota int, source
 	if invitee.InviterId == 0 {
 		return 0, 0, 0, 0, 0
 	}
-	rebate = int(int64(creditedQuota) * int64(common.InviterRebatePercent) / 100)
+	percent := inviterRebatePercentForTx(tx, inviteeId, sourceType)
+	rebate = int(int64(creditedQuota) * int64(percent) / 100)
 	if rebate <= 0 {
 		return 0, invitee.InviterId, 0, 0, 0
 	}
@@ -120,7 +143,7 @@ func creditInviterRebateTx(tx *gorm.DB, inviteeId int, creditedQuota int, source
 			return 0, invitee.InviterId, rebate, 0, 0
 		}
 		if remaining := int64(common.InviterRebateMonthlyMax) - grantedThisMonth; remaining <= 0 {
-			insertVoidedInviterRebateTx(tx, inviteeId, invitee.InviterId, rebate, creditedQuota, sourceType, sourceId, InviterRebateVoidedMonthlyCap)
+			insertVoidedInviterRebateTx(tx, inviteeId, invitee.InviterId, rebate, creditedQuota, percent, sourceType, sourceId, InviterRebateVoidedMonthlyCap)
 			return 0, invitee.InviterId, 0, rebate, 0
 		} else if int64(rebate) > remaining {
 			cappedRebate = rebate - int(remaining)
@@ -131,13 +154,13 @@ func creditInviterRebateTx(tx *gorm.DB, inviteeId int, creditedQuota int, source
 	// 放在消费解锁判定之前——即使累计消费已达标也照样冻结，该状态永不自动
 	// 释放，等管理员人工裁
 	if common.InviterRebateSelfInviteCheck && detectSelfInviteSuspectTx(tx, &invitee, invitee.InviterId) {
-		credited, inviter, failed := lockInviterRebateTx(tx, inviteeId, invitee.InviterId, rebate, creditedQuota, sourceType, sourceId, InviterRebateLockedSelfInviteSuspect)
+		credited, inviter, failed := lockInviterRebateTx(tx, inviteeId, invitee.InviterId, rebate, creditedQuota, percent, sourceType, sourceId, InviterRebateLockedSelfInviteSuspect)
 		return credited, inviter, failed, cappedRebate, rebate
 	}
 	// 消费解锁开启且被邀请人累计消费未达标：只进冻结池，台账记 locked，
 	// 返利额返回 0（调用方据此不给邀请人写"已到账"日志）
 	if common.InviterRebateConsumeUnlockQuota > 0 && invitee.UsedQuota < common.InviterRebateConsumeUnlockQuota {
-		credited, inviter, failed := lockInviterRebateTx(tx, inviteeId, invitee.InviterId, rebate, creditedQuota, sourceType, sourceId, InviterRebateLockedAwaitingConsume)
+		credited, inviter, failed := lockInviterRebateTx(tx, inviteeId, invitee.InviterId, rebate, creditedQuota, percent, sourceType, sourceId, InviterRebateLockedAwaitingConsume)
 		return credited, inviter, failed, cappedRebate, 0
 	}
 	result := tx.Model(&User{}).Where("id = ?", invitee.InviterId).Updates(map[string]any{
@@ -150,7 +173,7 @@ func creditInviterRebateTx(tx *gorm.DB, inviteeId int, creditedQuota int, source
 	}
 	if result.RowsAffected == 0 {
 		// 邀请人已被硬删除，返利无处发放；台账记 voided 留痕，不影响充值本身
-		insertVoidedInviterRebateTx(tx, inviteeId, invitee.InviterId, rebate, creditedQuota, sourceType, sourceId, InviterRebateVoidedInviterMissing)
+		insertVoidedInviterRebateTx(tx, inviteeId, invitee.InviterId, rebate, creditedQuota, percent, sourceType, sourceId, InviterRebateVoidedInviterMissing)
 		return 0, invitee.InviterId, 0, cappedRebate, 0
 	}
 	if err := tx.Create(&InviterRebate{
@@ -160,7 +183,7 @@ func creditInviterRebateTx(tx *gorm.DB, inviteeId int, creditedQuota int, source
 		SourceType: sourceType,
 		SourceId:   sourceId,
 		BaseQuota:  creditedQuota,
-		Percent:    common.InviterRebatePercent,
+		Percent:    percent,
 		Quota:      rebate,
 		Status:     InviterRebateStatusReleased,
 		ReleasedAt: common.GetTimestamp(),
@@ -173,7 +196,7 @@ func creditInviterRebateTx(tx *gorm.DB, inviteeId int, creditedQuota int, source
 // insertVoidedInviterRebateTx 在台账记一笔作废返利（不发放、不冻结），用于
 // 邀请人已被硬删除（inviter_missing）与月度封顶（monthly_cap）。台账 INSERT
 // 失败只记控制台错误：作废本来就不涉及钱，留痕缺失只影响统计与核对。
-func insertVoidedInviterRebateTx(tx *gorm.DB, inviteeId, inviter, rebate, creditedQuota int, sourceType string, sourceId int, reason string) {
+func insertVoidedInviterRebateTx(tx *gorm.DB, inviteeId, inviter, rebate, creditedQuota, percent int, sourceType string, sourceId int, reason string) {
 	if err := tx.Create(&InviterRebate{
 		CreatedAt:    common.GetTimestamp(),
 		InviterId:    inviter,
@@ -181,7 +204,7 @@ func insertVoidedInviterRebateTx(tx *gorm.DB, inviteeId, inviter, rebate, credit
 		SourceType:   sourceType,
 		SourceId:     sourceId,
 		BaseQuota:    creditedQuota,
-		Percent:      common.InviterRebatePercent,
+		Percent:      percent,
 		Quota:        rebate,
 		Status:       InviterRebateStatusVoided,
 		VoidedReason: reason,
@@ -196,7 +219,7 @@ func insertVoidedInviterRebateTx(tx *gorm.DB, inviteeId, inviter, rebate, credit
 // 与直接发放分支共用同一失败语义：冻结池 UPDATE 失败返回 failedRebate
 // 供管理员侧日志人工核对；台账 INSERT 失败只记控制台错误（金额已进冻结池，
 // 但没有台账行，release 永远找不到它，将滞留在冻结池中）。
-func lockInviterRebateTx(tx *gorm.DB, inviteeId, inviter, rebate, creditedQuota int, sourceType string, sourceId int, lockedReason string) (credited, inviterId, failedRebate int) {
+func lockInviterRebateTx(tx *gorm.DB, inviteeId, inviter, rebate, creditedQuota, percent int, sourceType string, sourceId int, lockedReason string) (credited, inviterId, failedRebate int) {
 	result := tx.Model(&User{}).Where("id = ?", inviter).Update("aff_quota_locked", gorm.Expr("aff_quota_locked + ?", rebate))
 	if result.Error != nil {
 		common.SysError(common.LogText("inviter rebate credit failed: invitee_id=%d inviter_id=%d rebate=%d error=%s", inviteeId, inviter, rebate, result.Error.Error()))
@@ -204,7 +227,7 @@ func lockInviterRebateTx(tx *gorm.DB, inviteeId, inviter, rebate, creditedQuota 
 	}
 	if result.RowsAffected == 0 {
 		// 邀请人已被硬删除，返利无处冻结；台账记 voided 留痕
-		insertVoidedInviterRebateTx(tx, inviteeId, inviter, rebate, creditedQuota, sourceType, sourceId, InviterRebateVoidedInviterMissing)
+		insertVoidedInviterRebateTx(tx, inviteeId, inviter, rebate, creditedQuota, percent, sourceType, sourceId, InviterRebateVoidedInviterMissing)
 		return 0, inviter, 0
 	}
 	if err := tx.Create(&InviterRebate{
@@ -214,7 +237,7 @@ func lockInviterRebateTx(tx *gorm.DB, inviteeId, inviter, rebate, creditedQuota 
 		SourceType:   sourceType,
 		SourceId:     sourceId,
 		BaseQuota:    creditedQuota,
-		Percent:      common.InviterRebatePercent,
+		Percent:      percent,
 		Quota:        rebate,
 		Status:       InviterRebateStatusLocked,
 		LockedReason: lockedReason,
