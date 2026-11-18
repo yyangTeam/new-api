@@ -53,30 +53,57 @@ func (InviterRebate) TableName() string {
 	return "inviter_rebates"
 }
 
-// inviterRebatePercentForTx 解析本次返利的生效比例（P2.1 首充加成）：
-// 被邀请人的第一笔成功充值用 InviterRebateFirstTopUpPercent（0 = 无首充
-// 加成，恒用常规比例），之后的充值与兑换码等非充值来源一律用
-// InviterRebatePercent。各 Recharge* 路径在调用返利钩子前已把当前订单置为
-// success，因此成功充值笔数 == 1 即首充。计数失败回退常规比例——返利照发，
-// 只是不享受加成（漏加成可人工补，多发不可收回，失败方向取保守侧）。
-func inviterRebatePercentForTx(tx *gorm.DB, inviteeId int, sourceType string) int {
-	percent := common.InviterRebatePercent
+// inviterRebatePercentForTx 解析本次返利的生效比例（P2.1 首充加成 ×
+// P2.2 阶梯）：常规比例先经 inviterRebateRegularPercentForTx 取阶梯或
+// 扁平档；被邀请人的第一笔成功充值再与首充加成
+// InviterRebateFirstTopUpPercent 取大者（首充是加成，生效比例不应低于
+// 常规档），之后的充值与兑换码等非充值来源一律用常规比例。各 Recharge*
+// 路径在调用返利钩子前已把当前订单置为 success，因此成功充值笔数 == 1 即
+// 首充。计数失败回退常规比例——返利照发，只是不享受加成（漏加成可人工
+// 补，多发不可收回，失败方向取保守侧）。
+func inviterRebatePercentForTx(tx *gorm.DB, inviteeId, inviterId int, sourceType string) int {
+	regular := inviterRebateRegularPercentForTx(tx, inviteeId, inviterId)
 	if sourceType != InviterRebateSourceTopUp || common.InviterRebateFirstTopUpPercent <= 0 {
-		return percent
+		return regular
 	}
 	var successTopUps int64
 	if err := tx.Model(&TopUp{}).Where("user_id = ? AND status = ?", inviteeId, common.TopUpStatusSuccess).Count(&successTopUps).Error; err != nil {
 		common.SysError(common.LogText("inviter rebate first top-up count failed: invitee_id=%d error=%s", inviteeId, err.Error()))
-		return percent
+		return regular
 	}
 	if successTopUps == 1 {
-		percent = common.InviterRebateFirstTopUpPercent
+		return max(common.InviterRebateFirstTopUpPercent, regular)
+	}
+	return regular
+}
+
+// inviterRebateRegularPercentForTx 解析常规比例（P2.2 阶梯）：阶梯
+// （inviter_rebate_setting.tiers）非空时完全取代扁平
+// InviterRebatePercent，按邀请人 aff_count 取满足 min_invitees 的最高档，
+// 低于最低档返 0；无阶梯时用扁平值。aff_count 查询失败时记 SysError 并
+// 回退扁平值（与首充计数失败同一保守方向：漏配可人工补，多发不可收回）。
+func inviterRebateRegularPercentForTx(tx *gorm.DB, inviteeId, inviterId int) int {
+	tiers := operation_setting.GetInviterRebateTiers()
+	if len(tiers) == 0 {
+		return common.InviterRebatePercent
+	}
+	var affCount int64
+	if err := tx.Model(&User{}).Select("aff_count").Where("id = ?", inviterId).Scan(&affCount).Error; err != nil {
+		common.SysError(common.LogText("inviter rebate tier lookup failed: invitee_id=%d inviter_id=%d error=%s", inviteeId, inviterId, err.Error()))
+		return common.InviterRebatePercent
+	}
+	percent := 0
+	for _, tier := range tiers {
+		if affCount < int64(tier.MinInvitees) {
+			break
+		}
+		percent = tier.Percent
 	}
 	return percent
 }
 
-// creditInviterRebateTx 在充值到账事务内，按生效比例（常规或首充加成）给被邀请人
-// 的邀请人发放返利，并在台账记一行。先经 P1.1 封顶截断：单笔封顶
+// creditInviterRebateTx 在充值到账事务内，按生效比例（常规档或 P2.2 阶梯，
+// 首充再与首充加成取大）给被邀请人的邀请人发放返利，并在台账记一行。先经 P1.1 封顶截断：单笔封顶
 // （InviterRebateMaxPerTopup）超出部分直接丢弃不记台账；月度封顶
 // （InviterRebateMonthlyMax）按自然月统计已发放的 released + locked 台账行
 // （voided 不计，冻结池同样占用额度），已达上限的整笔记
@@ -108,7 +135,7 @@ func inviterRebatePercentForTx(tx *gorm.DB, inviteeId int, sourceType string) in
 // 查询被邀请人失败的分支只记服务器控制台日志：那种情况下数据库本身已经
 // 异常，日志表写入大概率同样失败。
 func creditInviterRebateTx(tx *gorm.DB, inviteeId int, creditedQuota int, sourceType string, sourceId int) (rebate int, inviterId int, failedRebate int, cappedRebate int, suspectRebate int) {
-	if (common.InviterRebatePercent <= 0 && common.InviterRebateFirstTopUpPercent <= 0) || !operation_setting.IsPaymentComplianceConfirmed() {
+	if !(common.InviterRebatePercent > 0 || common.InviterRebateFirstTopUpPercent > 0 || operation_setting.InviterRebateTierPercentConfigured()) || !operation_setting.IsPaymentComplianceConfirmed() {
 		return 0, 0, 0, 0, 0
 	}
 	var invitee User
@@ -119,7 +146,7 @@ func creditInviterRebateTx(tx *gorm.DB, inviteeId int, creditedQuota int, source
 	if invitee.InviterId == 0 {
 		return 0, 0, 0, 0, 0
 	}
-	percent := inviterRebatePercentForTx(tx, inviteeId, sourceType)
+	percent := inviterRebatePercentForTx(tx, inviteeId, invitee.InviterId, sourceType)
 	rebate = int(int64(creditedQuota) * int64(percent) / 100)
 	if rebate <= 0 {
 		return 0, invitee.InviterId, 0, 0, 0

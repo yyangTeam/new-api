@@ -37,6 +37,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { formatQuota } from '@/lib/format'
 
+import { InviterRebateTiersEditor } from './inviter-rebate-tiers-editor'
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
 import {
@@ -50,6 +51,7 @@ import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useSettingsForm } from '../hooks/use-settings-form'
 import { useUpdateOption } from '../hooks/use-update-option'
+import { validateInviterRebateTiers } from '../utils/inviter-rebate-tiers'
 
 const quotaSchema = z.object({
   QuotaForNewUser: z.coerce.number().min(0),
@@ -82,6 +84,17 @@ const quotaSchema = z.object({
     .number({ error: () => i18next.t('Please enter a valid number') })
     .int({ error: () => i18next.t('Must be an integer') })
     .min(0, { error: () => i18next.t('Must be greater than or equal to 0') }),
+  inviter_rebate_setting: z.object({
+    tiers: z.string().superRefine((value, ctx) => {
+      const result = validateInviterRebateTiers(value)
+      if (!result.valid) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: i18next.t(result.messageKey, result.params),
+        })
+      }
+    }),
+  }),
   TopUpLink: z.string(),
   quota_setting: z.object({
     enable_free_model_pre_consume: z.boolean(),
@@ -327,13 +340,38 @@ export function QuotaSettingsSection({
                   </FormControl>
                   <FormDescription>
                     {t(
-                      'Percentage of an invitee\'s credited top-up quota (online payments and redemption codes) credited to the inviter\'s invitation quota. 0 disables the rebate.'
+                      'Percentage of an invitee\'s credited top-up quota (online payments and redemption codes) credited to the inviter\'s invitation quota. 0 disables the flat rebate. Ignored when rebate tiers are configured.'
                     )}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <SettingsFormGridItem span='full'>
+              <FormField
+                control={form.control}
+                name='inviter_rebate_setting.tiers'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Inviter Rebate Tiers')}</FormLabel>
+                    <FormControl>
+                      <InviterRebateTiersEditor
+                        value={field.value ?? '[]'}
+                        onChange={field.onChange}
+                        disabled={updateOption.isPending}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        "Tiered rebate percents keyed by the inviter's invitee count. When tiers are configured they fully replace the flat rebate percent, and inviters below the lowest tier earn no rebate — add a base tier with 0 minimum invitees so every inviter qualifies. Empty disables tiers and uses the flat percent. At most 20 tiers, ordered by strictly increasing minimum invitees."
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SettingsFormGridItem>
 
             <FormField
               control={form.control}

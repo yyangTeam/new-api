@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1173,4 +1174,164 @@ func TestInviterRebateFirstTopUpPercentOnLockedRow(t *testing.T) {
 	assert.Equal(t, 15, ledgers[0].Percent)
 	assert.Equal(t, InviterRebateStatusLocked, ledgers[0].Status)
 	assert.Equal(t, InviterRebateLockedAwaitingConsume, ledgers[0].LockedReason)
+}
+
+func setInviterRebateTiersForTest(t *testing.T, tiersJSON string) {
+	t.Helper()
+	cfg := config.GlobalConfig.Get("inviter_rebate_setting")
+	require.NotNil(t, cfg)
+	require.NoError(t, config.UpdateConfigFromMap(cfg, map[string]string{"tiers": tiersJSON}))
+	t.Cleanup(func() {
+		_ = config.UpdateConfigFromMap(cfg, map[string]string{"tiers": "[]"})
+	})
+}
+
+func setInviterAffCountForTest(t *testing.T, inviterId, affCount int) {
+	t.Helper()
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", inviterId).Update("aff_count", affCount).Error)
+}
+
+// TestInviterRebateTiers: tiers replace the flat percent; the inviter's
+// aff_count picks the highest tier whose min_invitees it meets, and upgrading
+// the tier affects later rebates without touching already-granted ones.
+func TestInviterRebateTiers(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 0)
+	setInviterRebateTiersForTest(t, `[{"min_invitees":0,"percent":5},{"min_invitees":6,"percent":10}]`)
+	inviter, invitee := createRebateUsersForTest(t)
+	setInviterAffCountForTest(t, inviter.Id, 3)
+
+	creditedQuota := rechargeForTest(t, invitee.Id, "rebate-tier-1")
+	firstRebate := creditedQuota * 5 / 100
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, firstRebate, updatedInviter.AffQuota)
+
+	// 升档：邀请人数达到 7，落在 6–∞ 档，后续返利按 10%，已发的不追溯
+	setInviterAffCountForTest(t, inviter.Id, 7)
+	rechargeForTest(t, invitee.Id, "rebate-tier-2")
+	secondRebate := creditedQuota * 10 / 100
+	updatedInviter = reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, firstRebate+secondRebate, updatedInviter.AffQuota)
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 2)
+	assert.Equal(t, 5, ledgers[0].Percent)
+	assert.Equal(t, firstRebate, ledgers[0].Quota)
+	assert.Equal(t, 10, ledgers[1].Percent)
+	assert.Equal(t, secondRebate, ledgers[1].Quota)
+}
+
+// TestInviterRebateTiersBelowLowest: an inviter below the lowest tier earns
+// nothing, and tiers fully replace the flat percent rather than merging with
+// it — the flat fallback only applies when no tiers are configured.
+func TestInviterRebateTiersBelowLowest(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 5)
+	setInviterRebateTiersForTest(t, `[{"min_invitees":6,"percent":10}]`)
+	inviter, invitee := createRebateUsersForTest(t)
+	setInviterAffCountForTest(t, inviter.Id, 3)
+
+	rechargeForTest(t, invitee.Id, "rebate-tier-below-1")
+
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Zero(t, updatedInviter.AffQuota, "below the lowest tier the rebate is 0 even with a flat percent configured")
+
+	ledgers := listInviterRebatesForTest(t)
+	assert.Empty(t, ledgers)
+}
+
+// TestInviterRebateFirstTopUpMaxWithTiers: the first top-up takes the larger
+// of the first-top-up percent and the tier percent.
+func TestInviterRebateFirstTopUpMaxWithTiers(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 0)
+	setInviterRebateFirstTopUpPercentForTest(t, 15)
+	setInviterRebateTiersForTest(t, `[{"min_invitees":0,"percent":10}]`)
+	inviter, invitee := createRebateUsersForTest(t)
+
+	creditedQuota := rechargeForTest(t, invitee.Id, "rebate-tier-max-1")
+	firstRebate := creditedQuota * 15 / 100
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, firstRebate, updatedInviter.AffQuota)
+
+	rechargeForTest(t, invitee.Id, "rebate-tier-max-2")
+	secondRebate := creditedQuota * 10 / 100
+	updatedInviter = reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, firstRebate+secondRebate, updatedInviter.AffQuota)
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 2)
+	assert.Equal(t, 15, ledgers[0].Percent, "first top-up: max(15, tier 10) = 15")
+	assert.Equal(t, 10, ledgers[1].Percent, "later top-ups fall back to the tier percent")
+}
+
+// TestInviterRebateFirstTopUpBelowTierUsesTier: a first-top-up percent lower
+// than the tier percent never reduces the rebate — the bonus is a max, not an
+// override.
+func TestInviterRebateFirstTopUpBelowTierUsesTier(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 0)
+	setInviterRebateFirstTopUpPercentForTest(t, 5)
+	setInviterRebateTiersForTest(t, `[{"min_invitees":0,"percent":10}]`)
+	inviter, invitee := createRebateUsersForTest(t)
+
+	creditedQuota := rechargeForTest(t, invitee.Id, "rebate-tier-floor-1")
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, creditedQuota*10/100, updatedInviter.AffQuota, "first top-up: max(5, tier 10) = 10")
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, 10, ledgers[0].Percent)
+}
+
+// TestInviterRebateTiersApplyToRedemption: redemption rebates use the tier
+// percent as their regular percent.
+func TestInviterRebateTiersApplyToRedemption(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 5)
+	setInviterRebateTiersForTest(t, `[{"min_invitees":0,"percent":10}]`)
+	inviter, invitee := createRebateUsersForTest(t)
+	require.NoError(t, DB.AutoMigrate(&Redemption{}))
+	require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+	t.Cleanup(func() {
+		require.NoError(t, DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&Redemption{}).Error)
+	})
+
+	redemption := &Redemption{
+		Id:          1,
+		Key:         "rebate-tier-redemption-key1",
+		Status:      common.RedemptionCodeStatusEnabled,
+		Quota:       1000,
+		ExpiredTime: 0,
+	}
+	require.NoError(t, DB.Create(redemption).Error)
+
+	_, err := Redeem(redemption.Key, invitee.Id)
+	require.NoError(t, err)
+
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, 100, updatedInviter.AffQuota, "redemption rebate uses the tier 10%, not the flat 5%")
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, 10, ledgers[0].Percent)
+}
+
+// TestInviterRebateTiersInvalidFallsBackToFlat: tier config that bypassed
+// API validation (semantically invalid, written straight to the store) is
+// ignored at rebate time and the flat percent keeps paying.
+func TestInviterRebateTiersInvalidFallsBackToFlat(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 5)
+	setInviterRebateTiersForTest(t, `[{"min_invitees":6,"percent":10},{"min_invitees":6,"percent":20}]`)
+	inviter, invitee := createRebateUsersForTest(t)
+	setInviterAffCountForTest(t, inviter.Id, 7)
+
+	creditedQuota := rechargeForTest(t, invitee.Id, "rebate-tier-invalid-1")
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, creditedQuota*5/100, updatedInviter.AffQuota, "invalid tiers degrade to the flat percent")
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, 5, ledgers[0].Percent)
 }

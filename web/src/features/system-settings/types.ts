@@ -281,6 +281,7 @@ export type BillingSettings = {
   InviterRebateMonthlyMax: number
   InviterRebateSelfInviteCheck: boolean
   InviterRebateLockExpiryDays: number
+  'inviter_rebate_setting.tiers': string
   TopUpLink: string
   'quota_setting.enable_free_model_pre_consume': boolean
   'quota_setting.trust_quota_usd': number

@@ -35,6 +35,7 @@ const defaultBillingSettings: BillingSettings = {
   InviterRebateMonthlyMax: 0,
   InviterRebateSelfInviteCheck: true,
   InviterRebateLockExpiryDays: 0,
+  'inviter_rebate_setting.tiers': '[]',
   TopUpLink: '',
   'quota_setting.enable_free_model_pre_consume': true,
   'quota_setting.trust_quota_usd': 10,
