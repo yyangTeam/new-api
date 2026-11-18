@@ -633,6 +633,7 @@
   "inviter rebate credit failed: invitee_id=%d inviter_id=%d rebate=%d error=%s": "邀请人返利发放失败（充值不受影响，需人工核对补发）: 被邀请人=%d 邀请人=%d 返利=%d 错误=%s",
   "inviter rebate ledger insert failed: invitee_id=%d inviter_id=%d rebate=%d source=%s/%d error=%s": "邀请人返利台账写入失败（返利金额不受影响，仅影响统计与回收）: 被邀请人=%d 邀请人=%d 返利=%d 来源=%s/%d 错误=%s",
   "inviter rebate lookup failed: invitee_id=%d quota=%d error=%s": "查询被邀请人的邀请人失败，本次充值不发放返利（充值不受影响）: 被邀请人=%d 到账额度=%d 错误=%s",
+  "inviter rebate monthly cap lookup failed: invitee_id=%d inviter_id=%d error=%s": "查询邀请人当月已发放返利失败，本次返利按失败处理（充值不受影响，需人工核对）: 被邀请人=%d 邀请人=%d 错误=%s",
   "inviter rebate release failed: invitee_id=%d inviter_id=%d error=%s": "邀请人返利释放失败（整体已回滚，等待下次消费重试）: 被邀请人=%d 邀请人=%d 错误=%s",
   "invalid SQL_SLOW_THRESHOLD_MS %d (allowed 0-%d, 0 disables slow query log), using default %d": "SQL_SLOW_THRESHOLD_MS=%d 超出范围（可填 0 到 %d，0 表示关闭慢查询日志），已使用默认值 %d",
   "invalid access token scopes: %s": "访问令牌的作用域无效: %s",

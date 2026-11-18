@@ -141,6 +141,18 @@ var InviterRebatePercent = 0
 // release immediately). Set it above the registration gift quota, otherwise
 // invitees can unlock rebates by burning free quota.
 var InviterRebateConsumeUnlockQuota = 0
+
+// InviterRebateMaxPerTopup caps the rebate credited for a single invitee
+// top-up (raw quota; 0 means unlimited). The portion above the cap is not
+// recorded in the ledger.
+var InviterRebateMaxPerTopup = 0
+
+// InviterRebateMonthlyMax caps the total rebate credited to one inviter per
+// calendar month, counting both released and locked ledger rows (raw quota;
+// 0 means unlimited). Once the cap is reached, further rebates that month are
+// voided with a monthly_cap ledger record and an admin-side log.
+var InviterRebateMonthlyMax = 0
+
 var ChannelDisableThreshold = 5.0
 var AutomaticDisableChannelEnabled = false
 var AutomaticEnableChannelEnabled = false

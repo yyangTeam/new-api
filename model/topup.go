@@ -185,7 +185,7 @@ func RechargeEpay(tradeNo string, actualPaymentMethod string, callerIp string) (
 	}
 
 	var quotaToAdd int
-	var rebate, inviterId, failedRebate int
+	var rebate, inviterId, failedRebate, cappedRebate int
 	topUp := &TopUp{}
 	err = DB.Transaction(func(tx *gorm.DB) error {
 		if err := lockForUpdate(tx).Where(refCol+" = ?", tradeNo).First(topUp).Error; err != nil {
@@ -219,7 +219,7 @@ func RechargeEpay(tradeNo string, actualPaymentMethod string, callerIp string) (
 		if err := creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil); err != nil {
 			return err
 		}
-		rebate, inviterId, failedRebate = creditInviterRebateTx(tx, topUp.UserId, quotaToAdd, InviterRebateSourceTopUp, topUp.Id)
+		rebate, inviterId, failedRebate, cappedRebate = creditInviterRebateTx(tx, topUp.UserId, quotaToAdd, InviterRebateSourceTopUp, topUp.Id)
 		return nil
 	})
 	if err != nil {
@@ -240,6 +240,10 @@ func RechargeEpay(tradeNo string, actualPaymentMethod string, callerIp string) (
 	} else if failedRebate > 0 {
 		recordInviterRebateFailureLog(topUp.UserId, inviterId, failedRebate)
 	}
+	// 月度封顶部分截断时 rebate > 0 与 cappedRebate > 0 同时成立，两条日志都要写
+	if cappedRebate > 0 {
+		recordInviterRebateMonthlyCapLog(topUp.UserId, inviterId, cappedRebate)
+	}
 	return false, nil
 }
 
@@ -249,7 +253,7 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 	}
 
 	var quota int
-	var rebate, inviterId, failedRebate int
+	var rebate, inviterId, failedRebate, cappedRebate int
 	topUp := &TopUp{}
 
 	refCol := "`trade_no`"
@@ -289,7 +293,7 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 		}); err != nil {
 			return err
 		}
-		rebate, inviterId, failedRebate = creditInviterRebateTx(tx, topUp.UserId, quota, InviterRebateSourceTopUp, topUp.Id)
+		rebate, inviterId, failedRebate, cappedRebate = creditInviterRebateTx(tx, topUp.UserId, quota, InviterRebateSourceTopUp, topUp.Id)
 		return nil
 	})
 
@@ -304,6 +308,10 @@ func Recharge(referenceId string, customerId string, callerIp string) (err error
 		recordInviterRebateLog(inviterId, rebate)
 	} else if failedRebate > 0 {
 		recordInviterRebateFailureLog(topUp.UserId, inviterId, failedRebate)
+	}
+	// 月度封顶部分截断时 rebate > 0 与 cappedRebate > 0 同时成立，两条日志都要写
+	if cappedRebate > 0 {
+		recordInviterRebateMonthlyCapLog(topUp.UserId, inviterId, cappedRebate)
 	}
 
 	return nil
@@ -548,7 +556,7 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 	}
 
 	var quota int
-	var rebate, inviterId, failedRebate int
+	var rebate, inviterId, failedRebate, cappedRebate int
 	topUp := &TopUp{}
 
 	refCol := "`trade_no`"
@@ -604,7 +612,7 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 		if err := creditTopUpQuota(tx, topUp.UserId, quota, updateFields); err != nil {
 			return err
 		}
-		rebate, inviterId, failedRebate = creditInviterRebateTx(tx, topUp.UserId, quota, InviterRebateSourceTopUp, topUp.Id)
+		rebate, inviterId, failedRebate, cappedRebate = creditInviterRebateTx(tx, topUp.UserId, quota, InviterRebateSourceTopUp, topUp.Id)
 		return nil
 	})
 
@@ -620,6 +628,10 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 	} else if failedRebate > 0 {
 		recordInviterRebateFailureLog(topUp.UserId, inviterId, failedRebate)
 	}
+	// 月度封顶部分截断时 rebate > 0 与 cappedRebate > 0 同时成立，两条日志都要写
+	if cappedRebate > 0 {
+		recordInviterRebateMonthlyCapLog(topUp.UserId, inviterId, cappedRebate)
+	}
 
 	return nil
 }
@@ -630,7 +642,7 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 	}
 
 	var quotaToAdd int
-	var rebate, inviterId, failedRebate int
+	var rebate, inviterId, failedRebate, cappedRebate int
 	topUp := &TopUp{}
 
 	refCol := "`trade_no`"
@@ -672,7 +684,7 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 		if err := creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil); err != nil {
 			return err
 		}
-		rebate, inviterId, failedRebate = creditInviterRebateTx(tx, topUp.UserId, quotaToAdd, InviterRebateSourceTopUp, topUp.Id)
+		rebate, inviterId, failedRebate, cappedRebate = creditInviterRebateTx(tx, topUp.UserId, quotaToAdd, InviterRebateSourceTopUp, topUp.Id)
 		return nil
 	})
 
@@ -690,6 +702,10 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 	} else if failedRebate > 0 {
 		recordInviterRebateFailureLog(topUp.UserId, inviterId, failedRebate)
 	}
+	// 月度封顶部分截断时 rebate > 0 与 cappedRebate > 0 同时成立，两条日志都要写
+	if cappedRebate > 0 {
+		recordInviterRebateMonthlyCapLog(topUp.UserId, inviterId, cappedRebate)
+	}
 
 	return nil
 }
@@ -700,7 +716,7 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 	}
 
 	var quotaToAdd int
-	var rebate, inviterId, failedRebate int
+	var rebate, inviterId, failedRebate, cappedRebate int
 	topUp := &TopUp{}
 
 	refCol := "`trade_no`"
@@ -742,7 +758,7 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 		if err := creditTopUpQuota(tx, topUp.UserId, quotaToAdd, nil); err != nil {
 			return err
 		}
-		rebate, inviterId, failedRebate = creditInviterRebateTx(tx, topUp.UserId, quotaToAdd, InviterRebateSourceTopUp, topUp.Id)
+		rebate, inviterId, failedRebate, cappedRebate = creditInviterRebateTx(tx, topUp.UserId, quotaToAdd, InviterRebateSourceTopUp, topUp.Id)
 		return nil
 	})
 
@@ -759,6 +775,10 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 		recordInviterRebateLog(inviterId, rebate)
 	} else if failedRebate > 0 {
 		recordInviterRebateFailureLog(topUp.UserId, inviterId, failedRebate)
+	}
+	// 月度封顶部分截断时 rebate > 0 与 cappedRebate > 0 同时成立，两条日志都要写
+	if cappedRebate > 0 {
+		recordInviterRebateMonthlyCapLog(topUp.UserId, inviterId, cappedRebate)
 	}
 
 	return nil

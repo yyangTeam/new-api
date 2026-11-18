@@ -64,6 +64,14 @@ const quotaSchema = z.object({
     .number({ error: () => i18next.t('Please enter a valid number') })
     .int({ error: () => i18next.t('Must be an integer') })
     .min(0, { error: () => i18next.t('Must be greater than or equal to 0') }),
+  InviterRebateMaxPerTopup: z.coerce
+    .number({ error: () => i18next.t('Please enter a valid number') })
+    .int({ error: () => i18next.t('Must be an integer') })
+    .min(0, { error: () => i18next.t('Must be greater than or equal to 0') }),
+  InviterRebateMonthlyMax: z.coerce
+    .number({ error: () => i18next.t('Please enter a valid number') })
+    .int({ error: () => i18next.t('Must be an integer') })
+    .min(0, { error: () => i18next.t('Must be greater than or equal to 0') }),
   TopUpLink: z.string(),
   quota_setting: z.object({
     enable_free_model_pre_consume: z.boolean(),
@@ -340,6 +348,70 @@ export function QuotaSettingsSection({
                   <FormDescription>
                     {t(
                       'Cumulative invitee consumption required before the inviter rebate is released ({{formattedQuota}}). The registration gift counts toward consumption, so set this above the new-user gift. 0 disables consume-unlock and releases rebates immediately.',
+                      {
+                        formattedQuota: formatQuotaInputValue(field.value),
+                      }
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='InviterRebateMaxPerTopup'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {t('Inviter Rebate Max Per Top-Up')}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      step={1}
+                      value={field.value ?? ''}
+                      onChange={handleNumberChange(field.onChange)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Maximum rebate credited for a single invitee top-up ({{formattedQuota}}). The portion above the cap is not recorded in the ledger. 0 means unlimited.',
+                      {
+                        formattedQuota: formatQuotaInputValue(field.value),
+                      }
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='InviterRebateMonthlyMax'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Inviter Rebate Monthly Max')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      step={1}
+                      value={field.value ?? ''}
+                      onChange={handleNumberChange(field.onChange)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Maximum total rebate credited to one inviter per calendar month, counting both released and frozen rebates ({{formattedQuota}}). Once the cap is reached, further rebates that month are voided. 0 means unlimited.',
                       {
                         formattedQuota: formatQuotaInputValue(field.value),
                       }

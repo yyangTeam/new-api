@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -40,6 +41,18 @@ func setInviterRebateConsumeUnlockForTest(t *testing.T, quota int) {
 		common.InviterRebateConsumeUnlockQuota = original
 	})
 	common.InviterRebateConsumeUnlockQuota = quota
+}
+
+func setInviterRebateCapsForTest(t *testing.T, maxPerTopup, monthlyMax int) {
+	t.Helper()
+	originalPerTopup := common.InviterRebateMaxPerTopup
+	originalMonthly := common.InviterRebateMonthlyMax
+	t.Cleanup(func() {
+		common.InviterRebateMaxPerTopup = originalPerTopup
+		common.InviterRebateMonthlyMax = originalMonthly
+	})
+	common.InviterRebateMaxPerTopup = maxPerTopup
+	common.InviterRebateMonthlyMax = monthlyMax
 }
 
 // createRebateUsersForTest creates an inviter/invitee pair and wipes the
@@ -540,4 +553,169 @@ func TestInviterRebateReleaseVoidedWhenInviterHardDeleted(t *testing.T) {
 	assert.Equal(t, InviterRebateVoidedInviterMissing, ledgers[0].VoidedReason)
 	assert.Empty(t, ledgers[0].LockedReason)
 	assert.Zero(t, ledgers[0].ReleasedAt)
+}
+
+// rechargeForTest runs one epay top-up (Amount 1) for the invitee and returns
+// the credited quota (Amount × QuotaPerUnit).
+func rechargeForTest(t *testing.T, inviteeId int, tradeNo string) int {
+	t.Helper()
+	topUp := &TopUp{
+		UserId:          inviteeId,
+		Amount:          1,
+		Money:           1.0,
+		TradeNo:         tradeNo,
+		PaymentProvider: PaymentProviderEpay,
+		Status:          common.TopUpStatusPending,
+	}
+	require.NoError(t, DB.Create(topUp).Error)
+	alreadyDone, err := RechargeEpay(topUp.TradeNo, "", "127.0.0.1")
+	require.NoError(t, err)
+	assert.False(t, alreadyDone)
+	return int(float64(topUp.Amount) * common.QuotaPerUnit)
+}
+
+// countMonthlyCapAdminLogsForTest counts the admin-side (user_id=0) system
+// logs about rebates withheld by the monthly cap.
+func countMonthlyCapAdminLogsForTest(t *testing.T) int64 {
+	t.Helper()
+	var count int64
+	require.NoError(t, DB.Model(&Log{}).Where("user_id = 0 AND type = ? AND content LIKE ?", LogTypeSystem, "%monthly cap%").Count(&count).Error)
+	return count
+}
+
+// TestInviterRebatePerTopupCapTruncates: the per-top-up cap silently truncates
+// the rebate; the ledger and the credited pools carry the capped amount while
+// the base quota still records the full credited top-up.
+func TestInviterRebatePerTopupCapTruncates(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	fullRebate := creditedQuota * 10 / 100
+	setInviterRebateCapsForTest(t, fullRebate/2, 0)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	actualCredited := rechargeForTest(t, invitee.Id, "rebate-epay-per-topup-cap")
+	assert.Equal(t, creditedQuota, actualCredited)
+
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, fullRebate/2, updatedInviter.AffQuota)
+	assert.Equal(t, fullRebate/2, updatedInviter.AffHistoryQuota)
+
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 1)
+	assert.Equal(t, InviterRebateStatusReleased, ledgers[0].Status)
+	assert.Equal(t, creditedQuota, ledgers[0].BaseQuota, "base quota records the full credited top-up")
+	assert.Equal(t, fullRebate/2, ledgers[0].Quota, "ledger carries the capped rebate")
+
+	// Per-top-up truncation is a policy cut, not a failure: no admin-side log.
+	assert.Zero(t, countMonthlyCapAdminLogsForTest(t))
+}
+
+// TestInviterRebateMonthlyCapPartialThenVoided walks the monthly cap through
+// all three stages: a normal rebate, a partially capped rebate (only the
+// remaining allowance is credited, the withheld part gets an admin log), and a
+// fully voided rebate once the cap is exhausted (voided(monthly_cap) ledger
+// row, no credit, admin log).
+func TestInviterRebateMonthlyCapPartialThenVoided(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	rebate := creditedQuota * 10 / 100
+	setInviterRebateCapsForTest(t, 0, rebate+rebate/2)
+
+	inviter, invitee := createRebateUsersForTest(t)
+
+	// Stage 1: within the cap, full rebate.
+	rechargeForTest(t, invitee.Id, "rebate-epay-monthly-1")
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, rebate, updatedInviter.AffQuota)
+	assert.Zero(t, countMonthlyCapAdminLogsForTest(t))
+
+	// Stage 2: exceeds but not exhausted: only the remaining half is credited.
+	rechargeForTest(t, invitee.Id, "rebate-epay-monthly-2")
+	updatedInviter = reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, rebate+rebate/2, updatedInviter.AffQuota, "monthly cap allows exactly the remaining allowance")
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 2)
+	assert.Equal(t, rebate/2, ledgers[1].Quota)
+	assert.Equal(t, InviterRebateStatusReleased, ledgers[1].Status)
+	assert.Equal(t, int64(1), countMonthlyCapAdminLogsForTest(t), "withheld part is reported to admins")
+
+	// Stage 3: cap exhausted: voided(monthly_cap), nothing credited.
+	rechargeForTest(t, invitee.Id, "rebate-epay-monthly-3")
+	updatedInviter = reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, rebate+rebate/2, updatedInviter.AffQuota, "voided rebate credits nothing")
+	ledgers = listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 3)
+	assert.Equal(t, InviterRebateStatusVoided, ledgers[2].Status)
+	assert.Equal(t, InviterRebateVoidedMonthlyCap, ledgers[2].VoidedReason)
+	assert.Equal(t, rebate, ledgers[2].Quota)
+	assert.Zero(t, ledgers[2].ReleasedAt)
+	assert.Equal(t, int64(2), countMonthlyCapAdminLogsForTest(t))
+
+	// The invitee's recharge is never affected by the cap.
+	updatedInvitee := reloadUserForTest(t, invitee.Id)
+	assert.Equal(t, 3*creditedQuota, updatedInvitee.Quota)
+}
+
+// TestInviterRebateMonthlyCapCountsLockedRows: locked (frozen) rows consume
+// the monthly allowance too, so a further top-up past the cap is voided even
+// though nothing has been paid out yet.
+func TestInviterRebateMonthlyCapCountsLockedRows(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	rebate := creditedQuota * 10 / 100
+	setInviterRebateConsumeUnlockForTest(t, creditedQuota)
+	setInviterRebateCapsForTest(t, 0, rebate)
+
+	inviter, invitee := createRebateUsersForTest(t)
+
+	// First top-up freezes exactly the monthly allowance.
+	rechargeForTest(t, invitee.Id, "rebate-epay-monthly-locked-1")
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Zero(t, updatedInviter.AffQuota)
+	assert.Equal(t, rebate, updatedInviter.AffQuotaLocked)
+
+	// Second top-up: the frozen row already exhausted the cap.
+	rechargeForTest(t, invitee.Id, "rebate-epay-monthly-locked-2")
+	updatedInviter = reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, rebate, updatedInviter.AffQuotaLocked, "frozen pool unchanged")
+	assert.Zero(t, updatedInviter.AffQuota)
+	ledgers := listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 2)
+	assert.Equal(t, InviterRebateStatusLocked, ledgers[0].Status)
+	assert.Equal(t, InviterRebateStatusVoided, ledgers[1].Status)
+	assert.Equal(t, InviterRebateVoidedMonthlyCap, ledgers[1].VoidedReason)
+	assert.Equal(t, int64(1), countMonthlyCapAdminLogsForTest(t))
+}
+
+// TestInviterRebateMonthlyCapIgnoresPriorMonth: the monthly counter only sums
+// rows created in the current calendar month; a same-size rebate from the
+// previous month does not consume this month's allowance.
+func TestInviterRebateMonthlyCapIgnoresPriorMonth(t *testing.T) {
+	confirmPaymentComplianceForTest(t)
+	setInviterRebatePercentForTest(t, 10)
+	creditedQuota := int(1 * common.QuotaPerUnit)
+	rebate := creditedQuota * 10 / 100
+	setInviterRebateCapsForTest(t, 0, rebate)
+
+	inviter, invitee := createRebateUsersForTest(t)
+	rechargeForTest(t, invitee.Id, "rebate-epay-prior-month")
+	require.Len(t, listInviterRebatesForTest(t), 1)
+
+	// Backdate the ledger row into the previous month.
+	priorMonth := time.Now().AddDate(0, -1, 0)
+	monthStart := time.Date(priorMonth.Year(), priorMonth.Month(), 1, 0, 0, 0, 0, priorMonth.Location()).Unix()
+	ledgers := listInviterRebatesForTest(t)
+	require.NoError(t, DB.Model(&InviterRebate{}).Where("id = ?", ledgers[0].Id).Update("created_at", monthStart).Error)
+
+	// This month's full allowance is still available.
+	rechargeForTest(t, invitee.Id, "rebate-epay-current-month")
+	updatedInviter := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, 2*rebate, updatedInviter.AffQuota)
+	ledgers = listInviterRebatesForTest(t)
+	require.Len(t, ledgers, 2)
+	assert.Equal(t, InviterRebateStatusReleased, ledgers[1].Status)
+	assert.Zero(t, countMonthlyCapAdminLogsForTest(t))
 }

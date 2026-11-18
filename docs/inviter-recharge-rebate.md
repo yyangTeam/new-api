@@ -65,7 +65,7 @@ B 充值到账
 | # | 场景 | 结果 |
 | --- | --- | --- |
 | ⑪ | 单笔封顶：土豪被邀请人充 500 → 本应返 50 | 只发 20，超出部分不记台账；B 的到账不受影响 |
-| ⑫ | 月度封顶：阿明本月累计返利已 95，小红再充 100 → 本应 +10 | 这 10 作废（voided, cap）+ 管理员日志；下月 1 号重置 |
+| ⑫ | 月度封顶：阿明本月累计返利已 95，小红再充 100 → 本应 +10 | 这 10 作废（voided, monthly_cap）+ 管理员日志；下月 1 号重置 |
 
 ### v2：首充加成与阶梯
 
@@ -231,10 +231,17 @@ v1 的已知漏洞：A 注册小号 B 自己充值，等于拿 110% 价值（B �
 
 | 配置项 | 单位 | 默认 | 行为 |
 | --- | --- | --- | --- |
-| `InviterRebateMaxPerTopup` | USD（存 quota） | 0 = 不限 | 单笔截断，超出部分不记台账 |
-| `InviterRebateMonthlyMax` | USD（存 quota） | 0 = 不限 | 自然月台账累计达标后，当月后续返利 `voided(cap)` |
+| `InviterRebateMaxPerTopup` | 原始额度整数（quota，UI 用 formatQuota 提示换算） | 0 = 不限 | 单笔截断，超出部分不记台账 |
+| `InviterRebateMonthlyMax` | 原始额度整数（quota） | 0 = 不限 | 自然月台账累计达标后，当月后续返利 `voided(monthly_cap)` |
 
-命中月度封顶给管理员写 user_id=0 System 日志（复用 v1 失败日志通道）；B 的充值不受影响。
+实现口径（P1.1 已上线）：
+
+- 截断顺序：先算返利 → 单笔封顶截断 → 月度封顶判定 → 消费解锁分支。两配置均非负整数校验，**不挂支付合规门**（封顶只减不加支出）
+- 月度统计口径：自然月内 `status IN (released, locked)` 的台账 `SUM(quota)`（voided 不计、冻结池同样占额度），月起点为服务器本地时区；上月记录不占本月额度
+- 命中月度封顶的两种形态：已达上限 → 整笔 `voided(monthly_cap)` 留痕；本笔会超但未达上限 → 只发剩余额度，**超出部分不记台账**（`(inviter_id, source_type, source_id)` 唯一，一笔充值至多一行，无法为截断部分单独留行）
+- 管理员日志：`creditInviterRebateTx` 增第四个返回值 `cappedRebate`（被月度封顶作废/砍掉的金额），调用方在事务提交后写 `user_id=0` System 日志（key：`Invitation rebate {{quota}} withheld due to the inviter monthly cap`，与 v1 失败日志同通道，仅管理员可见）；部分截断与整笔作废都写。**单笔封顶属正常策略截断，不写日志**
+- 月度 SUM 查询失败按返利失败处理（failedRebate 返回全额走人工核对通道——比漏发更安全的失败方向）；台账作废行插入抽出公共函数 `insertVoidedInviterRebateTx`（inviter_missing / monthly_cap 共用）
+- B 的充值不受任何封顶影响
 
 **1.2 消费解锁（核心防线）**
 
