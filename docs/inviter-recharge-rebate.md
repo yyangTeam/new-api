@@ -314,12 +314,18 @@ v1 的已知漏洞：A 注册小号 B 自己充值，等于拿 110% 价值（B �
 ### Phase 3 运营：依赖台账数据
 
 - **邀请排行榜**：管理端（`GET /api/inviter_rebate/rankings`，AdminAuth）按返利总额/邀请人数、月/季/年聚合（已拍板：纯管理端，不做公开版）。现有 `/rankings` 是模型维度公开榜，不混用。公开邀请人数榜（不含金额）留作后续运营可选项，随时可加
-  - 实现口径（P3.1 后端已上线，前端页面随 P3.2）：query 参数 `metric=rebate|invitees`（默认 rebate）、`period=month|quarter|year|all`（默认 month）+ 通用分页（`common.GetPageQuery`，PageInfo 响应）；非法取值走 `ApiErrorT`（错误 key `Invalid inviter rebate rankings metric/period: {{value}}`，i18n 覆盖 7 语言）；access token 访问需 `billing:read` scope（`middleware/access_token_routes.go`，后续 /inviter_rebate 组的新路由同此登记）
+  - 实现口径（P3.1 后端已上线）：query 参数 `metric=rebate|invitees`（默认 rebate）、`period=month|quarter|year|all`（默认 month）+ 通用分页（`common.GetPageQuery`，PageInfo 响应）；非法取值走 `ApiErrorT`（错误 key `Invalid inviter rebate rankings metric/period: {{value}}`，i18n 覆盖 7 语言）；access token 访问需 `billing:read` scope（`middleware/access_token_routes.go`，后续 /inviter_rebate 组的新路由同此登记）
   - 聚合口径与月度封顶一致：`granted_quota = released + locked` 之和（冻结池同样算邀请人收益），`voided` 单列不计入排序口径；每行同时带出 `released/locked/voided` 分项、`rebate_count`（台账行数）、`invitee_count`（周期内产生过台账行的被邀请人数，`COUNT(DISTINCT invitee_id)`）与 `users.aff_count`（注册绑定的邀请人数，口径不同，供对照）
   - period 按自然月/季/年对齐（与月度封顶同一对齐方式，季起点为所属季度首月 1 号）；`all` 不过滤
   - 排序：metric 对应列（granted_quota 或 invitee_count）降序，并列按 `inviter_id` 升序保证确定性；分页基于聚合后的邀请人数（`COUNT(DISTINCT inviter_id)`）
   - 邀请人已被硬删除的行保留（LEFT JOIN users），username/display_name 为空、aff_count 记 0，管理员按 inviter_id 仍可追账；查询实现为单条 GROUP BY 聚合 SQL（CASE WHEN 按状态分桶，SQLite/MySQL/PostgreSQL 方言无关），`model/inviter_rebate_stats.go`
   - 测试覆盖（`model/coverage_test.go`）：周期起点函数（含跨年 Q1 边界）、两种 metric 聚合与并列排序、周期过滤（年外行仅 all 可见）、granted=released+locked 且 voided 单列、分页、硬删邀请人行保留、空数据
+- **邀请排行榜前端页（P3.2 已上线）**：管理台路由 `/inviter-rebate`（`web/src/routes/_authenticated/inviter-rebate/`，beforeLoad 角色门 `role >= ADMIN`），侧边栏管理组新增「邀请返利排行榜」入口（Trophy 图标，紧跟 Subscriptions 之后，组过滤天然仅管理员可见）
+  - 指标（返利金额/被邀请人数）与周期（本月/本季度/本年度/全部时间）做成页面顶部的两个 Select，**绑定 URL search 参数**（`metric`/`period`，zod `validateSearch` 校验非法值回落默认），切换即重置到第 1 页（`page: undefined`）；分页沿用 `useTableUrlState` + `useDataTable` 手动分页模式（模式同 redemptions 表格）
+  - 列：排名（按当前页偏移计算，服务端排序口径 = metric 列降序 + inviter_id 升序）、邀请人（display_name 优先，次行显示 username 或 #inviter_id，双空显示"已注销用户"）、绑定邀请人数（aff_count）、产生返利人数、返利笔数、返利总额（granted = released + locked，formatQuota 货币格式）、已释放、冻结中（琥珀色）、已作废（muted）；金额/数字列统一 `font-mono tabular-nums`
+  - Base UI Select 传 `items` 属性，保证下拉未打开过时触发器也显示标签而非原始 value（URL 直达/刷新场景）
+  - 硬删邀请人行兜底展示；空态与加载骨架复用 `DataTablePage`；API 无关键词搜索故无工具栏（`toolbarProps={null}`）；移动端走默认 MobileCardList（mobileTitle/mobileBadge/mobileHidden 列 meta）
+  - 测试覆盖：`rankings-table.test.tsx`（默认加载参数、硬删行展示、URL 恢复 metric/period、空态）、`rankings-view-controls.test.tsx`（切换指标重置页码、切换周期、URL 恢复触发器标签）；i18n 21 个新 key 覆盖 7 语言
 - **A 侧 dashboard**：钱包页 `affiliate-rewards-card` 扩展——冻结池/已释放/累计收益卡片、下线贡献列表（用户名脱敏 + 累计贡献 + 状态，API 天然 `WHERE inviter_id = A` 无越权）、阶梯进度条（"再邀请 2 人升到 15% 档"）
 - **管理端台账页**：流水列表（筛 inviter/invitee/状态/时间）+ 汇总卡片（发放总量、冻结池、voided、自邀告警）+ 自邀告警人工处理（void / release，写审计日志）+ 来源充值退款回收（见下节）
 
