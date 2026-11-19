@@ -204,6 +204,13 @@ func SetApiRouter(router *gin.Engine) {
 			subscriptionAdminRoute.DELETE("/user_subscriptions/:id", controller.AdminDeleteUserSubscription)
 		}
 
+		// Inviter rebate rankings (admin)
+		inviterRebateAdminRoute := apiRouter.Group("/inviter_rebate")
+		inviterRebateAdminRoute.Use(middleware.AdminAuth())
+		{
+			inviterRebateAdminRoute.GET("/rankings", controller.GetInviterRebateRankings)
+		}
+
 		// Subscription payment callbacks (no auth)
 		apiRouter.POST("/subscription/epay/notify", anonymousRequestBodyLimit, controller.SubscriptionEpayNotify)
 		apiRouter.GET("/subscription/epay/notify", controller.SubscriptionEpayNotify)

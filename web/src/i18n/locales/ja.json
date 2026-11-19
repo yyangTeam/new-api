@@ -3491,6 +3491,8 @@
     "Inviter rebate tiers must be a JSON array": "還元段階は JSON 配列である必要があります",
     "Inviter rebate tiers must be ordered by strictly increasing minimum invitees": "還元段階は最低招待人数の厳密な昇順で並べる必要があります",
     "Inviter rebate tiers must contain at most {{count}} tiers": "還元段階は最大 {{count}} 段階まで設定できます",
+    "Invalid inviter rebate rankings metric: {{value}}": "招待者還元ランキングの指標が無効です：{{value}}",
+    "Invalid inviter rebate rankings period: {{value}}": "招待者還元ランキングの期間が無効です：{{value}}",
     "Inviter Reward": "招待した側の報酬",
     "Invites": "招待",
     "Invoke developer-defined functions with structured arguments": "構造化された引数で開発者定義の関数を呼び出す",

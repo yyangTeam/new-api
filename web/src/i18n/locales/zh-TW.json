@@ -3491,6 +3491,8 @@
     "Inviter rebate tiers must be a JSON array": "邀請回饋階梯必須是 JSON 陣列",
     "Inviter rebate tiers must be ordered by strictly increasing minimum invitees": "邀請回饋階梯必須按最低邀請人數嚴格遞增排序",
     "Inviter rebate tiers must contain at most {{count}} tiers": "邀請回饋階梯最多包含 {{count}} 檔",
+    "Invalid inviter rebate rankings metric: {{value}}": "無效的邀請回饋排行指標：{{value}}",
+    "Invalid inviter rebate rankings period: {{value}}": "無效的邀請回饋排行週期：{{value}}",
     "Inviter Reward": "邀請者獎勵",
     "Invites": "邀請",
     "Invoke developer-defined functions with structured arguments": "使用結構化參數呼叫開發者定義的函數",

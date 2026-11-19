@@ -1335,3 +1335,194 @@ func TestInviterRebateTiersInvalidFallsBackToFlat(t *testing.T) {
 	require.Len(t, ledgers, 1)
 	assert.Equal(t, 5, ledgers[0].Percent)
 }
+
+// --- P3.1 管理端排行榜 ---
+
+// insertRebateLedgerRowForTest 直接插入台账行（绕过充值路径），控制
+// status/created_at 以构造排行聚合的输入。source_id 递增以满足
+// (inviter_id, source_type, source_id) 唯一索引。
+func insertRebateLedgerRowForTest(t *testing.T, inviterId, inviteeId int, sourceType string, sourceId int, quota int, status string, createdAt int64) {
+	t.Helper()
+	require.NoError(t, DB.Create(&InviterRebate{
+		CreatedAt:  createdAt,
+		InviterId:  inviterId,
+		InviteeId:  inviteeId,
+		SourceType: sourceType,
+		SourceId:   sourceId,
+		BaseQuota:  quota * 10,
+		Percent:    10,
+		Quota:      quota,
+		Status:     status,
+	}).Error)
+}
+
+func createRankingUserForTest(t *testing.T, username string, affCount int) *User {
+	t.Helper()
+	user := &User{
+		Username: username,
+		AffCode:  "RK" + strings.ToUpper(strings.ReplaceAll(username, "-", "")),
+		Status:   common.UserStatusEnabled,
+		AffCount: affCount,
+	}
+	require.NoError(t, DB.Create(user).Error)
+	return user
+}
+
+// TestInviterRebateRankingPeriodStart: 排行周期起点按自然月/季/年对齐，
+// all 不过滤（起点 0）。固定 now 断言，不受运行日期影响。
+func TestInviterRebateRankingPeriodStart(t *testing.T) {
+	now := time.Date(2026, 11, 19, 10, 30, 0, 0, time.UTC)
+	utc := func(year int, month time.Month) int64 {
+		return time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).Unix()
+	}
+	assert.Equal(t, utc(2026, 11), inviterRebateRankingPeriodStart(InviterRebateRankingPeriodMonth, now))
+	assert.Equal(t, utc(2026, 10), inviterRebateRankingPeriodStart(InviterRebateRankingPeriodQuarter, now))
+	assert.Equal(t, utc(2026, 1), inviterRebateRankingPeriodStart(InviterRebateRankingPeriodYear, now))
+	assert.Zero(t, inviterRebateRankingPeriodStart(InviterRebateRankingPeriodAll, now))
+
+	// 跨年边界：2 月属 Q1，起点为 1 月。
+	feb := time.Date(2027, 2, 10, 0, 0, 0, 0, time.UTC)
+	assert.Equal(t, utc(2027, 1), inviterRebateRankingPeriodStart(InviterRebateRankingPeriodQuarter, feb))
+}
+
+// TestInviterRebateRankingsAggregation: granted = released + locked（voided
+// 单列不计入），行内带出用户信息与 aff_count、invitee_count（周期内产生
+// 过台账行的被邀请人数）；两种 metric 的排序各自正确。
+func TestInviterRebateRankingsAggregation(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+	inviter2 := createRankingUserForTest(t, "rank-inviter-2", 9)
+	inviter3 := createRankingUserForTest(t, "rank-inviter-3", 12)
+	invitee2 := createRankingUserForTest(t, "rank-invitee-2", 0)
+	invitee3 := createRankingUserForTest(t, "rank-invitee-3", 0)
+	setInviterAffCountForTest(t, inviter.Id, 3)
+
+	now := time.Now()
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 100, InviterRebateStatusReleased, now.Unix())
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 2, 50, InviterRebateStatusLocked, now.Unix())
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 3, 30, InviterRebateStatusVoided, now.Unix())
+	insertRebateLedgerRowForTest(t, inviter2.Id, invitee2.Id, InviterRebateSourceTopUp, 4, 80, InviterRebateStatusReleased, now.Unix())
+	// inviter3 邀的人数最多（2 个被邀请人）但返利额最小。
+	insertRebateLedgerRowForTest(t, inviter3.Id, invitee2.Id, InviterRebateSourceTopUp, 5, 10, InviterRebateStatusReleased, now.Unix())
+	insertRebateLedgerRowForTest(t, inviter3.Id, invitee3.Id, InviterRebateSourceTopUp, 6, 10, InviterRebateStatusLocked, now.Unix())
+
+	// metric=rebate：granted 口径排序 150 / 80 / 20。
+	rows, total, err := GetInviterRebateRankings(InviterRebateRankingMetricRebate, InviterRebateRankingPeriodMonth, 1, 10, now)
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, total)
+	require.Len(t, rows, 3)
+
+	assert.Equal(t, inviter.Id, rows[0].InviterId)
+	assert.Equal(t, "rebate-inviter", rows[0].Username)
+	assert.Equal(t, 3, rows[0].AffCount)
+	assert.EqualValues(t, 3, rows[0].RebateCount)
+	assert.EqualValues(t, 1, rows[0].InviteeCount)
+	assert.EqualValues(t, 100, rows[0].ReleasedQuota)
+	assert.EqualValues(t, 50, rows[0].LockedQuota)
+	assert.EqualValues(t, 30, rows[0].VoidedQuota)
+	assert.EqualValues(t, 150, rows[0].GrantedQuota, "granted = released + locked, voided excluded")
+
+	assert.Equal(t, inviter2.Id, rows[1].InviterId)
+	assert.EqualValues(t, 80, rows[1].GrantedQuota)
+	assert.Equal(t, inviter3.Id, rows[2].InviterId)
+	assert.EqualValues(t, 20, rows[2].GrantedQuota)
+
+	// metric=invitees：按周期内被邀请人数排序 2 / 1 / 1，并列按 inviter_id 升序。
+	rows, total, err = GetInviterRebateRankings(InviterRebateRankingMetricInvitees, InviterRebateRankingPeriodMonth, 1, 10, now)
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, total)
+	require.Len(t, rows, 3)
+	assert.Equal(t, inviter3.Id, rows[0].InviterId)
+	assert.EqualValues(t, 2, rows[0].InviteeCount)
+	// inviter 与 inviter2 各 1 人并列，按 id 升序（fixture 邀请人先创建，id 更小）。
+	assert.Equal(t, inviter.Id, rows[1].InviterId)
+	assert.Equal(t, inviter2.Id, rows[2].InviterId)
+}
+
+// TestInviterRebateRankingsPeriodFilter: 周期外的台账行不参与聚合；all
+// 不过滤。旧行放在年初前一天，保证早于月/季/年任一起点，不受运行日期
+// 影响（季起点/月起点必然不早于年起点）。
+func TestInviterRebateRankingsPeriodFilter(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+	inviterOld := createRankingUserForTest(t, "rank-inviter-old", 0)
+	inviteeOld := createRankingUserForTest(t, "rank-invitee-old", 0)
+
+	now := time.Now()
+	yearStart := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
+	oldAt := yearStart.Unix() - 86400
+
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 40, InviterRebateStatusReleased, now.Unix())
+	// 年初前一天的大额行：任何周期口径（除 all）都应被排除。
+	insertRebateLedgerRowForTest(t, inviterOld.Id, inviteeOld.Id, InviterRebateSourceTopUp, 2, 400, InviterRebateStatusReleased, oldAt)
+
+	for _, period := range []string{InviterRebateRankingPeriodMonth, InviterRebateRankingPeriodQuarter, InviterRebateRankingPeriodYear} {
+		rows, total, err := GetInviterRebateRankings(InviterRebateRankingMetricRebate, period, 1, 10, now)
+		require.NoError(t, err, "period=%s", period)
+		assert.EqualValues(t, 1, total, "period=%s should exclude last-year rows", period)
+		require.Len(t, rows, 1, "period=%s", period)
+		assert.Equal(t, inviter.Id, rows[0].InviterId)
+		assert.EqualValues(t, 40, rows[0].GrantedQuota, "period=%s", period)
+	}
+
+	rows, total, err := GetInviterRebateRankings(InviterRebateRankingMetricRebate, InviterRebateRankingPeriodAll, 1, 10, now)
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, total)
+	require.Len(t, rows, 2)
+	assert.Equal(t, inviterOld.Id, rows[0].InviterId, "all period keeps the larger old row on top")
+	assert.EqualValues(t, 400, rows[0].GrantedQuota)
+	assert.EqualValues(t, 40, rows[1].GrantedQuota)
+}
+
+// TestInviterRebateRankingsPagination: 分页基于聚合后的邀请人行数。
+func TestInviterRebateRankingsPagination(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+	inviter2 := createRankingUserForTest(t, "rank-inviter-2", 0)
+	inviter3 := createRankingUserForTest(t, "rank-inviter-3", 0)
+
+	now := time.Now()
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 300, InviterRebateStatusReleased, now.Unix())
+	insertRebateLedgerRowForTest(t, inviter2.Id, invitee.Id, InviterRebateSourceTopUp, 2, 200, InviterRebateStatusReleased, now.Unix())
+	insertRebateLedgerRowForTest(t, inviter3.Id, invitee.Id, InviterRebateSourceTopUp, 3, 100, InviterRebateStatusReleased, now.Unix())
+
+	rows, total, err := GetInviterRebateRankings(InviterRebateRankingMetricRebate, InviterRebateRankingPeriodAll, 1, 2, now)
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, total)
+	require.Len(t, rows, 2)
+	assert.Equal(t, inviter.Id, rows[0].InviterId)
+	assert.Equal(t, inviter2.Id, rows[1].InviterId)
+
+	rows, total, err = GetInviterRebateRankings(InviterRebateRankingMetricRebate, InviterRebateRankingPeriodAll, 2, 2, now)
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, total)
+	require.Len(t, rows, 1)
+	assert.Equal(t, inviter3.Id, rows[0].InviterId)
+}
+
+// TestInviterRebateRankingsInviterHardDeleted: 邀请人被硬删后行保留，
+// 用户信息为空，管理员仍可按 inviter_id 追账。
+func TestInviterRebateRankingsInviterHardDeleted(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+
+	now := time.Now()
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 70, InviterRebateStatusReleased, now.Unix())
+	require.NoError(t, DB.Unscoped().Delete(&User{}, inviter.Id).Error)
+
+	rows, total, err := GetInviterRebateRankings(InviterRebateRankingMetricRebate, InviterRebateRankingPeriodAll, 1, 10, now)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	require.Len(t, rows, 1)
+	assert.Equal(t, inviter.Id, rows[0].InviterId)
+	assert.Empty(t, rows[0].Username)
+	assert.Empty(t, rows[0].DisplayName)
+	assert.Zero(t, rows[0].AffCount)
+	assert.EqualValues(t, 70, rows[0].GrantedQuota)
+}
+
+// TestInviterRebateRankingsEmpty: 无台账数据时返回空列表与 0 总数。
+func TestInviterRebateRankingsEmpty(t *testing.T) {
+	createRebateUsersForTest(t)
+
+	rows, total, err := GetInviterRebateRankings(InviterRebateRankingMetricRebate, InviterRebateRankingPeriodMonth, 1, 10, time.Now())
+	require.NoError(t, err)
+	assert.Zero(t, total)
+	assert.Empty(t, rows)
+}
