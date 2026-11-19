@@ -41,3 +41,31 @@ func GetInviterRebateRankings(c *gin.Context) {
 	pageInfo.SetItems(rows)
 	common.ApiSuccess(c, pageInfo)
 }
+
+// GetMyInviterRebateSummary 当前登录用户（邀请人视角）的返利钱包汇总
+// （P4.1）：状态分桶金额、返利笔数、产生返利的被邀请人数与阶梯进度。
+// 无台账时返回全零汇总。aff_quota / aff_history 等账户字段走 /api/user/self，
+// 这里不重复。
+func GetMyInviterRebateSummary(c *gin.Context) {
+	summary, err := model.GetInviterRebateSelfSummary(c.GetInt("id"))
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, summary)
+}
+
+// GetMyInviterRebateInvitees 分页返回当前登录用户的下线贡献列表
+// （P4.1）：按累计贡献降序，用户名脱敏展示。被邀请人已被硬删除的行保留
+// （InviteeMaskedName 为空，前端显示"已注销用户"）。
+func GetMyInviterRebateInvitees(c *gin.Context) {
+	pageInfo := common.GetPageQuery(c)
+	rows, total, err := model.GetInviterRebateInvitees(c.GetInt("id"), pageInfo.Page, pageInfo.PageSize)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(rows)
+	common.ApiSuccess(c, pageInfo)
+}

@@ -1526,3 +1526,203 @@ func TestInviterRebateRankingsEmpty(t *testing.T) {
 	assert.Zero(t, total)
 	assert.Empty(t, rows)
 }
+
+// ---------------------------------------------------------------------------
+// P4.1 A 侧钱包看板查询
+// ---------------------------------------------------------------------------
+
+// TestInviterRebateSelfSummaryAggregation: 汇总按状态分桶（granted =
+// released + locked，voided 单列），带出笔数/被邀请人数与阶梯进度。
+func TestInviterRebateSelfSummaryAggregation(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+	invitee2 := createRankingUserForTest(t, "self-invitee-2", 0)
+	setInviterAffCountForTest(t, inviter.Id, 7)
+	setInviterRebateTiersForTest(t, `[{"min_invitees":0,"percent":5},{"min_invitees":6,"percent":10},{"min_invitees":21,"percent":15}]`)
+
+	now := time.Now()
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 100, InviterRebateStatusReleased, now.Unix())
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 2, 60, InviterRebateStatusLocked, now.Unix())
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 3, 30, InviterRebateStatusVoided, now.Unix())
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee2.Id, InviterRebateSourceRedemption, 1, 40, InviterRebateStatusLocked, now.Unix())
+
+	summary, err := GetInviterRebateSelfSummary(inviter.Id)
+	require.NoError(t, err)
+	assert.EqualValues(t, 100, summary.ReleasedQuota)
+	assert.EqualValues(t, 100, summary.LockedQuota, "locked = 60 + 40 across two invitees")
+	assert.EqualValues(t, 30, summary.VoidedQuota)
+	assert.EqualValues(t, 200, summary.GrantedQuota, "granted = released + locked, voided excluded")
+	assert.EqualValues(t, 4, summary.RebateCount)
+	assert.EqualValues(t, 2, summary.InviteeCount)
+	assert.Equal(t, 7, summary.Tier.AffCount)
+	assert.Equal(t, 10, summary.Tier.CurrentPercent)
+	assert.Equal(t, 21, summary.Tier.NextMinInvitees)
+	assert.Equal(t, 15, summary.Tier.NextPercent)
+}
+
+// TestInviterRebateSelfSummaryEmpty: 无台账时返回全零汇总（不报错），
+// 阶梯关闭时当前比例回退扁平 InviterRebatePercent。
+func TestInviterRebateSelfSummaryEmpty(t *testing.T) {
+	inviter, _ := createRebateUsersForTest(t)
+	setInviterRebateTiersForTest(t, `[]`)
+	setInviterRebatePercentForTest(t, 12)
+	setInviterAffCountForTest(t, inviter.Id, 3)
+
+	summary, err := GetInviterRebateSelfSummary(inviter.Id)
+	require.NoError(t, err)
+	assert.Zero(t, summary.ReleasedQuota)
+	assert.Zero(t, summary.LockedQuota)
+	assert.Zero(t, summary.VoidedQuota)
+	assert.Zero(t, summary.GrantedQuota)
+	assert.Zero(t, summary.RebateCount)
+	assert.Zero(t, summary.InviteeCount)
+	assert.Equal(t, 3, summary.Tier.AffCount)
+	assert.Equal(t, 12, summary.Tier.CurrentPercent, "no tiers → flat InviterRebatePercent")
+	assert.Zero(t, summary.Tier.NextMinInvitees)
+	assert.Zero(t, summary.Tier.NextPercent)
+}
+
+// TestInviterRebateSelfSummaryInviterHardDeleted: 邀请人被硬删后台账行
+// 仍可聚合（管理员视角排查用），aff_count 查询取不到按 0 处理、阶梯落到
+// 最低档，不报错。
+func TestInviterRebateSelfSummaryInviterHardDeleted(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+	setInviterAffCountForTest(t, inviter.Id, 30)
+	setInviterRebateTiersForTest(t, `[{"min_invitees":0,"percent":5},{"min_invitees":6,"percent":10}]`)
+
+	now := time.Now()
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 70, InviterRebateStatusReleased, now.Unix())
+	require.NoError(t, DB.Unscoped().Delete(&User{}, inviter.Id).Error)
+
+	summary, err := GetInviterRebateSelfSummary(inviter.Id)
+	require.NoError(t, err)
+	assert.EqualValues(t, 70, summary.GrantedQuota)
+	assert.Zero(t, summary.Tier.AffCount, "hard-deleted inviter → aff_count lookup misses, falls back to 0")
+	assert.Equal(t, 5, summary.Tier.CurrentPercent)
+}
+
+// TestInviterRebateTierProgress: 阶梯进度解析的各分支——无阶梯回退扁平
+// 比例、低于最低档当前 0、中间档带下一档、顶档无下一档。
+func TestInviterRebateTierProgress(t *testing.T) {
+	// 无阶梯：当前比例取扁平 InviterRebatePercent，无下一档。
+	setInviterRebateTiersForTest(t, `[]`)
+	setInviterRebatePercentForTest(t, 8)
+	p := inviterRebateTierProgress(3)
+	assert.Equal(t, 3, p.AffCount)
+	assert.Equal(t, 8, p.CurrentPercent)
+	assert.Zero(t, p.NextMinInvitees)
+	assert.Zero(t, p.NextPercent)
+
+	setInviterRebateTiersForTest(t, `[{"min_invitees":2,"percent":5},{"min_invitees":6,"percent":10},{"min_invitees":21,"percent":15}]`)
+
+	// 低于最低档：无档命中，当前比例 0，下一档为最低档。
+	p = inviterRebateTierProgress(1)
+	assert.Zero(t, p.CurrentPercent)
+	assert.Equal(t, 2, p.NextMinInvitees)
+	assert.Equal(t, 5, p.NextPercent)
+
+	// 中间档：命中 6–∞ 档，下一档 21。
+	p = inviterRebateTierProgress(6)
+	assert.Equal(t, 10, p.CurrentPercent)
+	assert.Equal(t, 21, p.NextMinInvitees)
+	assert.Equal(t, 15, p.NextPercent)
+
+	// 顶档：已到最高档，无下一档。
+	p = inviterRebateTierProgress(30)
+	assert.Equal(t, 15, p.CurrentPercent)
+	assert.Zero(t, p.NextMinInvitees)
+	assert.Zero(t, p.NextPercent)
+}
+
+// TestInviterRebateInvitees: 下线贡献列表按贡献总额降序、并列按
+// invitee_id 升序，用户名脱敏，不混入其他邀请人的行；分页基于去重后的
+// 被邀请人数。
+func TestInviterRebateInvitees(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+	longName := createRankingUserForTest(t, "longusername", 0)
+	cjkName := createRankingUserForTest(t, "张三丰", 0)
+	shortName := createRankingUserForTest(t, "ab", 0)
+	otherInviter := createRankingUserForTest(t, "self-other-inviter", 0)
+
+	now := time.Now()
+	// invitee：granted 150（100 released + 50 locked）。
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 100, InviterRebateStatusReleased, now.Unix())
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 2, 50, InviterRebateStatusLocked, now.Unix())
+	// longName：granted 80。
+	insertRebateLedgerRowForTest(t, inviter.Id, longName.Id, InviterRebateSourceTopUp, 3, 80, InviterRebateStatusReleased, now.Unix())
+	// cjkName 与 shortName 并列 granted 60，按 invitee_id 升序（创建顺序
+	// cjkName 在 shortName 之前，id 更小）。
+	insertRebateLedgerRowForTest(t, inviter.Id, cjkName.Id, InviterRebateSourceTopUp, 4, 60, InviterRebateStatusReleased, now.Unix())
+	insertRebateLedgerRowForTest(t, inviter.Id, shortName.Id, InviterRebateSourceTopUp, 5, 60, InviterRebateStatusReleased, now.Unix())
+	// 其他邀请人的行不得混入。
+	insertRebateLedgerRowForTest(t, otherInviter.Id, invitee.Id, InviterRebateSourceTopUp, 6, 999, InviterRebateStatusReleased, now.Unix())
+
+	rows, total, err := GetInviterRebateInvitees(inviter.Id, 1, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, total)
+	require.Len(t, rows, 4)
+
+	assert.Equal(t, "re***e", rows[0].InviteeMaskedName, "13-rune username keeps first 2 + last")
+	assert.EqualValues(t, 2, rows[0].RebateCount)
+	assert.EqualValues(t, 100, rows[0].ReleasedQuota)
+	assert.EqualValues(t, 50, rows[0].LockedQuota)
+	assert.Zero(t, rows[0].VoidedQuota)
+	assert.EqualValues(t, 150, rows[0].GrantedQuota)
+
+	assert.Equal(t, "lo***e", rows[1].InviteeMaskedName)
+	assert.EqualValues(t, 80, rows[1].GrantedQuota)
+
+	assert.Equal(t, "张***丰", rows[2].InviteeMaskedName, "CJK username masks by rune, not byte")
+	assert.EqualValues(t, 60, rows[2].GrantedQuota)
+
+	assert.Equal(t, "a***", rows[3].InviteeMaskedName, "2-rune username only keeps the first rune")
+	assert.EqualValues(t, 60, rows[3].GrantedQuota)
+
+	// 分页：每页 2，第 2 页是并列组的后一名与 shortName。
+	rows, total, err = GetInviterRebateInvitees(inviter.Id, 2, 2)
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, total)
+	require.Len(t, rows, 2)
+	assert.Equal(t, "张***丰", rows[0].InviteeMaskedName)
+	assert.Equal(t, "a***", rows[1].InviteeMaskedName)
+}
+
+// TestInviterRebateInviteesHardDeletedInvitee: 被邀请人被硬删后行保留，
+// 脱敏名为空（前端显示"已注销用户"），金额照常聚合。
+func TestInviterRebateInviteesHardDeletedInvitee(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+
+	now := time.Now()
+	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 70, InviterRebateStatusReleased, now.Unix())
+	require.NoError(t, DB.Unscoped().Delete(&User{}, invitee.Id).Error)
+
+	rows, total, err := GetInviterRebateInvitees(inviter.Id, 1, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	require.Len(t, rows, 1)
+	assert.Empty(t, rows[0].InviteeMaskedName)
+	assert.EqualValues(t, 70, rows[0].GrantedQuota)
+}
+
+// TestInviterRebateInviteesEmpty: 无台账数据时返回空列表与 0 总数。
+func TestInviterRebateInviteesEmpty(t *testing.T) {
+	inviter, _ := createRebateUsersForTest(t)
+
+	rows, total, err := GetInviterRebateInvitees(inviter.Id, 1, 10)
+	require.NoError(t, err)
+	assert.Zero(t, total)
+	assert.Empty(t, rows)
+}
+
+// TestMaskInviteeUsername: 脱敏函数的边界——空串、极短名只留首字符避免
+// 被穷举还原，中文按 rune 切分。
+func TestMaskInviteeUsername(t *testing.T) {
+	assert.Equal(t, "", maskInviteeUsername(""))
+	assert.Equal(t, "a***", maskInviteeUsername("a"))
+	assert.Equal(t, "a***", maskInviteeUsername("ab"))
+	assert.Equal(t, "a***c", maskInviteeUsername("abc"))
+	assert.Equal(t, "a***e", maskInviteeUsername("abcde"))
+	assert.Equal(t, "ab***f", maskInviteeUsername("abcdef"))
+	assert.Equal(t, "张***", maskInviteeUsername("张三"))
+	assert.Equal(t, "张***丰", maskInviteeUsername("张三丰"))
+	assert.Equal(t, "王***六", maskInviteeUsername("王小明六"))
+}

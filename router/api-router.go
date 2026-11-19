@@ -211,6 +211,14 @@ func SetApiRouter(router *gin.Engine) {
 			inviterRebateAdminRoute.GET("/rankings", controller.GetInviterRebateRankings)
 		}
 
+		// Inviter rebate wallet (user self)
+		inviterRebateSelfRoute := apiRouter.Group("/inviter_rebate")
+		inviterRebateSelfRoute.Use(middleware.DisableCache(), middleware.UserAuth())
+		{
+			inviterRebateSelfRoute.GET("/my_summary", controller.GetMyInviterRebateSummary)
+			inviterRebateSelfRoute.GET("/my_invitees", controller.GetMyInviterRebateInvitees)
+		}
+
 		// Subscription payment callbacks (no auth)
 		apiRouter.POST("/subscription/epay/notify", anonymousRequestBodyLimit, controller.SubscriptionEpayNotify)
 		apiRouter.GET("/subscription/epay/notify", controller.SubscriptionEpayNotify)

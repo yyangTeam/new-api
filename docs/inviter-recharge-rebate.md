@@ -327,6 +327,11 @@ v1 的已知漏洞：A 注册小号 B 自己充值，等于拿 110% 价值（B �
   - 硬删邀请人行兜底展示；空态与加载骨架复用 `DataTablePage`；API 无关键词搜索故无工具栏（`toolbarProps={null}`）；移动端走默认 MobileCardList（mobileTitle/mobileBadge/mobileHidden 列 meta）
   - 测试覆盖：`rankings-table.test.tsx`（默认加载参数、硬删行展示、URL 恢复 metric/period、空态）、`rankings-view-controls.test.tsx`（切换指标重置页码、切换周期、URL 恢复触发器标签）；i18n 21 个新 key 覆盖 7 语言
 - **A 侧 dashboard**：钱包页 `affiliate-rewards-card` 扩展——冻结池/已释放/累计收益卡片、下线贡献列表（用户名脱敏 + 累计贡献 + 状态，API 天然 `WHERE inviter_id = A` 无越权）、阶梯进度条（"再邀请 2 人升到 15% 档"）
+  - 实现口径（P4.1 后端已上线）：两个 UserAuth 接口挂现有 `/api/inviter_rebate` 前缀下——`GET my_summary`（状态分桶汇总 + 返利笔数 + 产生返利的被邀请人数 + 阶梯进度）与 `GET my_invitees`（分页下线贡献列表，`common.GetPageQuery` 分页）；access token 访问需 `wallet:read` scope（`middleware/access_token_routes.go`）
+  - 汇总口径与管理端排行榜一致（`granted = released + locked`，voided 单列）；聚合口径同 `users.aff_count` 失败记 SysError 按 0 处理（只影响阶梯进度展示）；`aff_quota` / `aff_history` 等账户字段走 `/api/user/self`，不重复返回
+  - 下线列表按贡献总额降序、`invitee_id` 升序（确定性），用户名按 rune 脱敏（≤2 字符只留首字，3–5 字符留首尾，更长留前 2 + 尾；兼容中文），避免邀请人枚举被邀请人登录名；被邀请人已被硬删除的行保留（脱敏名为空，前端显示"已注销用户"）
+  - **风控不泄露**：`locked_reason` / `voided_reason` 状态码不暴露给 A 侧（自邀嫌疑检测不能被探测），冻结/作废只以金额汇总形式呈现
+  - 测试覆盖（`model/coverage_test.go`）：汇总分桶与阶梯进度、空数据全零、硬删邀请人兜底、阶梯进度四分支、下线列表排序/并列/分页/脱敏（含中文与极短名）/硬删被邀请人、脱敏函数边界
 - **管理端台账页**：流水列表（筛 inviter/invitee/状态/时间）+ 汇总卡片（发放总量、冻结池、voided、自邀告警）+ 自邀告警人工处理（void / release，写审计日志）+ 来源充值退款回收（见下节）
 
 ### 退款回收（clawback）
