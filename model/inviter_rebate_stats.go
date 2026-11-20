@@ -6,6 +6,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"gorm.io/gorm"
 )
 
 // 管理端邀请返利统计查询（P3.1 排行榜）。台账是返利的唯一事实来源，
@@ -302,4 +303,123 @@ func maskInviteeUsername(username string) string {
 	default:
 		return string(runes[:2]) + "***" + string(runes[n-1:])
 	}
+}
+
+// ---------------------------------------------------------------------------
+// 管理端台账流水/汇总查询（P5.1）。流水按台账行原样返回（管理员可见
+// locked_reason / voided_reason，与 A 侧脱敏口径不同）；邀请双方的用户名
+// 各 LEFT JOIN users 一次，硬删后为空字符串，前端显示"已注销用户"。
+// 汇总卡片与流水列表共用同一组筛选条件，口径与排行榜一致：
+// granted = released + locked，voided 单列；自邀告警单独聚合
+// locked(self_invite_suspect) 行（金额与笔数），供人工裁 void/release。
+// ---------------------------------------------------------------------------
+
+// InviterRebateLedgerFilter 是台账流水/汇总共用的筛选条件；零值表示不过滤。
+type InviterRebateLedgerFilter struct {
+	InviterId      int
+	InviteeId      int
+	Status         string
+	SourceType     string
+	StartTimestamp int64
+	EndTimestamp   int64
+}
+
+// InviterRebateLedgerRow 是管理端台账流水的一行：台账全部字段 + 邀请双方
+// 用户名（硬删后为空）。
+type InviterRebateLedgerRow struct {
+	Id              int    `json:"id"`
+	CreatedAt       int64  `json:"created_at"`
+	InviterId       int    `json:"inviter_id"`
+	InviterUsername string `json:"inviter_username" gorm:"column:inviter_username"`
+	InviteeId       int    `json:"invitee_id"`
+	InviteeUsername string `json:"invitee_username" gorm:"column:invitee_username"`
+	SourceType      string `json:"source_type"`
+	SourceId        int    `json:"source_id"`
+	BaseQuota       int    `json:"base_quota"`
+	Percent         int    `json:"percent"`
+	Quota           int    `json:"quota"`
+	Status          string `json:"status"`
+	LockedReason    string `json:"locked_reason"`
+	VoidedReason    string `json:"voided_reason"`
+	ReleasedAt      int64  `json:"released_at"`
+}
+
+// InviterRebateLedgerSummary 是管理端台账汇总卡片：状态分桶 + 自邀嫌疑
+// 冻结的笔数与金额。无匹配台账时返回全零（不报错）。
+type InviterRebateLedgerSummary struct {
+	RebateCount        int64 `json:"rebate_count"`
+	ReleasedQuota      int64 `json:"released_quota"`
+	LockedQuota        int64 `json:"locked_quota"`
+	VoidedQuota        int64 `json:"voided_quota"`
+	GrantedQuota       int64 `json:"granted_quota"`
+	SuspectCount       int64 `json:"suspect_count"`
+	SuspectLockedQuota int64 `json:"suspect_locked_quota"`
+}
+
+// inviterRebateLedgerFilterScope 给台账查询套筛选条件，流水与汇总共用。
+// 条件全部是等值/区间比较，三方言行为一致。
+func inviterRebateLedgerFilterScope(db *gorm.DB, filter InviterRebateLedgerFilter) *gorm.DB {
+	if filter.InviterId > 0 {
+		db = db.Where("inviter_rebates.inviter_id = ?", filter.InviterId)
+	}
+	if filter.InviteeId > 0 {
+		db = db.Where("inviter_rebates.invitee_id = ?", filter.InviteeId)
+	}
+	if filter.Status != "" {
+		db = db.Where("inviter_rebates.status = ?", filter.Status)
+	}
+	if filter.SourceType != "" {
+		db = db.Where("inviter_rebates.source_type = ?", filter.SourceType)
+	}
+	if filter.StartTimestamp > 0 {
+		db = db.Where("inviter_rebates.created_at >= ?", filter.StartTimestamp)
+	}
+	if filter.EndTimestamp > 0 {
+		db = db.Where("inviter_rebates.created_at <= ?", filter.EndTimestamp)
+	}
+	return db
+}
+
+// GetInviterRebateLedger 分页返回管理端台账流水，按 id 倒序（最新在前）。
+// 邀请双方用户名各 LEFT JOIN 一次；硬删后为空字符串。空结果返回空切片。
+func GetInviterRebateLedger(filter InviterRebateLedgerFilter, page, pageSize int) ([]InviterRebateLedgerRow, int64, error) {
+	var total int64
+	if err := inviterRebateLedgerFilterScope(DB.Model(&InviterRebate{}), filter).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return []InviterRebateLedgerRow{}, 0, nil
+	}
+
+	var rows []InviterRebateLedgerRow
+	err := inviterRebateLedgerFilterScope(DB.Model(&InviterRebate{}).
+		Select(`inviter_rebates.*,
+COALESCE(inviter_u.username, '') AS inviter_username,
+COALESCE(invitee_u.username, '') AS invitee_username`).
+		Joins("LEFT JOIN users inviter_u ON inviter_u.id = inviter_rebates.inviter_id").
+		Joins("LEFT JOIN users invitee_u ON invitee_u.id = inviter_rebates.invitee_id"), filter).
+		Order("inviter_rebates.id DESC").
+		Limit(pageSize).
+		Offset((page - 1) * pageSize).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	return rows, total, nil
+}
+
+// GetInviterRebateLedgerSummary 按筛选条件聚合台账汇总卡片。状态分桶列
+// 复用 inviterRebateStatusSumsSQL；自邀嫌疑列单独 CASE（locked 且
+// locked_reason = self_invite_suspect）。GROUP BY 整表无分组，恒返回一行。
+func GetInviterRebateLedgerSummary(filter InviterRebateLedgerFilter) (InviterRebateLedgerSummary, error) {
+	var summary InviterRebateLedgerSummary
+	err := inviterRebateLedgerFilterScope(DB.Model(&InviterRebate{}).
+		Select(fmt.Sprintf(`%s,
+COUNT(CASE WHEN inviter_rebates.status = '%s' AND inviter_rebates.locked_reason = '%s' THEN 1 END) AS suspect_count,
+COALESCE(SUM(CASE WHEN inviter_rebates.status = '%s' AND inviter_rebates.locked_reason = '%s' THEN inviter_rebates.quota ELSE 0 END), 0) AS suspect_locked_quota`,
+			inviterRebateStatusSumsSQL(),
+			InviterRebateStatusLocked, InviterRebateLockedSelfInviteSuspect,
+			InviterRebateStatusLocked, InviterRebateLockedSelfInviteSuspect)), filter).
+		Scan(&summary).Error
+	return summary, err
 }

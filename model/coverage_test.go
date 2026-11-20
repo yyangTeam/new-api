@@ -1726,3 +1726,150 @@ func TestMaskInviteeUsername(t *testing.T) {
 	assert.Equal(t, "张***丰", maskInviteeUsername("张三丰"))
 	assert.Equal(t, "王***六", maskInviteeUsername("王小明六"))
 }
+
+// insertRebateLedgerReasonRowForTest 与 insertRebateLedgerRowForTest 相同，
+// 但允许指定 locked_reason / voided_reason（台账汇总的自邀嫌疑列需要）。
+// 返回新行的 id（SQLite AUTOINCREMENT 跨测试单调递增，调用方不能假设
+// 绝对 id，只能用返回值断言顺序）。
+func insertRebateLedgerReasonRowForTest(t *testing.T, inviterId, inviteeId int, sourceType string, sourceId, quota int, status, lockedReason, voidedReason string, createdAt int64) int {
+	t.Helper()
+	row := &InviterRebate{
+		CreatedAt:    createdAt,
+		InviterId:    inviterId,
+		InviteeId:    inviteeId,
+		SourceType:   sourceType,
+		SourceId:     sourceId,
+		BaseQuota:    quota * 10,
+		Percent:      10,
+		Quota:        quota,
+		Status:       status,
+		LockedReason: lockedReason,
+		VoidedReason: voidedReason,
+	}
+	require.NoError(t, DB.Create(row).Error)
+	return row.Id
+}
+
+// TestInviterRebateLedgerList: 管理端台账流水按 id 倒序分页，带出邀请双方
+// 用户名（硬删后为空串），五种筛选各自生效。
+func TestInviterRebateLedgerList(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+	inviter2 := createRankingUserForTest(t, "ledger-inviter-2", 0)
+
+	day := int64(86400)
+	base := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC).Unix()
+	id1 := insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 100, InviterRebateStatusReleased, "", "", base)
+	id2 := insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 2, 50, InviterRebateStatusLocked, InviterRebateLockedAwaitingConsume, "", base+day)
+	id3 := insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceRedemption, 3, 30, InviterRebateStatusVoided, "", InviterRebateVoidedMonthlyCap, base+2*day)
+	// inviter2 的行 + 邀请人已被硬删除的行（inviter id 不存在）。
+	insertRebateLedgerReasonRowForTest(t, inviter2.Id, invitee.Id, InviterRebateSourceTopUp, 4, 80, InviterRebateStatusLocked, InviterRebateLockedSelfInviteSuspect, "", base+3*day)
+	id5 := insertRebateLedgerReasonRowForTest(t, 999999, invitee.Id, InviterRebateSourceTopUp, 5, 60, InviterRebateStatusReleased, "", "", base+4*day)
+	require.Less(t, id1, id5, "ids strictly increasing for ordering assertions")
+
+	// 全量：id 倒序（最新在前），硬删邀请人 username 为空。
+	rows, total, err := GetInviterRebateLedger(InviterRebateLedgerFilter{}, 1, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 5, total)
+	require.Len(t, rows, 5)
+	assert.Equal(t, id5, rows[0].Id)
+	assert.Equal(t, "", rows[0].InviterUsername, "hard-deleted inviter leaves empty username")
+	assert.Equal(t, "rebate-invitee", rows[0].InviteeUsername)
+	assert.Equal(t, id1, rows[4].Id)
+	assert.Equal(t, "rebate-inviter", rows[4].InviterUsername)
+	assert.Equal(t, InviterRebateStatusReleased, rows[4].Status)
+	// 台账全字段带出（管理员可见原因）。
+	assert.Equal(t, InviterRebateLockedSelfInviteSuspect, rows[1].LockedReason)
+	assert.Equal(t, InviterRebateVoidedMonthlyCap, rows[2].VoidedReason)
+	assert.Equal(t, 10, rows[4].Percent)
+	assert.Equal(t, 1000, rows[4].BaseQuota)
+
+	// inviter 筛选。
+	rows, total, err = GetInviterRebateLedger(InviterRebateLedgerFilter{InviterId: inviter.Id}, 1, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, total)
+	require.Len(t, rows, 3)
+	assert.Equal(t, inviter.Id, rows[0].InviterId)
+
+	// invitee 筛选（所有行同一被邀请人，仍全量）。
+	rows, total, err = GetInviterRebateLedger(InviterRebateLedgerFilter{InviteeId: invitee.Id}, 1, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 5, total)
+
+	// status 筛选。
+	rows, total, err = GetInviterRebateLedger(InviterRebateLedgerFilter{Status: InviterRebateStatusLocked}, 1, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, total)
+	require.Len(t, rows, 2)
+	assert.Equal(t, InviterRebateStatusLocked, rows[0].Status)
+	assert.Equal(t, InviterRebateStatusLocked, rows[1].Status)
+
+	// source_type 筛选。
+	rows, total, err = GetInviterRebateLedger(InviterRebateLedgerFilter{SourceType: InviterRebateSourceRedemption}, 1, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	assert.Equal(t, InviterRebateSourceRedemption, rows[0].SourceType)
+
+	// 时间区间（闭区间，只含第 2~3 天的两行）。
+	rows, total, err = GetInviterRebateLedger(InviterRebateLedgerFilter{StartTimestamp: base + day, EndTimestamp: base + 2*day}, 1, 10)
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, total)
+	require.Len(t, rows, 2)
+	assert.Equal(t, id3, rows[0].Id)
+	assert.Equal(t, id2, rows[1].Id)
+
+	// 分页：第 2 页每页 2 条，按倒序取第 3~4 新的行。
+	rows, total, err = GetInviterRebateLedger(InviterRebateLedgerFilter{}, 2, 2)
+	require.NoError(t, err)
+	assert.EqualValues(t, 5, total)
+	require.Len(t, rows, 2)
+	assert.Equal(t, id3, rows[0].Id)
+	assert.Equal(t, id2, rows[1].Id)
+}
+
+// TestInviterRebateLedgerSummary: 汇总卡片状态分桶 + 自邀嫌疑单独聚合，
+// 筛选条件与流水列表共用；无匹配数据时返回全零。
+func TestInviterRebateLedgerSummary(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+	inviter2 := createRankingUserForTest(t, "ledger-sum-inviter-2", 0)
+
+	day := int64(86400)
+	base := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC).Unix()
+	insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 100, InviterRebateStatusReleased, "", "", base)
+	insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 2, 50, InviterRebateStatusLocked, InviterRebateLockedAwaitingConsume, "", base+day)
+	insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 3, 30, InviterRebateStatusVoided, "", InviterRebateVoidedMonthlyCap, base+2*day)
+	insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 4, 20, InviterRebateStatusLocked, InviterRebateLockedSelfInviteSuspect, "", base+3*day)
+	// inviter2 的行不参与 inviter 筛选口径，但参与全量口径。
+	insertRebateLedgerReasonRowForTest(t, inviter2.Id, invitee.Id, InviterRebateSourceTopUp, 5, 80, InviterRebateStatusLocked, InviterRebateLockedSelfInviteSuspect, "", base+4*day)
+
+	// 全量口径：released 100、locked 150、voided 30、granted 250；
+	// 自邀嫌疑 2 笔共 100。
+	summary, err := GetInviterRebateLedgerSummary(InviterRebateLedgerFilter{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 5, summary.RebateCount)
+	assert.EqualValues(t, 100, summary.ReleasedQuota)
+	assert.EqualValues(t, 150, summary.LockedQuota)
+	assert.EqualValues(t, 30, summary.VoidedQuota)
+	assert.EqualValues(t, 250, summary.GrantedQuota)
+	assert.EqualValues(t, 2, summary.SuspectCount)
+	assert.EqualValues(t, 100, summary.SuspectLockedQuota)
+
+	// inviter 筛选口径：嫌疑只剩 1 笔 20。
+	summary, err = GetInviterRebateLedgerSummary(InviterRebateLedgerFilter{InviterId: inviter.Id})
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, summary.RebateCount)
+	assert.EqualValues(t, 70, summary.LockedQuota)
+	assert.EqualValues(t, 1, summary.SuspectCount)
+	assert.EqualValues(t, 20, summary.SuspectLockedQuota)
+
+	// status 筛选只看 locked 行的嫌疑。
+	summary, err = GetInviterRebateLedgerSummary(InviterRebateLedgerFilter{Status: InviterRebateStatusLocked})
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, summary.RebateCount)
+	assert.EqualValues(t, 150, summary.LockedQuota)
+	assert.Zero(t, summary.ReleasedQuota)
+
+	// 无匹配数据：全零不报错。
+	summary, err = GetInviterRebateLedgerSummary(InviterRebateLedgerFilter{InviterId: 888888})
+	require.NoError(t, err)
+	assert.Equal(t, InviterRebateLedgerSummary{}, summary)
+}
