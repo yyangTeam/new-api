@@ -1873,3 +1873,162 @@ func TestInviterRebateLedgerSummary(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, InviterRebateLedgerSummary{}, summary)
 }
+
+// setRebateUserAffFieldsForTest 直写邀请人的三个返利账户字段后回读。
+func setRebateUserAffFieldsForTest(t *testing.T, userId, affQuota, affHistory, affQuotaLocked int) *User {
+	t.Helper()
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", userId).Updates(map[string]any{
+		"aff_quota":        affQuota,
+		"aff_history":      affHistory,
+		"aff_quota_locked": affQuotaLocked,
+	}).Error)
+	return reloadUserForTest(t, userId)
+}
+
+// TestInviterRebateAdminVoid: 管理员人工作废冻结返利——locked 行翻
+// voided(admin_void) 并等额回落冻结池；邀请人已硬删除时作废照常；released /
+// voided / 不存在的行返回状态前置错误。
+func TestInviterRebateAdminVoid(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+
+	// 正常分支：冻结池等额回落。
+	setRebateUserAffFieldsForTest(t, inviter.Id, 0, 0, 100)
+	id := insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 100, InviterRebateStatusLocked, InviterRebateLockedAwaitingConsume, "", 1000)
+	result, err := AdminVoidInviterRebate(id)
+	require.NoError(t, err)
+	assert.Equal(t, id, result.Row.Id)
+	assert.Equal(t, inviter.Id, result.InviterId)
+	assert.Equal(t, 100, result.Quota)
+	assert.Zero(t, result.Debt)
+	assert.Equal(t, InviterRebateStatusVoided, result.Row.Status)
+	assert.Equal(t, InviterRebateVoidedAdminVoid, result.Row.VoidedReason)
+	assert.Empty(t, result.Row.LockedReason)
+	after := reloadUserForTest(t, inviter.Id)
+	assert.Zero(t, after.AffQuotaLocked)
+	assert.Zero(t, after.AffQuota)
+	assert.Zero(t, after.AffHistoryQuota)
+
+	// 幂等边界：再作废同一行 → 状态前置错误（不再动账）。
+	_, err = AdminVoidInviterRebate(id)
+	require.ErrorIs(t, err, ErrInviterRebateRowNotLocked)
+	assert.Equal(t, 0, reloadUserForTest(t, inviter.Id).AffQuotaLocked)
+
+	// 邀请人已硬删除：作废照常，冻结池无行可扣不报错。
+	idGone := insertRebateLedgerReasonRowForTest(t, 999999, invitee.Id, InviterRebateSourceTopUp, 2, 60, InviterRebateStatusLocked, InviterRebateLockedSelfInviteSuspect, "", 1000)
+	result, err = AdminVoidInviterRebate(idGone)
+	require.NoError(t, err)
+	assert.Equal(t, InviterRebateStatusVoided, result.Row.Status)
+	assert.Equal(t, InviterRebateVoidedAdminVoid, result.Row.VoidedReason)
+	assert.Equal(t, 60, result.Quota)
+
+	// 状态前置错误：released / 不存在的行。
+	idReleased := insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 3, 30, InviterRebateStatusReleased, "", "", 1000)
+	_, err = AdminVoidInviterRebate(idReleased)
+	require.ErrorIs(t, err, ErrInviterRebateRowNotLocked)
+	_, err = AdminVoidInviterRebate(888888)
+	require.ErrorIs(t, err, ErrInviterRebateRowNotFound)
+}
+
+// TestInviterRebateAdminRelease: 管理员人工放行冻结返利——locked（含
+// self_invite_suspect）行翻 released、邀请人 aff_quota/aff_history 入账、
+// 冻结池回落；邀请人已硬删除改记 voided(inviter_missing)；released 行拒绝。
+func TestInviterRebateAdminRelease(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+
+	// 正常分支：自邀嫌疑行放行，资金动作与消费解锁一致。
+	setRebateUserAffFieldsForTest(t, inviter.Id, 50, 200, 70)
+	id := insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 70, InviterRebateStatusLocked, InviterRebateLockedSelfInviteSuspect, "", 1000)
+	result, err := AdminReleaseInviterRebate(id)
+	require.NoError(t, err)
+	assert.Equal(t, inviter.Id, result.InviterId)
+	assert.Equal(t, 70, result.Quota)
+	assert.Zero(t, result.Debt)
+	assert.Equal(t, InviterRebateStatusReleased, result.Row.Status)
+	assert.Empty(t, result.Row.LockedReason)
+	assert.Positive(t, result.Row.ReleasedAt)
+	after := reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, 120, after.AffQuota)
+	assert.Equal(t, 270, after.AffHistoryQuota)
+	assert.Zero(t, after.AffQuotaLocked)
+
+	// 放行后的行不可再放行。
+	_, err = AdminReleaseInviterRebate(id)
+	require.ErrorIs(t, err, ErrInviterRebateRowNotLocked)
+
+	// 邀请人已硬删除：改记 voided(inviter_missing)，Quota 记 0。
+	idGone := insertRebateLedgerReasonRowForTest(t, 999999, invitee.Id, InviterRebateSourceTopUp, 2, 60, InviterRebateStatusLocked, InviterRebateLockedAwaitingConsume, "", 1000)
+	result, err = AdminReleaseInviterRebate(idGone)
+	require.NoError(t, err)
+	assert.Equal(t, InviterRebateStatusVoided, result.Row.Status)
+	assert.Equal(t, InviterRebateVoidedInviterMissing, result.Row.VoidedReason)
+	assert.Zero(t, result.Quota)
+	assert.Empty(t, result.Row.LockedReason)
+
+	// voided 行同样拒绝（走 NotLocked，口径：只有 locked 可放行）。
+	idVoided := insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 3, 30, InviterRebateStatusVoided, "", InviterRebateVoidedLockExpired, 1000)
+	_, err = AdminReleaseInviterRebate(idVoided)
+	require.ErrorIs(t, err, ErrInviterRebateRowNotLocked)
+	_, err = AdminReleaseInviterRebate(777777)
+	require.ErrorIs(t, err, ErrInviterRebateRowNotFound)
+}
+
+// TestInviterRebateAdminClawback: 退款回收三分支 + 状态前置错误——locked
+// 直接 voided(refund) 回落冻结池；released 且余额充足全额扣回
+// aff_quota/aff_history；released 且不足扣到 0 记欠账（不动 aff_history 与
+// 余额）；released 且邀请人已硬删除全额欠账；voided 行拒绝回收。
+func TestInviterRebateAdminClawback(t *testing.T) {
+	inviter, invitee := createRebateUsersForTest(t)
+
+	// 分支一：locked → voided(refund) + 冻结池回落，钱一分没出。
+	setRebateUserAffFieldsForTest(t, inviter.Id, 0, 0, 100)
+	idLocked := insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 100, InviterRebateStatusLocked, InviterRebateLockedAwaitingConsume, "", 1000)
+	result, err := AdminClawbackInviterRebate(idLocked)
+	require.NoError(t, err)
+	assert.Equal(t, InviterRebateStatusVoided, result.Row.Status)
+	assert.Equal(t, InviterRebateVoidedRefund, result.Row.VoidedReason)
+	assert.Empty(t, result.Row.LockedReason)
+	assert.Equal(t, 100, result.Quota)
+	assert.Zero(t, result.Debt)
+	after := reloadUserForTest(t, inviter.Id)
+	assert.Zero(t, after.AffQuotaLocked)
+	assert.Zero(t, after.AffQuota)
+
+	// 分支二：released 且 aff_quota ≥ 该笔 → aff_quota/aff_history 全额扣回。
+	setRebateUserAffFieldsForTest(t, inviter.Id, 300, 500, 0)
+	idRich := insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 2, 80, InviterRebateStatusReleased, "", "", 1000)
+	result, err = AdminClawbackInviterRebate(idRich)
+	require.NoError(t, err)
+	assert.Equal(t, InviterRebateVoidedRefund, result.Row.VoidedReason)
+	assert.Equal(t, 80, result.Quota)
+	assert.Zero(t, result.Debt)
+	after = reloadUserForTest(t, inviter.Id)
+	assert.Equal(t, 220, after.AffQuota)
+	assert.Equal(t, 420, after.AffHistoryQuota)
+
+	// 分支三：released 且不足 → aff_quota 扣到 0，差额欠账，aff_history 不动。
+	setRebateUserAffFieldsForTest(t, inviter.Id, 25, 500, 0)
+	idPoor := insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 3, 80, InviterRebateStatusReleased, "", "", 1000)
+	result, err = AdminClawbackInviterRebate(idPoor)
+	require.NoError(t, err)
+	assert.Equal(t, InviterRebateVoidedRefundUnderfunded, result.Row.VoidedReason)
+	assert.Equal(t, 25, result.Quota)
+	assert.Equal(t, 55, result.Debt)
+	after = reloadUserForTest(t, inviter.Id)
+	assert.Zero(t, after.AffQuota)
+	assert.Equal(t, 500, after.AffHistoryQuota, "history untouched on underfunded clawback")
+
+	// 分支四：released 且邀请人已硬删除 → voided(refund) + 全额欠账。
+	idGone := insertRebateLedgerReasonRowForTest(t, 999999, invitee.Id, InviterRebateSourceTopUp, 4, 60, InviterRebateStatusReleased, "", "", 1000)
+	result, err = AdminClawbackInviterRebate(idGone)
+	require.NoError(t, err)
+	assert.Equal(t, InviterRebateVoidedRefund, result.Row.VoidedReason)
+	assert.Zero(t, result.Quota)
+	assert.Equal(t, 60, result.Debt)
+
+	// 状态前置错误：voided 行不可回收；不存在的行。
+	idVoided := insertRebateLedgerReasonRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 5, 30, InviterRebateStatusVoided, "", InviterRebateVoidedMonthlyCap, 1000)
+	_, err = AdminClawbackInviterRebate(idVoided)
+	require.ErrorIs(t, err, ErrInviterRebateRowVoided)
+	_, err = AdminClawbackInviterRebate(666666)
+	require.ErrorIs(t, err, ErrInviterRebateRowNotFound)
+}

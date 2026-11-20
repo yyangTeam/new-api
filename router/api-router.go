@@ -211,6 +211,9 @@ func SetApiRouter(router *gin.Engine) {
 			inviterRebateAdminRoute.GET("/rankings", controller.GetInviterRebateRankings)
 			inviterRebateAdminRoute.GET("/ledger", controller.GetInviterRebateLedger)
 			inviterRebateAdminRoute.GET("/ledger/summary", controller.GetInviterRebateLedgerSummary)
+			inviterRebateAdminRoute.POST("/ledger/:id/void", controller.AdminVoidInviterRebate)
+			inviterRebateAdminRoute.POST("/ledger/:id/release", controller.AdminReleaseInviterRebate)
+			inviterRebateAdminRoute.POST("/ledger/:id/clawback", controller.AdminClawbackInviterRebate)
 		}
 
 		// Inviter rebate wallet (user self)

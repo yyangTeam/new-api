@@ -29,8 +29,11 @@ const (
 	InviterRebateLockedAwaitingConsume   = "awaiting_consume"    // 消费解锁未达标（P1.2）
 	InviterRebateLockedSelfInviteSuspect = "self_invite_suspect" // 自邀嫌疑（P1.3）
 	InviterRebateVoidedInviterMissing    = "inviter_missing"
-	InviterRebateVoidedMonthlyCap        = "monthly_cap"  // 邀请人月度返利封顶（P1.1）
-	InviterRebateVoidedLockExpired       = "lock_expired" // 冻结池超期未解锁自动作废
+	InviterRebateVoidedMonthlyCap        = "monthly_cap"        // 邀请人月度返利封顶（P1.1）
+	InviterRebateVoidedLockExpired       = "lock_expired"       // 冻结池超期未解锁自动作废
+	InviterRebateVoidedAdminVoid         = "admin_void"         // 管理员人工作废冻结返利（P5.2）
+	InviterRebateVoidedRefund            = "refund"             // 来源充值退款回收（P5.2）
+	InviterRebateVoidedRefundUnderfunded = "refund_underfunded" // 退款回收时邀请人可划转余额不足，差额欠账（P5.2）
 )
 
 type InviterRebate struct {
@@ -536,4 +539,230 @@ func recordInviterRebateMonthlyCapLog(inviteeId, inviterId, rebate int) {
 // 台账人工放行（真推荐，如家庭共用出口 IP）或作废（真自邀）。
 func recordInviterRebateSelfInviteSuspectLog(inviteeId, inviterId, rebate int) {
 	RecordLog(0, LogTypeSystem, common.NewMessage("Invitation rebate {{quota}} held for self-invite suspicion, manual review required", map[string]any{"quota": logger.FormatQuota(rebate), "inviter_id": inviterId, "invitee_id": inviteeId}))
+}
+
+// ---- P5.2：管理端台账人工处置（void / release / clawback） ----
+
+// 人工处置的状态前置错误。控制器据此返回 4xx 业务错误而不是 500。
+var (
+	ErrInviterRebateRowNotFound  = errors.New("inviter rebate row does not exist")
+	ErrInviterRebateRowNotLocked = errors.New("inviter rebate row is not locked")
+	ErrInviterRebateRowVoided    = errors.New("inviter rebate row is already voided")
+)
+
+// InviterRebateAdminOpResult 一次人工处置的结果：处置后的台账行（事务内
+// 已刷新）、涉及的邀请人 id、Quota（本次实际入账/回收/作废的额度，邀请人
+// 已硬删除的 release 记 0）、Debt（clawback 不足扣回的欠账额度，仅
+// refund_underfunded / 邀请人已删除的 released clawback 分支非零）。
+type InviterRebateAdminOpResult struct {
+	Row       InviterRebate `json:"row"`
+	InviterId int           `json:"inviter_id"`
+	Quota     int           `json:"quota"`
+	Debt      int           `json:"debt"`
+}
+
+// lockInviterRebateRowForAdmin 在事务里按 id 加行锁取台账行，并统一翻译
+// 「不存在」错误。供三个人工处置入口复用。
+func lockInviterRebateRowForAdmin(tx *gorm.DB, id int) (*InviterRebate, error) {
+	var row InviterRebate
+	if err := lockForUpdate(tx).Where("id = ?", id).First(&row).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrInviterRebateRowNotFound
+		}
+		return nil, err
+	}
+	return &row, nil
+}
+
+// AdminVoidInviterRebate 管理员人工作废一笔冻结返利（P5.2，决策②自邀查证
+// 的"真自邀"出口）：locked（含 self_invite_suspect / awaiting_consume）行翻
+// voided(admin_void)，并等额回落邀请人 aff_quota_locked 冻结池。只处置
+// locked 行——released 已入账属回收（clawback）管辖，voided 无需再动。
+// 邀请人已被硬删除时冻结池无行可扣，作废照常（钱无处可去，与过期清扫同
+// 口径）。全程单事务（行锁 + 用户行锁），失败整体回滚。
+func AdminVoidInviterRebate(id int) (*InviterRebateAdminOpResult, error) {
+	result := &InviterRebateAdminOpResult{}
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		row, err := lockInviterRebateRowForAdmin(tx, id)
+		if err != nil {
+			return err
+		}
+		if row.Status != InviterRebateStatusLocked {
+			return ErrInviterRebateRowNotLocked
+		}
+		result.InviterId = row.InviterId
+		result.Quota = row.Quota
+		if err := tx.Model(&InviterRebate{}).Where("id = ?", row.Id).Updates(map[string]any{
+			"status":        InviterRebateStatusVoided,
+			"locked_reason": "",
+			"voided_reason": InviterRebateVoidedAdminVoid,
+		}).Error; err != nil {
+			return err
+		}
+		// 回落冻结池；邀请人已被硬删除时无行可更新（RowsAffected 0），不视为错误
+		if err := tx.Model(&User{}).Where("id = ?", row.InviterId).
+			Update("aff_quota_locked", gorm.Expr("aff_quota_locked - ?", row.Quota)).Error; err != nil {
+			return err
+		}
+		row.Status = InviterRebateStatusVoided
+		row.LockedReason = ""
+		row.VoidedReason = InviterRebateVoidedAdminVoid
+		result.Row = *row
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// AdminReleaseInviterRebate 管理员人工放行一笔冻结返利（P5.2，自邀查证的
+// "真推荐"出口）：locked（含 self_invite_suspect / awaiting_consume）行翻
+// released、邀请人 aff_quota/aff_history 入账、aff_quota_locked 等额回落，
+// 与消费解锁钩子的资金动作完全一致，只是触发方换成管理员。邀请人已被硬
+// 删除时改记 voided(inviter_missing)、Quota 记 0。全程单事务，失败整体
+// 回滚。日志由控制器在提交后写（需要请求上下文做审计）。
+func AdminReleaseInviterRebate(id int) (*InviterRebateAdminOpResult, error) {
+	result := &InviterRebateAdminOpResult{}
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		row, err := lockInviterRebateRowForAdmin(tx, id)
+		if err != nil {
+			return err
+		}
+		if row.Status != InviterRebateStatusLocked {
+			return ErrInviterRebateRowNotLocked
+		}
+		result.InviterId = row.InviterId
+		var inviter User
+		if err := lockForUpdate(tx).Where("id = ?", row.InviterId).First(&inviter).Error; err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+			// 邀请人已被硬删除：钱无处发放，改记 voided 留痕
+			if err := tx.Model(&InviterRebate{}).Where("id = ?", row.Id).Updates(map[string]any{
+				"status":        InviterRebateStatusVoided,
+				"locked_reason": "",
+				"voided_reason": InviterRebateVoidedInviterMissing,
+			}).Error; err != nil {
+				return err
+			}
+			row.Status = InviterRebateStatusVoided
+			row.LockedReason = ""
+			row.VoidedReason = InviterRebateVoidedInviterMissing
+			result.Row = *row
+			return nil
+		}
+		if err := tx.Model(&InviterRebate{}).Where("id = ?", row.Id).Updates(map[string]any{
+			"status":        InviterRebateStatusReleased,
+			"locked_reason": "",
+			"released_at":   common.GetTimestamp(),
+		}).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&User{}).Where("id = ?", row.InviterId).Updates(map[string]any{
+			"aff_quota":        gorm.Expr("aff_quota + ?", row.Quota),
+			"aff_history":      gorm.Expr("aff_history + ?", row.Quota),
+			"aff_quota_locked": gorm.Expr("aff_quota_locked - ?", row.Quota),
+		}).Error; err != nil {
+			return err
+		}
+		row.Status = InviterRebateStatusReleased
+		row.LockedReason = ""
+		row.ReleasedAt = common.GetTimestamp()
+		result.Quota = row.Quota
+		result.Row = *row
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// AdminClawbackInviterRebate 来源充值退款回收（P5.2）：管理员在支付平台
+// 确认退款后对对应返利行人工触发，规则见 docs「退款回收」一节——
+//   - locked：直接 voided(refund)，冻结池等额回落（钱一分没出）；
+//   - released 且邀请人 aff_quota ≥ 该笔：aff_quota/aff_history 全额扣回
+//   - voided(refund)，等同撤销该笔返利；
+//   - released 且不足：aff_quota 扣到 0 + voided(refund_underfunded)，
+//     差额记欠账（只记账不动余额，人工决定是否追）；
+//   - released 且邀请人已被硬删除：voided(refund) + 全额欠账（无池可扣）。
+//
+// voided 行不可回收（ErrInviterRebateRowVoided）。全程单事务（行锁 + 用户
+// 行锁），失败整体回滚。日志（邀请人回收通知 + 欠账管理员告警）由控制器
+// 在提交后写。
+func AdminClawbackInviterRebate(id int) (*InviterRebateAdminOpResult, error) {
+	result := &InviterRebateAdminOpResult{}
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		row, err := lockInviterRebateRowForAdmin(tx, id)
+		if err != nil {
+			return err
+		}
+		if row.Status == InviterRebateStatusVoided {
+			return ErrInviterRebateRowVoided
+		}
+		result.InviterId = row.InviterId
+		switch row.Status {
+		case InviterRebateStatusLocked:
+			if err := tx.Model(&InviterRebate{}).Where("id = ?", row.Id).Updates(map[string]any{
+				"status":        InviterRebateStatusVoided,
+				"locked_reason": "",
+				"voided_reason": InviterRebateVoidedRefund,
+			}).Error; err != nil {
+				return err
+			}
+			// 回落冻结池；邀请人已被硬删除时无行可更新，作废照常
+			if err := tx.Model(&User{}).Where("id = ?", row.InviterId).
+				Update("aff_quota_locked", gorm.Expr("aff_quota_locked - ?", row.Quota)).Error; err != nil {
+				return err
+			}
+			result.Quota = row.Quota
+			row.Status = InviterRebateStatusVoided
+			row.LockedReason = ""
+			row.VoidedReason = InviterRebateVoidedRefund
+		case InviterRebateStatusReleased:
+			var inviter User
+			voidedReason := InviterRebateVoidedRefund
+			if err := lockForUpdate(tx).Where("id = ?", row.InviterId).First(&inviter).Error; err != nil {
+				if !errors.Is(err, gorm.ErrRecordNotFound) {
+					return err
+				}
+				// 邀请人已被硬删除：收益池无行可扣，全额记欠账（回收口径仍是 refund）
+				result.Debt = row.Quota
+			} else if inviter.AffQuota >= row.Quota {
+				if err := tx.Model(&User{}).Where("id = ?", row.InviterId).Updates(map[string]any{
+					"aff_quota":   gorm.Expr("aff_quota - ?", row.Quota),
+					"aff_history": gorm.Expr("aff_history - ?", row.Quota),
+				}).Error; err != nil {
+					return err
+				}
+				result.Quota = row.Quota
+			} else {
+				// 已划转/不足：aff_quota 扣到 0，差额欠账；不动 aff_history（历史累计
+				// 只反映真实发生过的收益，欠账不追溯改写），更不动余额（客诉与合规风险）
+				recovered := inviter.AffQuota
+				result.Quota = recovered
+				result.Debt = row.Quota - recovered
+				voidedReason = InviterRebateVoidedRefundUnderfunded
+				if err := tx.Model(&User{}).Where("id = ?", row.InviterId).
+					Update("aff_quota", 0).Error; err != nil {
+					return err
+				}
+			}
+			if err := tx.Model(&InviterRebate{}).Where("id = ?", row.Id).Updates(map[string]any{
+				"status":        InviterRebateStatusVoided,
+				"voided_reason": voidedReason,
+			}).Error; err != nil {
+				return err
+			}
+			row.Status = InviterRebateStatusVoided
+			row.VoidedReason = voidedReason
+		}
+		result.Row = *row
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
