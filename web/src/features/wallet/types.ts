@@ -41,6 +41,37 @@ export type PaymentResponse = ApiResponse<Record<string, unknown>> & {
 export type StripePaymentResponse = ApiResponse<{ pay_link: string }>
 export type AffiliateCodeResponse = ApiResponse<string>
 export type AffiliateTransferResponse = ApiResponse
+
+export interface InviterRebateTierProgress {
+  aff_count: number
+  current_percent: number
+  next_min_invitees: number
+  next_percent: number
+}
+
+export interface InviterRebateAmounts {
+  released_quota: number
+  locked_quota: number
+  voided_quota: number
+  granted_quota: number
+  rebate_count: number
+}
+
+export interface InviterRebateSummary extends InviterRebateAmounts {
+  invitee_count: number
+  tier: InviterRebateTierProgress
+}
+
+export interface InviterRebateInvitee extends InviterRebateAmounts {
+  invitee_masked_name: string
+}
+
+export interface InviterRebateInviteesPage {
+  items: InviterRebateInvitee[]
+  total: number
+  page: number
+  page_size: number
+}
 export type CreemPaymentResponse = ApiResponse<{ checkout_url: string }>
 export type WaffoPaymentResponse = ApiResponse<
   { payment_url?: string } | string

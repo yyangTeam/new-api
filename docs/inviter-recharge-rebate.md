@@ -328,10 +328,20 @@ v1 的已知漏洞：A 注册小号 B 自己充值，等于拿 110% 价值（B �
   - 测试覆盖：`rankings-table.test.tsx`（默认加载参数、硬删行展示、URL 恢复 metric/period、空态）、`rankings-view-controls.test.tsx`（切换指标重置页码、切换周期、URL 恢复触发器标签）；i18n 21 个新 key 覆盖 7 语言
 - **A 侧 dashboard**：钱包页 `affiliate-rewards-card` 扩展——冻结池/已释放/累计收益卡片、下线贡献列表（用户名脱敏 + 累计贡献 + 状态，API 天然 `WHERE inviter_id = A` 无越权）、阶梯进度条（"再邀请 2 人升到 15% 档"）
   - 实现口径（P4.1 后端已上线）：两个 UserAuth 接口挂现有 `/api/inviter_rebate` 前缀下——`GET my_summary`（状态分桶汇总 + 返利笔数 + 产生返利的被邀请人数 + 阶梯进度）与 `GET my_invitees`（分页下线贡献列表，`common.GetPageQuery` 分页）；access token 访问需 `wallet:read` scope（`middleware/access_token_routes.go`）
-  - 汇总口径与管理端排行榜一致（`granted = released + locked`，voided 单列）；聚合口径同 `users.aff_count` 失败记 SysError 按 0 处理（只影响阶梯进度展示）；`aff_quota` / `aff_history` 等账户字段走 `/api/user/self`，不重复返回
+  - 汇总口径与管理端排行榜一致（`granted = released + locked`，voided 单列）；读取 `users.aff_count` 失败时记 SysError 并按 0 展示（只影响阶梯进度）；`aff_quota` / `aff_history` 等账户字段走 `/api/user/self`，不重复返回
   - 下线列表按贡献总额降序、`invitee_id` 升序（确定性），用户名按 rune 脱敏（≤2 字符只留首字，3–5 字符留首尾，更长留前 2 + 尾；兼容中文），避免邀请人枚举被邀请人登录名；被邀请人已被硬删除的行保留（脱敏名为空，前端显示"已注销用户"）
   - **风控不泄露**：`locked_reason` / `voided_reason` 状态码不暴露给 A 侧（自邀嫌疑检测不能被探测），冻结/作废只以金额汇总形式呈现
   - 测试覆盖（`model/coverage_test.go`）：汇总分桶与阶梯进度、空数据全零、硬删邀请人兜底、阶梯进度四分支、下线列表排序/并列/分页/脱敏（含中文与极短名）/硬删被邀请人、脱敏函数边界
+  - **P4.2 钱包前端**：在现有 `AffiliateRewardsCard` 内组合三张台账指标（冻结、已释放、累计返利），作废金额单列；账户可划转收益仍取 `/api/user/self` 的 `aff_quota`，历史账户收益可能包含旧版/注册奖励，不能与台账累计已释放额混为一谈。划转不会改变台账累计值
+  - 阶梯以绑定人数 `tier.aff_count` 展示当前基础比例及距下一档的缺口；没有下一档时只说明当前配置无下一档，不断言“已达最高档”，也不渲染分母为零的进度条
+  - 下线贡献复用 `DataTablePage/useDataTable`：每人同时显示累计、已释放、冻结、作废及笔数，不用互斥状态标签；桌面表格、移动端带标签卡片，长金额/笔数允许换行。脱敏名可能重复，因此只读行采用页内位置标识，不把脱敏名当用户身份；分页发送 `p/page_size`，总数缩减至零也会回到有效页
+  - 两个查询按当前登录用户 ID 隔离客户端缓存（服务端身份仍来自认证，不发送 inviter ID），分页只保留同一账户的上一页数据；账户切换重置新增看板与页码。两个区块独立加载、报错和重试，业务失败/缺少 data 不伪装成零收益；可选接口最终 HTTP 500 不跳转全局 `/500`，其他查询保留原策略
+  - 保留共享 `CopyButton` 和原划转/合规门；复制链接为空时禁用。钱包成功操作触发该用户返利缓存失效且刷新账户数据，但不等待可选返利请求完成，避免已成功划转的弹窗被慢查询卡住。新增查询仍由共享 QueryClient 统一负责最终错误通知
+  - 金额沿用 `formatQuotaWithCurrency` 的精度和单位，人数/笔数沿用 `formatNumber`；所有界面语言经 `toIntlLocale` 转换并响应语言切换，新增 19 个文案覆盖 en/zh/zh-TW/fr/ja/ru/vi。组件测试覆盖金额口径、阶梯边界、错误恢复、复制/划转/合规、重复/注销下线、分页回正、缓存隔离及移动端长值
+  - 验证记录（2026-11-19）：`bun run --cwd web test --maxWorkers=1 src/features/wallet/components/__tests__ src/lib/__tests__/query-client.test.ts` 通过 23/23；钱包原复制/支付/工具函数、共享分页/移动端筛选、语言映射与错误通知等受影响回归通过 45/45。12 个变更 TS/TSX 文件定向格式与 lint、`bun run --cwd web typecheck`、`bun run --cwd web build` 均通过；七语言语义差异校验确认每种语言仅新增 19 个 key、原值无改动、插值保持一致，12 个文件的原始 AGPL 头逐字保留。现有后端回归 `/home/admin/.local/go/bin/go test ./model -run 'InviterRebate' -count=1` 也通过。完整前端套件 `bun run --cwd web test --maxWorkers=1` 在前一会话结束前未完成，输出记录为 SIGTERM 中断，无最终测试汇总，不计为通过。2026-11-20 按用户明确要求提交推送本阶段代码；全量前端测试与下述中文可读视觉验证仍未完成，不因此开始下一功能
+  - 真实浏览器（隔离 Go 1.26.10 / SQLite，Playwright 1.64.1 / Chromium 156.0.8078.4）：`node /tmp/wallet-p42-verify-20261119/verify.cjs /tmp/wallet-p42-verify-20261119/final-run` 最终通过 21/21，覆盖真实汇总/分页、重复与注销下线、桌面/375px 手机/暗色、七语言切换、键盘复制、两个可选接口独立 HTTP 500/重试、合规门与无下一档。真实划转 $1 后余额 $50→$51、可划转 $4→$3，两个返利读请求仍被测试门保持 pending 时弹窗已关闭，账户历史值和台账累计不变；父会话已查看桌面、移动贡献/分页与暗色截图
+  - 浏览器初次 18/21 与中间运行失败记录保留：修正的是临时夹具中旧路由/主题控件假设，以及把同账户新鲜分页缓存误当作应再发 HTTP 请求的等待。复制后从桌面缩到 375px 的瞬时 2px 溢出已在没有返利组件的既有 dashboard 独立复现，来自共享 Search 的 `transition-all` 宽度动画（256→32px）；新增主内容/区块均无溢出。最终夹具等待搜索框达到 32px 后仍严格检查文档宽度≤375px，不改生产壳、不放宽断言。主机缺少 CJK 字体，中文 DOM/Intl 切换通过，但当前中文截图缺字，中文可读视觉验证尚未完成。补充字体下载中，raw.githubusercontent.com 请求 90 秒超时，未完成字体已删除；官方 api.github.com Contents API 请求在执行前被工作树验证器拒绝，未重试或委托绕过，不能推断 API 是否可达。隔离浏览器与服务已清理，14342 端口拒绝连接，无可用凭据或下载字体遗留；未改系统字体或生产 CSS
+  - **数据库验证边界**：P4.2 只修改前端展示/查询和共享组件，不新增 SQL、事务、模型或迁移。既有 P4.1 后端只实际验证过 SQLite；尚未在真实 MySQL/PostgreSQL 实例运行该聚合路径，缺少这两种实例的验证记录，不能据此宣称返利后端的三数据库兼容性已完成
 - **管理端台账页**：流水列表（筛 inviter/invitee/状态/时间）+ 汇总卡片（发放总量、冻结池、voided、自邀告警）+ 自邀告警人工处理（void / release，写审计日志）+ 来源充值退款回收（见下节）
 
 ### 退款回收（clawback）
