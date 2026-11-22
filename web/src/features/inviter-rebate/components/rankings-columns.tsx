@@ -125,7 +125,7 @@ export function useRankingsColumns(): ColumnDef<InviterRebateRankingRow>[] {
     },
     {
       accessorKey: 'released_quota',
-      header: t('Released'),
+      header: t('Released rebate'),
       cell: ({ row }) => (
         <span className='font-mono text-sm tabular-nums'>
           {formatQuota(row.getValue('released_quota') as number)}
@@ -136,7 +136,7 @@ export function useRankingsColumns(): ColumnDef<InviterRebateRankingRow>[] {
     },
     {
       accessorKey: 'locked_quota',
-      header: t('Locked'),
+      header: t('Locked rebate'),
       cell: ({ row }) => (
         <span className='font-mono text-sm text-amber-600 tabular-nums dark:text-amber-400'>
           {formatQuota(row.getValue('locked_quota') as number)}
@@ -147,7 +147,7 @@ export function useRankingsColumns(): ColumnDef<InviterRebateRankingRow>[] {
     },
     {
       accessorKey: 'voided_quota',
-      header: t('Voided'),
+      header: t('Voided rebate'),
       meta: { mobileHidden: true },
       cell: ({ row }) => (
         <span className='text-muted-foreground font-mono text-sm tabular-nums'>

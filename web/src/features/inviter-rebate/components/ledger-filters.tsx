@@ -54,10 +54,12 @@ export function LedgerFilters() {
     })
   }
 
+  // Rebate-scoped keys: the bare 'Released'/'Locked'/'Voided' keys carry
+  // publish/changelog semantics in other locales (zh renders 发布于).
   const statusOptions = [
-    { value: 'released', label: t('Released') },
-    { value: 'locked', label: t('Locked') },
-    { value: 'voided', label: t('Voided') },
+    { value: 'released', label: t('Released rebate') },
+    { value: 'locked', label: t('Locked rebate') },
+    { value: 'voided', label: t('Voided rebate') },
   ]
   const sourceTypeOptions = [
     { value: 'topup', label: t('Top-up') },

@@ -35,9 +35,14 @@ export function InviterRebateLedger() {
         <LedgerFilters />
       </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
-        <div className='flex flex-col gap-4'>
+        {/* fixedContent clips overflow, so the height chain must stay
+            definite (h-full min-h-0) and only the table area flexes; the
+            summary stays at natural height and the table scrolls inside. */}
+        <div className='flex h-full min-h-0 flex-col gap-4'>
           <LedgerSummary />
-          <LedgerTable />
+          <div className='min-h-0 flex-1'>
+            <LedgerTable />
+          </div>
         </div>
       </SectionPageLayout.Content>
     </SectionPageLayout>

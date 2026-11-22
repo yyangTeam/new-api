@@ -248,6 +248,12 @@ it('renders reason labels translated when the zh locale provides them', async ()
   // files; before the keys were added they fell back to English strings.
   expect(await screen.findByText('疑似自邀')).toBeInTheDocument()
   expect(screen.getByText('管理员作废')).toBeInTheDocument()
+  // Regression: status badges used the shared 'Released' key, which zh
+  // renders with changelog semantics (发布于); rebate-scoped keys must win.
+  expect(screen.getByText('锁定中')).toBeInTheDocument()
+  expect(screen.getByText('已释放')).toBeInTheDocument()
+  expect(screen.getByText('已作废')).toBeInTheDocument()
+  expect(screen.queryByText('发布于')).not.toBeInTheDocument()
 })
 
 it('voids a locked rebate after confirmation and refreshes the ledger', async () => {

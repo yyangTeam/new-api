@@ -32,11 +32,14 @@ export type LedgerRowAction = 'void' | 'release' | 'clawback'
 
 // Status colors follow the shared badge variants: locked needs review
 // (warning), voided lost the rebate (danger), released is the normal state.
+// Labels use rebate-scoped keys: the bare 'Released'/'Locked'/'Voided' keys
+// collide with changelog/publish semantics in other locales (zh shows
+// 发布于 for 'Released').
 const statusConfig: Record<string, { label: string; variant: StatusVariant }> =
   {
-    locked: { label: 'Locked', variant: 'warning' },
-    released: { label: 'Released', variant: 'neutral' },
-    voided: { label: 'Voided', variant: 'danger' },
+    locked: { label: 'Locked rebate', variant: 'warning' },
+    released: { label: 'Released rebate', variant: 'neutral' },
+    voided: { label: 'Voided rebate', variant: 'danger' },
   }
 
 // All ordering is server-side (id DESC, newest first), so every column opts

@@ -120,7 +120,7 @@ it('applies the status filter from the status select', async () => {
   const user = userEvent.setup()
 
   await user.click(screen.getByRole('combobox', { name: 'Status' }))
-  await user.click(await screen.findByRole('option', { name: 'Locked' }))
+  await user.click(await screen.findByRole('option', { name: 'Locked rebate' }))
   await waitFor(() =>
     expect(router.state.location.search).toMatchObject({ status: 'locked' })
   )
