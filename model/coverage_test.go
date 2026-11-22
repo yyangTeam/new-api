@@ -1538,6 +1538,7 @@ func TestInviterRebateSelfSummaryAggregation(t *testing.T) {
 	invitee2 := createRankingUserForTest(t, "self-invitee-2", 0)
 	setInviterAffCountForTest(t, inviter.Id, 7)
 	setInviterRebateTiersForTest(t, `[{"min_invitees":0,"percent":5},{"min_invitees":6,"percent":10},{"min_invitees":21,"percent":15}]`)
+	setInviterRebateFirstTopUpPercentForTest(t, 15)
 
 	now := time.Now()
 	insertRebateLedgerRowForTest(t, inviter.Id, invitee.Id, InviterRebateSourceTopUp, 1, 100, InviterRebateStatusReleased, now.Unix())
@@ -1557,6 +1558,13 @@ func TestInviterRebateSelfSummaryAggregation(t *testing.T) {
 	assert.Equal(t, 10, summary.Tier.CurrentPercent)
 	assert.Equal(t, 21, summary.Tier.NextMinInvitees)
 	assert.Equal(t, 15, summary.Tier.NextPercent)
+	// A 侧看板展示字段：完整阶梯（升序）与首充加成配置原样透出。
+	assert.Equal(t, []InviterRebateTierView{
+		{MinInvitees: 0, Percent: 5},
+		{MinInvitees: 6, Percent: 10},
+		{MinInvitees: 21, Percent: 15},
+	}, summary.Tiers)
+	assert.Equal(t, 15, summary.FirstTopUpPercent)
 }
 
 // TestInviterRebateSelfSummaryEmpty: 无台账时返回全零汇总（不报错），
@@ -1579,6 +1587,9 @@ func TestInviterRebateSelfSummaryEmpty(t *testing.T) {
 	assert.Equal(t, 12, summary.Tier.CurrentPercent, "no tiers → flat InviterRebatePercent")
 	assert.Zero(t, summary.Tier.NextMinInvitees)
 	assert.Zero(t, summary.Tier.NextPercent)
+	// 无阶梯时 Tiers 为空数组（JSON 序列化为 [] 而非 null），首充加成 0。
+	assert.Empty(t, summary.Tiers)
+	assert.Zero(t, summary.FirstTopUpPercent)
 }
 
 // TestInviterRebateSelfSummaryInviterHardDeleted: 邀请人被硬删后台账行

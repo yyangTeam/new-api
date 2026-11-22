@@ -49,6 +49,11 @@ export interface InviterRebateTierProgress {
   next_percent: number
 }
 
+export interface InviterRebateTier {
+  min_invitees: number
+  percent: number
+}
+
 export interface InviterRebateAmounts {
   released_quota: number
   locked_quota: number
@@ -60,6 +65,10 @@ export interface InviterRebateAmounts {
 export interface InviterRebateSummary extends InviterRebateAmounts {
   invitee_count: number
   tier: InviterRebateTierProgress
+  /** First-recharge bonus percent from server config (0 = not enabled) */
+  first_topup_percent: number
+  /** Full configured tier ladder (ascending); empty when flat rate is used */
+  tiers: InviterRebateTier[]
 }
 
 export interface InviterRebateInvitee extends InviterRebateAmounts {

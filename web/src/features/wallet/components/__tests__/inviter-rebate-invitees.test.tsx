@@ -309,6 +309,8 @@ it('switching the wallet account discards old summary, rows, and page before the
     voided_quota: 0,
     invitee_count: 1,
     rebate_count: 1,
+    first_topup_percent: 0,
+    tiers: [],
     tier: {
       aff_count: 1,
       current_percent: 2,

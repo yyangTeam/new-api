@@ -7877,6 +7877,15 @@
     "Zhipu": "Zhipu",
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Friends recharge, you earn": "Bạn bè nạp tiền, bạn nhận hoàn thưởng",
+    "For every {{topup}} your friends recharge": "Mỗi lần bạn bè nạp {{topup}}",
+    "you earn {{rebate}}": "bạn nhận {{rebate}}",
+    "at your current {{percent}}% rebate rate": "theo tỷ lệ hoàn thưởng hiện tại {{percent}}% của bạn",
+    "Friends first top-ups earn {{percent}}% rebates": "Lần nạp đầu tiên của bạn bè được hoàn thưởng {{percent}}%",
+    "Rebate tiers": "Cấp hoàn thưởng",
+    "Current tier": "Cấp hiện tại",
+    "Next tier": "Cấp tiếp theo",
+    "{{count}}+ friends": "{{count}}+ bạn bè"
   }
 }

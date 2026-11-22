@@ -7877,6 +7877,15 @@
     "Zhipu": "智谱",
     "Zhipu GLM": "智谱GLM",
     "Zhipu V4": "智谱 V4",
-    "Zoom": "缩放"
+    "Zoom": "缩放",
+    "Friends recharge, you earn": "好友充值，返利归你",
+    "For every {{topup}} your friends recharge": "好友每充值 {{topup}}",
+    "you earn {{rebate}}": "你得 {{rebate}}",
+    "at your current {{percent}}% rebate rate": "按你当前 {{percent}}% 的返利比例",
+    "Friends first top-ups earn {{percent}}% rebates": "好友首笔充值返利 {{percent}}%",
+    "Rebate tiers": "返利阶梯",
+    "Current tier": "当前档位",
+    "Next tier": "下一档",
+    "{{count}}+ friends": "{{count}}+ 位好友"
   }
 }

@@ -136,6 +136,13 @@ type InviterRebateTierProgress struct {
 	NextPercent     int `json:"next_percent"`
 }
 
+// InviterRebateTierView 是给 A 侧前端展示的阶梯档位（门槛 + 比例），
+// 只暴露展示所需的两个字段，与 setting 层结构解耦。
+type InviterRebateTierView struct {
+	MinInvitees int `json:"min_invitees"`
+	Percent     int `json:"percent"`
+}
+
 type InviterRebateSelfSummary struct {
 	ReleasedQuota int64                     `json:"released_quota"`
 	LockedQuota   int64                     `json:"locked_quota"`
@@ -144,6 +151,12 @@ type InviterRebateSelfSummary struct {
 	RebateCount   int64                     `json:"rebate_count"`
 	InviteeCount  int64                     `json:"invitee_count"`
 	Tier          InviterRebateTierProgress `json:"tier"`
+	// FirstTopUpPercent 是首充加成配置（0 = 未启用）。仅作展示；生效
+	// 比例为 max(首充加成, 常规比例)，由 credit 逻辑保证，这里不改口径。
+	FirstTopUpPercent int `json:"first_topup_percent"`
+	// Tiers 是当前生效的完整阶梯（按 min_invitees 升序）；未配阶梯时为
+	// 空数组，前端按扁平比例展示。仅展示配置，不含任何用户数据。
+	Tiers []InviterRebateTierView `json:"tiers"`
 }
 
 // GetInviterRebateSelfSummary 汇总当前用户作为邀请人的全部返利台账。
@@ -166,14 +179,24 @@ func GetInviterRebateSelfSummary(inviterId int) (InviterRebateSelfSummary, error
 	if err := DB.Model(&User{}).Select("aff_count").Where("id = ?", inviterId).Scan(&affCount).Error; err != nil {
 		common.SysError(common.LogText("inviter rebate self summary aff_count lookup failed: inviter_id=%d error=%s", inviterId, err.Error()))
 	}
+	tiers := operation_setting.GetInviterRebateTiers()
+	tierViews := make([]InviterRebateTierView, 0, len(tiers))
+	for _, tier := range tiers {
+		tierViews = append(tierViews, InviterRebateTierView{
+			MinInvitees: tier.MinInvitees,
+			Percent:     tier.Percent,
+		})
+	}
 	return InviterRebateSelfSummary{
-		ReleasedQuota: scan.ReleasedQuota,
-		LockedQuota:   scan.LockedQuota,
-		VoidedQuota:   scan.VoidedQuota,
-		GrantedQuota:  scan.GrantedQuota,
-		RebateCount:   scan.RebateCount,
-		InviteeCount:  scan.InviteeCount,
-		Tier:          inviterRebateTierProgress(int(affCount)),
+		ReleasedQuota:     scan.ReleasedQuota,
+		LockedQuota:       scan.LockedQuota,
+		VoidedQuota:       scan.VoidedQuota,
+		GrantedQuota:      scan.GrantedQuota,
+		RebateCount:       scan.RebateCount,
+		InviteeCount:      scan.InviteeCount,
+		Tier:              inviterRebateTierProgress(int(affCount)),
+		FirstTopUpPercent: common.InviterRebateFirstTopUpPercent,
+		Tiers:             tierViews,
 	}, nil
 }
 

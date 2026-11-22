@@ -7877,6 +7877,15 @@
     "Zhipu": "智譜",
     "Zhipu GLM": "智譜GLM",
     "Zhipu V4": "智譜 V4",
-    "Zoom": "縮放"
+    "Zoom": "縮放",
+    "Friends recharge, you earn": "好友儲值，回饋歸你",
+    "For every {{topup}} your friends recharge": "好友每儲值 {{topup}}",
+    "you earn {{rebate}}": "你得 {{rebate}}",
+    "at your current {{percent}}% rebate rate": "按你目前 {{percent}}% 的回饋比例",
+    "Friends first top-ups earn {{percent}}% rebates": "好友首筆儲值回饋 {{percent}}%",
+    "Rebate tiers": "回饋級距",
+    "Current tier": "目前級距",
+    "Next tier": "下一級距",
+    "{{count}}+ friends": "{{count}}+ 位好友"
   }
 }

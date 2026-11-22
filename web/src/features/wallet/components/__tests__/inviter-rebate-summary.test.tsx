@@ -48,6 +48,11 @@ const summary: Summary = {
   voided_quota: 125_000,
   invitee_count: 3,
   rebate_count: 6,
+  first_topup_percent: 0,
+  tiers: [
+    { min_invitees: 0, percent: 3 },
+    { min_invitees: 20, percent: 5 },
+  ],
   tier: {
     aff_count: 12,
     current_percent: 3,
@@ -148,9 +153,9 @@ it('shows ledger buckets separately from transferable legacy rewards and bound-i
   expect(get).toHaveBeenCalledWith('/api/inviter_rebate/my_summary')
   const amounts = within(overview).getAllByRole('definition')
   expect(amounts.map((amount) => amount.textContent)).toEqual([
-    '$5',
     '$10',
-    '$15',
+    '$5',
+    '$0.25',
   ])
   expect(
     screen.getByText('Transferable rewards').nextElementSibling
@@ -160,7 +165,6 @@ it('shows ledger buckets separately from transferable legacy rewards and bound-i
   )
   expect(within(overview).getByText('Rebated Invitees: 3')).toBeVisible()
   expect(within(overview).getByText('Rebate Records: 6')).toBeVisible()
-  expect(within(overview).getByText('Voided: $0.25')).toBeVisible()
   expect(
     within(overview).getByText(
       /Released totals are not your transferable balance/
@@ -175,9 +179,78 @@ it('shows ledger buckets separately from transferable legacy rewards and bound-i
   )
 })
 
+it('leads with the rebate total hero and a concrete friends-recharge example at the current rate', async () => {
+  mockSummary()
+  renderRebates(<InviterRebateSummary userId={101} />)
+
+  expect(await screen.findByText('Rebate Total')).toBeVisible()
+  expect(screen.getByText('$15')).toBeVisible()
+  expect(screen.getByText('Friends recharge, you earn')).toBeVisible()
+  expect(
+    screen.getByText('For every $10 your friends recharge')
+  ).toBeVisible()
+  expect(screen.getByText('you earn $0.3')).toBeVisible()
+  expect(screen.getByText('at your current 3% rebate rate')).toBeVisible()
+  expect(
+    screen.queryByText(/Friends first top-ups earn/)
+  ).not.toBeInTheDocument()
+})
+
+it('renders the full tier ladder with the current tier highlighted and the next tier marked', async () => {
+  mockSummary()
+  renderRebates(<InviterRebateSummary userId={101} />)
+
+  expect(await screen.findByText('Rebate tiers')).toBeVisible()
+  expect(screen.getByText('Current tier')).toBeVisible()
+  expect(screen.getByText('Next tier')).toBeVisible()
+  expect(screen.getByText('3%')).toBeVisible()
+  expect(screen.getByText('5%')).toBeVisible()
+  expect(screen.getByText('0+ friends')).toBeVisible()
+  expect(screen.getByText('20+ friends')).toBeVisible()
+  expect(screen.getByText('Bound Invitees: 12')).toBeVisible()
+})
+
+it('surfaces the first top-up bonus only when it beats the current effective rate', async () => {
+  mockSummary({ ...summary, first_topup_percent: 15 })
+  renderRebates(<InviterRebateSummary userId={101} />)
+
+  expect(
+    await screen.findByText('Friends first top-ups earn 15% rebates')
+  ).toBeVisible()
+})
+
+it('hides the first top-up bonus when it does not exceed the current rate', async () => {
+  mockSummary({ ...summary, first_topup_percent: 3 })
+  renderRebates(<InviterRebateSummary userId={101} />)
+
+  await screen.findByText('Rebate Total')
+  expect(
+    screen.queryByText(/Friends first top-ups earn/)
+  ).not.toBeInTheDocument()
+})
+
+it('hides the recharge example when the rebate is disabled at the current rate', async () => {
+  mockSummary({
+    ...summary,
+    tier: {
+      aff_count: 12,
+      current_percent: 0,
+      next_min_invitees: 20,
+      next_percent: 5,
+    },
+  })
+  renderRebates(<InviterRebateSummary userId={101} />)
+
+  await screen.findByText('Rebate Total')
+  expect(
+    screen.queryByText(/For every .* your friends recharge/)
+  ).not.toBeInTheDocument()
+})
+
 it('below the first configured tier shows the actual base rate and remaining first-tier threshold', async () => {
   mockSummary({
     ...summary,
+    tiers: [{ min_invitees: 5, percent: 3 }],
     tier: {
       aff_count: 2,
       current_percent: 1.5,
@@ -187,7 +260,7 @@ it('below the first configured tier shows the actual base rate and remaining fir
   })
   renderRebates(<InviterRebateSummary userId={101} />)
 
-  expect(await screen.findByText('1.5%')).toBeVisible()
+  expect(await screen.findByText(/1\.5% rebate rate/)).toBeVisible()
   expect(screen.getByRole('progressbar')).toHaveAttribute(
     'aria-valuetext',
     '2 of 5 bound invitees'
@@ -195,6 +268,8 @@ it('below the first configured tier shows the actual base rate and remaining fir
   expect(
     screen.getByText('Invite 3 more people to reach the 3% tier')
   ).toBeVisible()
+  expect(screen.getByText('Next tier')).toBeVisible()
+  expect(screen.queryByText('Current tier')).not.toBeInTheDocument()
 })
 
 it.each([
@@ -202,17 +277,24 @@ it.each([
     configuration: 'flat rate with no configured tiers',
     aff_count: 0,
     current_percent: 2,
+    tiers: [] as Summary['tiers'],
   },
   {
     configuration: 'highest configured tier',
     aff_count: 100,
     current_percent: 8,
+    tiers: [
+      { min_invitees: 0, percent: 3 },
+      { min_invitees: 20, percent: 5 },
+      { min_invitees: 50, percent: 8 },
+    ],
   },
 ])(
   'with $configuration does not pretend that a next tier or maximum achievement exists',
-  async ({ aff_count, current_percent }) => {
+  async ({ aff_count, current_percent, tiers }) => {
     mockSummary({
       ...summary,
+      tiers,
       tier: {
         aff_count,
         current_percent,
@@ -262,14 +344,15 @@ it('independently loading rebate sections do not block copying or transferring a
   expect(
     screen.getByRole('status', { name: 'Loading rebate summary' })
   ).toBeVisible()
+  const overview = screen.getByRole('region', {
+    name: 'Recharge rebate overview',
+  })
   const invitees = screen.getByRole('region', { name: 'Invitee contributions' })
   expect(invitees).toHaveAttribute('aria-busy', 'true')
   expect(
     screen.queryByText('No invitee contributions yet')
   ).not.toBeInTheDocument()
-  expect(
-    screen.queryByText('Locked rebates', { selector: 'dt' })
-  ).not.toBeInTheDocument()
+  expect(within(overview).queryByText('Locked rebates')).not.toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Copy referral link' }))
   expect(writeText).toHaveBeenCalledWith(cardProps.affiliateLink)
   expect(screen.getByRole('button', { name: 'Copied' })).toBeVisible()
@@ -279,7 +362,7 @@ it('independently loading rebate sections do not block copying or transferring a
   await act(async () => {
     finishSummary({ data: { success: true, data: summary } })
   })
-  await screen.findByText('Locked rebates', { selector: 'dt' })
+  await within(overview).findByText('Locked rebates')
   expect(invitees).toHaveAttribute('aria-busy', 'true')
   await act(async () => {
     finishInvitees({ data: { success: true, data: emptyPage } })
@@ -395,7 +478,10 @@ it('compliance and user-loading disable transfer without changing rebate visibil
   const view = renderRebates(
     <AffiliateRewardsCard {...cardProps} complianceConfirmed={false} />
   )
-  await screen.findByText('Locked rebates', { selector: 'dt' })
+  const overview = screen.getByRole('region', {
+    name: 'Recharge rebate overview',
+  })
+  await within(overview).findByText('Locked rebates')
   const transfer = screen.getByRole('button', { name: 'Transfer to Balance' })
 
   expect(transfer).toBeDisabled()
@@ -417,7 +503,7 @@ it('compliance and user-loading disable transfer without changing rebate visibil
   expect(
     screen.getByText('Transferable rewards').nextElementSibling
   ).not.toHaveTextContent('$1')
-  expect(screen.getByText('Locked rebates', { selector: 'dt' })).toBeVisible()
+  expect(within(overview).getByText('Locked rebates')).toBeVisible()
   view.rerender(
     <AffiliateRewardsCard {...cardProps} complianceConfirmed loading />
   )
@@ -461,12 +547,15 @@ it('switching zhTW to zhCN updates summary and wallet labels without invalid Int
   await i18n.changeLanguage('zhTW')
   renderRebates(<AffiliateRewardsCard {...cardProps} />)
 
-  expect(await screen.findByText('鎖定返利', { selector: 'dt' })).toBeVisible()
+  const overview = screen.getByRole('region', {
+    name: 'Recharge rebate overview',
+  })
+  expect(await within(overview).findByText('鎖定返利')).toBeVisible()
   expect(screen.getByText('可轉移獎勵').nextElementSibling).toHaveTextContent(
     '$1'
   )
   await act(() => i18n.changeLanguage('zhCN'))
-  expect(screen.getByText('锁定返利', { selector: 'dt' })).toBeVisible()
+  expect(within(overview).getByText('锁定返利')).toBeVisible()
   expect(screen.getByText('可转移奖励').nextElementSibling).toHaveTextContent(
     '$1'
   )

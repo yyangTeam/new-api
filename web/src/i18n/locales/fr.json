@@ -7877,6 +7877,15 @@
     "Zhipu": "Zhipu",
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Friends recharge, you earn": "Vos amis rechargent, vous gagnez",
+    "For every {{topup}} your friends recharge": "Pour chaque {{topup}} rechargé par vos amis",
+    "you earn {{rebate}}": "vous gagnez {{rebate}}",
+    "at your current {{percent}}% rebate rate": "au taux de remise actuel de {{percent}} %",
+    "Friends first top-ups earn {{percent}}% rebates": "Les premiers rechargements de vos amis rapportent {{percent}} % de remise",
+    "Rebate tiers": "Paliers de remise",
+    "Current tier": "Palier actuel",
+    "Next tier": "Palier suivant",
+    "{{count}}+ friends": "{{count}}+ amis"
   }
 }

@@ -7877,6 +7877,15 @@
     "Zhipu": "Zhipu",
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Friends recharge, you earn": "Друзья пополняют — вы зарабатываете",
+    "For every {{topup}} your friends recharge": "За каждые {{topup}} пополнения друзьями",
+    "you earn {{rebate}}": "вы получаете {{rebate}}",
+    "at your current {{percent}}% rebate rate": "по вашей текущей ставке вознаграждения {{percent}}%",
+    "Friends first top-ups earn {{percent}}% rebates": "Первые пополнения друзей приносят {{percent}}% вознаграждения",
+    "Rebate tiers": "Уровни вознаграждения",
+    "Current tier": "Текущий уровень",
+    "Next tier": "Следующий уровень",
+    "{{count}}+ friends": "{{count}}+ друзей"
   }
 }

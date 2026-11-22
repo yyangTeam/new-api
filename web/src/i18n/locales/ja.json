@@ -7877,6 +7877,15 @@
     "Zhipu": "Zhipu",
     "Zhipu GLM": "Zhipu GLM",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム"
+    "Zoom": "ズーム",
+    "Friends recharge, you earn": "友達がチャージすると、あなたに還元",
+    "For every {{topup}} your friends recharge": "友達が {{topup}} チャージするたびに",
+    "you earn {{rebate}}": "{{rebate}} 還元",
+    "at your current {{percent}}% rebate rate": "現在の還元率 {{percent}}% で計算",
+    "Friends first top-ups earn {{percent}}% rebates": "友達の初回チャージは {{percent}}% 還元",
+    "Rebate tiers": "還元段階",
+    "Current tier": "現在の段階",
+    "Next tier": "次の段階",
+    "{{count}}+ friends": "{{count}}+ 人の友達"
   }
 }
