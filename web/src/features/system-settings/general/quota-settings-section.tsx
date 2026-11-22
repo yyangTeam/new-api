@@ -37,7 +37,6 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { formatQuota } from '@/lib/format'
 
-import { InviterRebateTiersEditor } from './inviter-rebate-tiers-editor'
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
 import {
@@ -52,6 +51,7 @@ import { SettingsSection } from '../components/settings-section'
 import { useSettingsForm } from '../hooks/use-settings-form'
 import { useUpdateOption } from '../hooks/use-update-option'
 import { validateInviterRebateTiers } from '../utils/inviter-rebate-tiers'
+import { InviterRebateTiersEditor } from './inviter-rebate-tiers-editor'
 
 const quotaSchema = z.object({
   QuotaForNewUser: z.coerce.number().min(0),
@@ -340,7 +340,7 @@ export function QuotaSettingsSection({
                   </FormControl>
                   <FormDescription>
                     {t(
-                      'Percentage of an invitee\'s credited top-up quota (online payments and redemption codes) credited to the inviter\'s invitation quota. 0 disables the flat rebate. Ignored when rebate tiers are configured.'
+                      "Percentage of an invitee's credited top-up quota (online payments and redemption codes) credited to the inviter's invitation quota. 0 disables the flat rebate. Ignored when rebate tiers are configured."
                     )}
                   </FormDescription>
                   <FormMessage />
@@ -396,7 +396,7 @@ export function QuotaSettingsSection({
                   </FormControl>
                   <FormDescription>
                     {t(
-                      'Rebate percent applied to an invitee\'s first successful top-up only; later top-ups use the regular percent. Not applied to redemption codes. 0 disables the first-top-up bonus.'
+                      "Rebate percent applied to an invitee's first successful top-up only; later top-ups use the regular percent. Not applied to redemption codes. 0 disables the first-top-up bonus."
                     )}
                   </FormDescription>
                   <FormMessage />
@@ -442,9 +442,7 @@ export function QuotaSettingsSection({
               name='InviterRebateMaxPerTopup'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
-                    {t('Inviter Rebate Max Per Top-Up')}
-                  </FormLabel>
+                  <FormLabel>{t('Inviter Rebate Max Per Top-Up')}</FormLabel>
                   <FormControl>
                     <Input
                       type='number'
@@ -513,7 +511,7 @@ export function QuotaSettingsSection({
                       </FormLabel>
                       <FormDescription>
                         {t(
-                          'Freeze the rebate for manual review when the invitee looks like the inviter\'s own second account (shared login IP or Stripe account, or two weaker signals combined). The frozen rebate never auto-releases; check the admin log to approve or void it. Enabled by default.'
+                          "Freeze the rebate for manual review when the invitee looks like the inviter's own second account (shared login IP or Stripe account, or two weaker signals combined). The frozen rebate never auto-releases; check the admin log to approve or void it. Enabled by default."
                         )}
                       </FormDescription>
                     </SettingsSwitchContent>

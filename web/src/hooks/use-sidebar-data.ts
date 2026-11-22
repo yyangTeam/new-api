@@ -165,6 +165,11 @@ export function useSidebarData(badges: SidebarBadges = {}): SidebarData {
             icon: Trophy,
           },
           {
+            title: t('Inviter Rebate Ledger'),
+            url: '/inviter-rebate/ledger',
+            icon: ClipboardList,
+          },
+          {
             title: t('System Info'),
             url: '/system-info',
             icon: ServerCog,

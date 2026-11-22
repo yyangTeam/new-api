@@ -47,8 +47,11 @@ export function useRankingsColumns(): ColumnDef<InviterRebateRankingRow>[] {
       header: t('Inviter'),
       meta: { mobileTitle: true },
       cell: ({ row }) => {
-        const { inviter_id: inviterId, username, display_name: displayName } =
-          row.original
+        const {
+          inviter_id: inviterId,
+          username,
+          display_name: displayName,
+        } = row.original
         const name = displayName || username
 
         // Hard-deleted inviters keep their ledger rows with empty user fields.
@@ -113,7 +116,7 @@ export function useRankingsColumns(): ColumnDef<InviterRebateRankingRow>[] {
       header: t('Rebate Total'),
       meta: { mobileBadge: true },
       cell: ({ row }) => (
-        <span className='font-medium font-mono text-sm tabular-nums'>
+        <span className='font-mono text-sm font-medium tabular-nums'>
           {formatQuota(row.getValue('granted_quota') as number)}
         </span>
       ),
@@ -135,7 +138,7 @@ export function useRankingsColumns(): ColumnDef<InviterRebateRankingRow>[] {
       accessorKey: 'locked_quota',
       header: t('Locked'),
       cell: ({ row }) => (
-        <span className='font-mono text-sm tabular-nums text-amber-600 dark:text-amber-400'>
+        <span className='font-mono text-sm text-amber-600 tabular-nums dark:text-amber-400'>
           {formatQuota(row.getValue('locked_quota') as number)}
         </span>
       ),

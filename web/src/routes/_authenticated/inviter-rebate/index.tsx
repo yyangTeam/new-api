@@ -19,20 +19,23 @@ For commercial licensing, please contact support@quantumnous.com
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import z from 'zod'
 
+import { InviterRebateRankings } from '@/features/inviter-rebate'
 import {
   DEFAULT_RANKING_METRIC,
   DEFAULT_RANKING_PERIOD,
   RANKING_METRIC_VALUES,
   RANKING_PERIOD_VALUES,
 } from '@/features/inviter-rebate/constants'
-import { InviterRebateRankings } from '@/features/inviter-rebate'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 const rankingsSearchSchema = z.object({
   page: z.number().optional().catch(1),
   pageSize: z.number().optional().catch(10),
-  metric: z.enum(RANKING_METRIC_VALUES).optional().catch(DEFAULT_RANKING_METRIC),
+  metric: z
+    .enum(RANKING_METRIC_VALUES)
+    .optional()
+    .catch(DEFAULT_RANKING_METRIC),
   period: z
     .enum(RANKING_PERIOD_VALUES)
     .optional()

@@ -76,3 +76,45 @@ export function getRankingPeriodOptions(
     label: t(RANKING_PERIODS[value].labelKey),
   }))
 }
+
+// ============================================================================
+// Inviter Rebate Ledger (admin)
+// ============================================================================
+
+// Mirrors model.InviterRebateStatus* backend constants.
+export const LEDGER_STATUS_VALUES = ['released', 'locked', 'voided'] as const
+export type LedgerStatus = (typeof LEDGER_STATUS_VALUES)[number]
+
+// Mirrors model.InviterRebateSource* backend constants.
+export const LEDGER_SOURCE_TYPE_VALUES = ['topup', 'redemption'] as const
+export type LedgerSourceType = (typeof LEDGER_SOURCE_TYPE_VALUES)[number]
+
+// Mirrors model.InviterRebateLocked* backend constants.
+const LEDGER_LOCKED_REASONS: Record<string, string> = {
+  awaiting_consume: 'Awaiting consumption unlock',
+  self_invite_suspect: 'Self-invite suspicion',
+}
+
+// Mirrors model.InviterRebateVoided* backend constants.
+const LEDGER_VOIDED_REASONS: Record<string, string> = {
+  inviter_missing: 'Inviter missing',
+  monthly_cap: 'Monthly cap reached',
+  lock_expired: 'Lock expired',
+  admin_void: 'Voided by admin',
+  refund: 'Source recharge refunded',
+  refund_underfunded: 'Source recharge refunded, inviter underfunded',
+}
+
+export function getLedgerReasonLabel(
+  t: TranslateFn,
+  status: string,
+  reason: string
+): string {
+  if (status === 'locked' && reason) {
+    return t(LEDGER_LOCKED_REASONS[reason] ?? reason)
+  }
+  if (status === 'voided' && reason) {
+    return t(LEDGER_VOIDED_REASONS[reason] ?? reason)
+  }
+  return ''
+}

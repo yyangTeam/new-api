@@ -26,10 +26,7 @@ import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { createServerError } from '@/lib/server-error-message'
 
 import { getInviterRebateRankings } from '../api'
-import {
-  DEFAULT_RANKING_METRIC,
-  DEFAULT_RANKING_PERIOD,
-} from '../constants'
+import { DEFAULT_RANKING_METRIC, DEFAULT_RANKING_PERIOD } from '../constants'
 import { useRankingsColumns } from './rankings-columns'
 
 const route = getRouteApi('/_authenticated/inviter-rebate/')

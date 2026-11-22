@@ -43,6 +43,60 @@ export type InviterRebateRankingRow = z.infer<
 >
 
 // ============================================================================
+// Inviter Rebate Ledger Schema & Types (admin)
+// ============================================================================
+
+// One ledger row per rebate grant, produced by
+// GET /api/inviter_rebate/ledger (admin only). Both usernames are empty
+// strings when the account was hard-deleted (render as "Deleted User").
+// locked_reason / voided_reason are admin-visible fields (the A-side
+// endpoints never expose them).
+export const inviterRebateLedgerRowSchema = z.object({
+  id: z.number(),
+  created_at: z.number(),
+  inviter_id: z.number(),
+  inviter_username: z.string(),
+  invitee_id: z.number(),
+  invitee_username: z.string(),
+  source_type: z.string(),
+  source_id: z.number(),
+  base_quota: z.number(),
+  percent: z.number(),
+  quota: z.number(),
+  status: z.string(),
+  locked_reason: z.string(),
+  voided_reason: z.string(),
+  released_at: z.number(),
+})
+
+export type InviterRebateLedgerRow = z.infer<
+  typeof inviterRebateLedgerRowSchema
+>
+
+// Summary card aggregation produced by GET /api/inviter_rebate/ledger/summary.
+// granted = released + locked (voided tracked separately); the suspect
+// columns aggregate locked(self_invite_suspect) rows for manual review.
+export interface InviterRebateLedgerSummary {
+  rebate_count: number
+  released_quota: number
+  locked_quota: number
+  voided_quota: number
+  granted_quota: number
+  suspect_count: number
+  suspect_locked_quota: number
+}
+
+// Result of POST /api/inviter_rebate/ledger/:id/{void,release,clawback}.
+// quota is the amount that actually moved (0 when nothing moved);
+// debt is the unrecovered remainder for underfunded clawbacks.
+export interface InviterRebateAdminOpResult {
+  row: InviterRebateLedgerRow
+  inviter_id: number
+  quota: number
+  debt: number
+}
+
+// ============================================================================
 // API Request/Response Types
 // ============================================================================
 
@@ -62,4 +116,37 @@ export interface GetInviterRebateRankingsResponse {
     page: number
     page_size: number
   }
+}
+
+// Zero/undefined values mean "no filter" on the backend.
+export interface GetInviterRebateLedgerParams {
+  inviter_id?: number
+  invitee_id?: number
+  status?: string
+  source_type?: string
+  p?: number
+  page_size?: number
+}
+
+export interface GetInviterRebateLedgerResponse {
+  success: boolean
+  message?: string
+  data?: {
+    items: InviterRebateLedgerRow[]
+    total: number
+    page: number
+    page_size: number
+  }
+}
+
+export interface GetInviterRebateLedgerSummaryResponse {
+  success: boolean
+  message?: string
+  data?: InviterRebateLedgerSummary
+}
+
+export interface InviterRebateAdminOpResponse {
+  success: boolean
+  message?: string
+  data?: InviterRebateAdminOpResult
 }

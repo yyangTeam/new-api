@@ -229,14 +229,14 @@ func handleInviterRebateAdminOp(c *gin.Context, action string, op func(int) (*mo
 }
 
 // AdminVoidInviterRebate 管理端人工作废一笔冻结返利（POST
-// /api/inviter_rebate/admin/ledger/:id/void）：locked 行翻
+// /api/inviter_rebate/ledger/:id/void）：locked 行翻
 // voided(admin_void) + 冻结池等额回落，详见 model.AdminVoidInviterRebate。
 func AdminVoidInviterRebate(c *gin.Context) {
 	handleInviterRebateAdminOp(c, "inviter_rebate.admin_void", model.AdminVoidInviterRebate)
 }
 
 // AdminReleaseInviterRebate 管理端人工放行一笔冻结返利（POST
-// /api/inviter_rebate/admin/ledger/:id/release）：locked 行翻 released +
+// /api/inviter_rebate/ledger/:id/release）：locked 行翻 released +
 // 邀请人 aff_quota/aff_history 入账 + 冻结池回落，详见
 // model.AdminReleaseInviterRebate。入账成功后给邀请人写一条可见系统日志。
 func AdminReleaseInviterRebate(c *gin.Context) {
@@ -250,7 +250,7 @@ func AdminReleaseInviterRebate(c *gin.Context) {
 }
 
 // AdminClawbackInviterRebate 来源充值退款回收（POST
-// /api/inviter_rebate/admin/ledger/:id/clawback）：管理员在支付平台确认
+// /api/inviter_rebate/ledger/:id/clawback）：管理员在支付平台确认
 // 退款后人工触发，按台账状态分三种口径回收，详见 model.AdminClawbackInviterRebate。
 // 回收到账时给邀请人写一条可见系统日志；产生欠账时另写一条仅管理员可见的
 // 告警日志（user_id=0），供站长人工决定是否追讨。

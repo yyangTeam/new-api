@@ -31,11 +31,11 @@ import { beforeEach, expect, test, vi } from 'vitest'
 import { api } from '@/lib/api'
 
 import { SettingsPageProvider } from '../../components/settings-page-context'
-import { QuotaSettingsSection } from '../quota-settings-section'
 import {
   INVITER_REBATE_MAX_TIERS,
   validateInviterRebateTiers,
 } from '../../utils/inviter-rebate-tiers'
+import { QuotaSettingsSection } from '../quota-settings-section'
 
 const baseDefaultValues = {
   QuotaForNewUser: 0,
@@ -97,7 +97,9 @@ type OptionPutCall = [url: string, data: { key: string; value: string }]
 
 function tierPutCalls(): OptionPutCall[] {
   const calls = vi.mocked(api.put).mock.calls as unknown as OptionPutCall[]
-  return calls.filter(([, data]) => data?.key === 'inviter_rebate_setting.tiers')
+  return calls.filter(
+    ([, data]) => data?.key === 'inviter_rebate_setting.tiers'
+  )
 }
 
 function getSavedTiersValue(): unknown {
@@ -196,9 +198,7 @@ test('add tier is capped at the maximum tier count', async () => {
   }))
   await renderTiersSettings(JSON.stringify(maxTiers))
 
-  expect(
-    screen.getByRole('button', { name: 'Add tier' })
-  ).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Add tier' })).toBeDisabled()
 })
 
 test.each([
