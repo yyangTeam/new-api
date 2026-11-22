@@ -33,6 +33,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { api } from '@/lib/api'
+import zh from '@/i18n/locales/zh.json'
 import { formatQuota } from '@/lib/format'
 import { Route as LedgerRoute } from '@/routes/_authenticated/inviter-rebate/ledger'
 import {
@@ -142,7 +143,10 @@ function mockLedgerActionApi(
   }))
 }
 
-async function renderLedgerTable(initialEntry = '/inviter-rebate/ledger') {
+async function renderLedgerTable(
+  initialEntry = '/inviter-rebate/ledger',
+  instance: typeof i18n = i18n
+) {
   const root = createRootRoute()
   const auth = createRoute({
     getParentRoute: () => root,
@@ -169,7 +173,7 @@ async function renderLedgerTable(initialEntry = '/inviter-rebate/ledger') {
   await router.load()
   render(
     <QueryClientProvider client={client}>
-      <I18nextProvider i18n={i18n}>
+      <I18nextProvider i18n={instance}>
         <RouterProvider router={router} />
       </I18nextProvider>
     </QueryClientProvider>
@@ -232,6 +236,18 @@ it('renders one action set per status and none for voided rows', async () => {
   expect(screen.getAllByRole('button', { name: 'Release' })).toHaveLength(1)
   expect(screen.getAllByRole('button', { name: 'Clawback' })).toHaveLength(1)
   expect(screen.getByText('—')).toBeInTheDocument()
+})
+
+it('renders reason labels translated when the zh locale provides them', async () => {
+  mockLedgerApi()
+  const language = createInstance()
+  await language.init({ lng: 'zh', resources: { zh }, initAsync: false })
+  await renderLedgerTable('/inviter-rebate/ledger', language)
+
+  // Regression: reason labels are dynamic t() keys resolved from the locale
+  // files; before the keys were added they fell back to English strings.
+  expect(await screen.findByText('疑似自邀')).toBeInTheDocument()
+  expect(screen.getByText('管理员作废')).toBeInTheDocument()
 })
 
 it('voids a locked rebate after confirmation and refreshes the ledger', async () => {

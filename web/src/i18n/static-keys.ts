@@ -917,4 +917,13 @@ export const STATIC_I18N_KEYS = [
   'Channel priorities changed. Refresh and try again.',
   'Invalid channel priority move',
   'Channel priority is outside the sortable range',
+  // Inviter rebate ledger locked/voided reason labels (features/inviter-rebate/constants.ts).
+  'Awaiting consumption unlock',
+  'Self-invite suspicion',
+  'Inviter missing',
+  'Monthly cap reached',
+  'Lock expired',
+  'Voided by admin',
+  'Source recharge refunded',
+  'Source recharge refunded, inviter underfunded',
 ] as const
