@@ -151,6 +151,11 @@ it('shows ledger buckets separately from transferable legacy rewards and bound-i
 
   await within(overview).findByText('Locked rebates')
   expect(get).toHaveBeenCalledWith('/api/inviter_rebate/my_summary')
+  // The rebate region carries a real heading so its prominence is also an
+  // accessibility contract, not only visual styling.
+  expect(
+    within(overview).getByRole('heading', { name: 'Recharge rebate overview' })
+  ).toBeVisible()
   const amounts = within(overview).getAllByRole('definition')
   expect(amounts.map((amount) => amount.textContent)).toEqual([
     '$10',

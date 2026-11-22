@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Share2 } from 'lucide-react'
+import { Share2, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
@@ -154,13 +154,19 @@ export function AffiliateRewardsCard(props: AffiliateRewardsCardProps) {
           className='min-w-0 space-y-4 p-3 pt-0 sm:p-4 sm:pt-0'
         >
           <Separator />
+          {/* 返利区域整块做主色渐变面板，让它在钱包页里第一眼可辨 */}
           <section
             aria-label={t('Recharge rebate overview')}
-            className='space-y-3'
+            className='from-primary/5 space-y-3 rounded-xl border bg-gradient-to-b to-transparent p-3 sm:p-4'
           >
-            <h4 className='text-sm font-semibold'>
-              {t('Recharge rebate overview')}
-            </h4>
+            <div className='flex min-w-0 items-center gap-2.5'>
+              <IconBadge tone='primary' size='title'>
+                <Sparkles aria-hidden='true' />
+              </IconBadge>
+              <h4 className='text-base font-bold tracking-tight sm:text-lg'>
+                {t('Recharge rebate overview')}
+              </h4>
+            </div>
             <InviterRebateSummary userId={props.userId} />
           </section>
           <Separator />

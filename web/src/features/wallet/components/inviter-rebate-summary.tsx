@@ -118,14 +118,14 @@ export function InviterRebateSummary(props: { userId: number }) {
   return (
     <div className='space-y-4' aria-busy={query.isFetching}>
       {/* 收益 hero：返利总额 + 「好友每充多少你得多少」的具体示例 */}
-      <div className='from-primary/10 via-primary/5 rounded-xl border bg-gradient-to-br to-transparent p-4 sm:p-5'>
+      <div className='from-primary/15 via-primary/10 rounded-xl border bg-gradient-to-br to-transparent p-4 sm:p-5'>
         <div className='flex flex-wrap items-end justify-between gap-x-8 gap-y-4'>
           <div className='min-w-0'>
             <p className='text-muted-foreground flex items-center gap-1.5 text-xs font-medium tracking-wider uppercase'>
               <Sparkles className='size-3.5' aria-hidden='true' />
               {t('Rebate Total')}
             </p>
-            <p className='text-foreground mt-1.5 font-mono text-2xl font-bold tracking-tight break-all tabular-nums sm:text-3xl'>
+            <p className='text-foreground mt-1.5 font-mono text-3xl font-bold tracking-tight break-all tabular-nums sm:text-4xl'>
               {formatQuotaWithCurrency(summary.granted_quota, { locale })}
             </p>
             <p className='text-muted-foreground mt-1 text-xs'>
@@ -133,7 +133,7 @@ export function InviterRebateSummary(props: { userId: number }) {
             </p>
           </div>
           {tier.current_percent > 0 && (
-            <div className='bg-background/80 min-w-0 rounded-lg border px-3.5 py-2.5'>
+            <div className='border-success/30 bg-success/5 min-w-0 rounded-lg border px-3.5 py-2.5'>
               <p className='text-muted-foreground text-[11px]'>
                 {t('For every {{topup}} your friends recharge', {
                   topup: formatQuotaWithCurrency(exampleTopUpQuota, {
@@ -141,7 +141,7 @@ export function InviterRebateSummary(props: { userId: number }) {
                   }),
                 })}
               </p>
-              <p className='text-success mt-0.5 font-mono text-lg font-bold tabular-nums'>
+              <p className='text-success mt-0.5 font-mono text-xl font-bold tabular-nums sm:text-2xl'>
                 {t('you earn {{rebate}}', {
                   rebate: formatQuotaWithCurrency(exampleRebateQuota, {
                     locale,
@@ -223,7 +223,7 @@ export function InviterRebateSummary(props: { userId: number }) {
                 key={`${step.min_invitees}-${step.percent}`}
                 className={cn(
                   'flex min-w-[6.5rem] flex-1 flex-col items-center gap-0.5 rounded-lg border px-3 py-2 text-center sm:flex-none sm:px-4',
-                  isCurrent && 'border-success/40 bg-success/10',
+                  isCurrent && 'border-success/60 bg-success/15',
                   isNext && 'border-warning/40 bg-warning/5',
                   index === 0 && ladder.length === 1 && 'border-primary/30'
                 )}
