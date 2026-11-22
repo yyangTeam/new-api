@@ -85,6 +85,11 @@ func InitOptionMap() {
 	common.OptionMap["Logo"] = common.Logo
 	common.OptionMap["ServerAddress"] = ""
 	common.OptionMap["TaskPublicAddress"] = system_setting.TaskPublicAddress
+	common.OptionMap["ImageGenerationUrl"] = common.ImageGenerationUrl
+	common.OptionMap["ImageGenerationOpenMode"] = common.ImageGenerationOpenMode
+	common.OptionMap["ModelMappedDisplayMode"] = strconv.Itoa(common.ModelMappedDisplayMode)
+	common.OptionMap["UpdateCheckApiBase"] = common.UpdateCheckApiBase
+	common.OptionMap["UpdateCheckRepo"] = common.UpdateCheckRepo
 	common.OptionMap["WorkerUrl"] = system_setting.WorkerUrl
 	common.OptionMap["WorkerValidKey"] = system_setting.WorkerValidKey
 	common.OptionMap["WorkerAllowHttpImageRequestEnabled"] = strconv.FormatBool(system_setting.WorkerAllowHttpImageRequestEnabled)
@@ -234,6 +239,11 @@ func LoadOptionsFromDatabase() error {
 }
 
 func SyncOptions(frequency int) {
+	// frequency <= 0 disables periodic sync; without this guard a 0 would
+	// spin with time.Sleep(0) and flood the log (one instance wrote 90+ GB).
+	if frequency <= 0 {
+		return
+	}
 	for {
 		time.Sleep(time.Duration(frequency) * time.Second)
 		common.SysLog(common.LogText("syncing options from database"))
@@ -407,7 +417,7 @@ func updateOptionMap(key string, value string) (err error) {
 	}
 
 	// 处理传统配置项...
-	if strings.HasSuffix(key, "Permission") {
+	if strings.HasSuffix(key, "Permission") || key == "ModelMappedDisplayMode" {
 		intValue, _ := strconv.Atoi(value)
 		switch key {
 		case "FileUploadPermission":
@@ -418,6 +428,8 @@ func updateOptionMap(key string, value string) (err error) {
 			common.ImageUploadPermission = intValue
 		case "ImageDownloadPermission":
 			common.ImageDownloadPermission = intValue
+		case "ModelMappedDisplayMode":
+			common.ModelMappedDisplayMode = intValue
 		}
 	}
 	if strings.HasSuffix(key, "Enabled") || key == "DefaultCollapseSidebar" || key == "DefaultUseAutoGroup" || key == "SMTPForceAuthLogin" || key == "SMTPInsecureSkipVerify" || key == "InviterRebateSelfInviteCheck" {
@@ -527,6 +539,14 @@ func updateOptionMap(key string, value string) (err error) {
 		common.SMTPFrom = value
 	case "SMTPToken":
 		common.SMTPToken = value
+	case "ImageGenerationUrl":
+		common.ImageGenerationUrl = value
+	case "ImageGenerationOpenMode":
+		common.ImageGenerationOpenMode = value
+	case "UpdateCheckApiBase":
+		common.UpdateCheckApiBase = value
+	case "UpdateCheckRepo":
+		common.UpdateCheckRepo = value
 	case "ServerAddress":
 		system_setting.ServerAddress = value
 	case "TaskPublicAddress":

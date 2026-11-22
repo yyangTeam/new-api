@@ -245,6 +245,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		finishReply()
 
 		if newAPIError == nil {
+			service.ResetChannelError(channel.Id)
 			service.MarkRequestPolicySuccess(c, relayInfo.StreamStatus)
 			relayInfo.LastError = nil
 			return
@@ -256,6 +257,7 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		decision := service.DecideRelayRetry(c, newAPIError, common.RetryTimes-retryParam.GetRetry())
 		service.RecordPolicyFailure(c, channel.Id, newAPIError, decision)
 		processChannelError(c, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError, relayInfo)
+		service.IncrementChannelError(channel.Id, channel.Name, newAPIError.Error())
 
 		if decision.Action != "retry" {
 			break
@@ -714,6 +716,7 @@ func executeTaskSubmissionWith(
 			break
 		}
 		if taskErr == nil {
+			service.ResetChannelError(channel.Id)
 			diagnostics.attemptSucceeded(retryParam.GetRetry()+1, result)
 			break
 		}
@@ -728,6 +731,7 @@ func executeTaskSubmissionWith(
 					common.GetContextKeyString(c, constant.ContextKeyChannelKey), channel.GetAutoBan()),
 				taskAPIError,
 				relayInfo)
+			service.IncrementChannelError(channel.Id, channel.Name, taskErr.Error.Error())
 		} else if requestplugin.Stopped(taskErr) {
 			// A request plugin stopped the attempt; its error log shows what
 			// the plugins did.

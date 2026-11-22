@@ -26,6 +26,8 @@ import type {
   SearchApiKeysParams,
   ApiKeyFormData,
   TokenAutoGroupsConfig,
+  BatchCreateApiKeysRequest,
+  BatchCreateApiKeysResponse,
 } from './types'
 
 // ============================================================================
@@ -99,6 +101,24 @@ export async function batchDeleteApiKeys(
   return res.data
 }
 
+// Batch update multiple API keys
+export async function batchUpdateApiKeys(
+  data: {
+    ids: number[]
+    expired_time?: number
+    remain_quota?: number
+    unlimited_quota?: boolean
+    model_limits?: string
+    allow_ips?: string
+    group?: string
+    cross_group_retry?: boolean
+    allow_user_quota_query?: boolean
+  }
+): Promise<ApiResponse<number>> {
+  const res = await api.put('/api/token/batch', data)
+  return res.data
+}
+
 // Update API key status (enable/disable)
 export async function updateApiKeyStatus(
   id: number,
@@ -123,5 +143,13 @@ export async function fetchTokenKeysBatch(ids: number[]): Promise<{
   data?: { keys: Record<number, string> }
 }> {
   const res = await api.post('/api/token/batch/keys', { ids })
+  return res.data
+}
+
+// Batch create multiple API keys
+export async function batchCreateApiKeys(
+  data: BatchCreateApiKeysRequest
+): Promise<ApiResponse<BatchCreateApiKeysResponse>> {
+  const res = await api.post('/api/token/batch/create', data)
   return res.data
 }

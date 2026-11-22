@@ -47,6 +47,7 @@ interface DateTimePickerProps {
   onChange?: (date: Date | undefined) => void
   placeholder?: string
   className?: string
+  disabled?: boolean
 }
 
 export function DateTimePicker({
@@ -54,6 +55,7 @@ export function DateTimePicker({
   onChange,
   placeholder,
   className,
+  disabled,
 }: DateTimePickerProps) {
   const { t, i18n } = useTranslation()
   const placeholderText = placeholder ?? t('Select date')
@@ -120,6 +122,7 @@ export function DateTimePicker({
           render={
             <Button
               variant='outline'
+              disabled={disabled}
               className={cn(
                 'flex-1 justify-between font-normal',
                 !date && 'text-muted-foreground'

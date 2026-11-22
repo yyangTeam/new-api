@@ -23,8 +23,12 @@ tiktoken_cache
 .gocache
 .gomodcache/
 .cache
+plans
+.tmp/
+.run-logs/
 .plans
-.claude
+.claude/*
+!.claude/skills/
 .cursor
 
 electron/node_modules
@@ -44,3 +48,7 @@ relaykit/relayconvert/chat_responses_live_local_test.go
 service/openaicompat/chat_responses_live_local_test.go
 go.work
 go.work.sum
+web/package-lock.json
+web/src/routeTree.gen.ts
+new-api-server
+deploy-data/

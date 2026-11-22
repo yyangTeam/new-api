@@ -63,7 +63,6 @@ const MODELS_SECTIONS = [
       />
     ),
   },
-
   {
     id: 'gemini',
     titleKey: 'Gemini',

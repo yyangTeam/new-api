@@ -21,7 +21,80 @@ const (
 
 	MsgRateLimitReached      = "rate_limit.reached"
 	MsgRateLimitTotalReached = "rate_limit.total_reached"
+)
 
+// Setting related messages
+const (
+	MsgSettingInvalidType      = "setting.invalid_type"
+	MsgSettingWebhookEmpty     = "setting.webhook_empty"
+	MsgSettingWebhookInvalid   = "setting.webhook_invalid"
+	MsgSettingEmailInvalid     = "setting.email_invalid"
+	MsgSettingBarkUrlEmpty     = "setting.bark_url_empty"
+	MsgSettingBarkUrlInvalid   = "setting.bark_url_invalid"
+	MsgSettingGotifyUrlEmpty   = "setting.gotify_url_empty"
+	MsgSettingGotifyTokenEmpty = "setting.gotify_token_empty"
+	MsgSettingGotifyUrlInvalid = "setting.gotify_url_invalid"
+	MsgSettingUrlMustHttp      = "setting.url_must_http"
+	MsgSettingCooldownInvalid  = "setting.cooldown_invalid"
+	MsgSettingSaved            = "setting.saved"
+)
+
+// Deployment related messages (io.net)
+const (
+	MsgDeploymentNotEnabled     = "deployment.not_enabled"
+	MsgDeploymentIdRequired     = "deployment.id_required"
+	MsgDeploymentContainerIdReq = "deployment.container_id_required"
+	MsgDeploymentNameEmpty      = "deployment.name_empty"
+	MsgDeploymentNameTaken      = "deployment.name_taken"
+	MsgDeploymentHardwareIdReq  = "deployment.hardware_id_required"
+	MsgDeploymentHardwareInvId  = "deployment.hardware_invalid_id"
+	MsgDeploymentApiKeyRequired = "deployment.api_key_required"
+	MsgDeploymentInvalidPayload = "deployment.invalid_payload"
+	MsgDeploymentNotFound       = "deployment.not_found"
+)
+
+// Performance related messages
+const (
+	MsgPerfDiskCacheCleared = "performance.disk_cache_cleared"
+	MsgPerfStatsReset       = "performance.stats_reset"
+	MsgPerfGcExecuted       = "performance.gc_executed"
+)
+
+// Ability related messages
+const (
+	MsgAbilityDbCorrupted   = "ability.db_corrupted"
+	MsgAbilityRepairRunning = "ability.repair_running"
+)
+
+// OAuth related messages
+const (
+	MsgOAuthInvalidCode     = "oauth.invalid_code"
+	MsgOAuthGetUserErr      = "oauth.get_user_error"
+	MsgOAuthAccountUsed     = "oauth.account_used"
+	MsgOAuthUnknownProvider = "oauth.unknown_provider"
+	MsgOAuthStateInvalid    = "oauth.state_invalid"
+	MsgOAuthNotEnabled      = "oauth.not_enabled"
+	MsgOAuthUserDeleted     = "oauth.user_deleted"
+	MsgOAuthUserBanned      = "oauth.user_banned"
+	MsgOAuthBindSuccess     = "oauth.bind_success"
+	MsgOAuthAlreadyBound    = "oauth.already_bound"
+	MsgOAuthNotAutoLinked   = "oauth.not_auto_linked"
+	MsgOAuthConnectFailed   = "oauth.connect_failed"
+	MsgOAuthTokenFailed     = "oauth.token_failed"
+	MsgOAuthUserInfoEmpty   = "oauth.user_info_empty"
+	MsgOAuthTrustLevelLow   = "oauth.trust_level_low"
+)
+
+// Model layer error messages (for translation in controller)
+const (
+	MsgRedeemFailed          = "redeem.failed"
+	MsgCreateDefaultTokenErr = "user.create_default_token_error"
+	MsgUuidDuplicate         = "common.uuid_duplicate"
+	MsgInvalidInput          = "common.invalid_input"
+)
+
+// Distributor related messages
+const (
 	MsgDistributorInvalidRequest               = "distributor.invalid_request"
 	MsgDistributorInvalidChannelId             = "distributor.invalid_channel_id"
 	MsgDistributorChannelDisabled              = "distributor.channel_disabled"
@@ -58,6 +131,7 @@ const (
 // recipient's language
 const (
 	MsgUserDefaultTokenName = "user.default_token_name"
+	MsgEmailFooter          = "email.footer"
 
 	MsgEmailVerificationSubject  = "email.verification.subject"
 	MsgEmailVerificationGreeting = "email.verification.greeting"
@@ -102,14 +176,19 @@ const (
 // Channel notices sent to administrators who receive them and to model update
 // watchers
 const (
-	MsgChannelNotifyDisabledSubject  = "channel.notify_disabled_subject"
-	MsgChannelNotifyDisabledContent  = "channel.notify_disabled_content"
-	MsgChannelNotifyEnabledSubject   = "channel.notify_enabled_subject"
-	MsgChannelNotifyEnabledContent   = "channel.notify_enabled_content"
-	MsgChannelNotifyScheduledSubject = "channel.notify_scheduled_subject"
-	MsgChannelTestCompletedSubject   = "channel.test_completed_subject"
-	MsgChannelTestCompletedContent   = "channel.test_completed_content"
-	MsgChannelResponseTimeExceeded   = "channel.response_time_exceeded"
+	MsgChannelNotifyDisabledSubject   = "channel.notify_disabled_subject"
+	MsgChannelNotifyDisabledContent   = "channel.notify_disabled_content"
+	MsgChannelNotifyEnabledSubject    = "channel.notify_enabled_subject"
+	MsgChannelNotifyEnabledContent    = "channel.notify_enabled_content"
+	MsgChannelNotifyScheduledSubject  = "channel.notify_scheduled_subject"
+	MsgChannelTestCompletedSubject    = "channel.test_completed_subject"
+	MsgChannelTestCompletedContent    = "channel.test_completed_content"
+	MsgChannelResponseTimeExceeded    = "channel.response_time_exceeded"
+	MsgChannelConsecutiveErrorSubject = "channel.consecutive_error_subject"
+	MsgChannelConsecutiveErrorContent = "channel.consecutive_error_content"
+	MsgChannelLatestError             = "channel.latest_error"
+	MsgChannelErrorRateSubject        = "channel.error_rate_subject"
+	MsgChannelErrorRateContent        = "channel.error_rate_content"
 
 	MsgChannelUpstreamUpdateNotifySubject   = "channel.upstream_update_notify_subject"
 	MsgChannelUpstreamUpdateSummary         = "channel.upstream_update_summary"

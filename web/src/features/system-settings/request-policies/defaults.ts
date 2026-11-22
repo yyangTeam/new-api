@@ -35,6 +35,12 @@ export type HealthSettings = {
     | 'scheduled_all'
     | 'auto_ban_only'
     | 'passive_recovery'
+  'monitor_setting.channel_error_notify_enabled': boolean
+  'monitor_setting.channel_consecutive_error_threshold': number
+  'monitor_setting.channel_error_rate_enabled': boolean
+  'monitor_setting.channel_error_rate_threshold': number
+  'monitor_setting.channel_error_rate_window_minutes': number
+  'monitor_setting.channel_error_rate_min_requests': number
 }
 export type RequestPolicySettings = RetrySettings &
   HealthSettings &
@@ -53,6 +59,12 @@ export const defaultRequestPolicySettings: RequestPolicySettings = {
   'monitor_setting.auto_test_channel_minutes': 10,
   'monitor_setting.channel_test_concurrency': 1,
   'monitor_setting.channel_test_mode': 'scheduled_all',
+  'monitor_setting.channel_error_notify_enabled': false,
+  'monitor_setting.channel_consecutive_error_threshold': 5,
+  'monitor_setting.channel_error_rate_enabled': false,
+  'monitor_setting.channel_error_rate_threshold': 0.8,
+  'monitor_setting.channel_error_rate_window_minutes': 5,
+  'monitor_setting.channel_error_rate_min_requests': 10,
   'channel_affinity_setting.enabled': false,
   'channel_affinity_setting.session_mode': '',
   'channel_affinity_setting.switch_on_success': true,

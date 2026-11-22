@@ -1329,6 +1329,13 @@ type UpdateUserSettingRequest struct {
 	GotifyUrl                        string  `json:"gotify_url,omitempty"`
 	GotifyToken                      string  `json:"gotify_token,omitempty"`
 	GotifyPriority                   int     `json:"gotify_priority,omitempty"`
+	FeishuWebhookUrl                 string  `json:"feishu_webhook_url,omitempty"`
+	FeishuWebhookSecret              string  `json:"feishu_webhook_secret,omitempty"`
+	QQBotAppID                       string  `json:"qqbot_app_id,omitempty"`
+	QQBotAppSecret                   string  `json:"qqbot_app_secret,omitempty"`
+	QQBotTargetType                  string  `json:"qqbot_target_type,omitempty"`
+	QQBotTargetId                    string  `json:"qqbot_target_id,omitempty"`
+	NotifyCooldownMinutes            int     `json:"notify_cooldown_minutes"`
 	UpstreamModelUpdateNotifyEnabled *bool   `json:"upstream_model_update_notify_enabled,omitempty"`
 	ChannelNotifyEnabled             *bool   `json:"channel_notify_enabled,omitempty"`
 	AcceptUnsetModelRatioModel       bool    `json:"accept_unset_model_ratio_model"`
@@ -1343,14 +1350,20 @@ func UpdateUserSetting(c *gin.Context) {
 	}
 
 	// 验证预警类型
-	if req.QuotaWarningType != dto.NotifyTypeEmail && req.QuotaWarningType != dto.NotifyTypeWebhook && req.QuotaWarningType != dto.NotifyTypeBark && req.QuotaWarningType != dto.NotifyTypeGotify {
-		common.ApiErrorT(c, "Invalid warning type")
+	if req.QuotaWarningType != dto.NotifyTypeEmail && req.QuotaWarningType != dto.NotifyTypeWebhook && req.QuotaWarningType != dto.NotifyTypeBark && req.QuotaWarningType != dto.NotifyTypeGotify && req.QuotaWarningType != dto.NotifyTypeFeishu && req.QuotaWarningType != dto.NotifyTypeQQBot {
+		common.ApiErrorI18n(c, i18n.MsgSettingInvalidType)
 		return
 	}
 
 	// 验证预警阈值，0 表示使用系统默认阈值
 	if req.QuotaWarningThreshold < 0 {
 		common.ApiErrorT(c, "Reminder threshold cannot be negative")
+		return
+	}
+
+	// 验证通知冷却时间
+	if req.NotifyCooldownMinutes < 0 || req.NotifyCooldownMinutes > 43200 {
+		common.ApiErrorI18n(c, i18n.MsgSettingCooldownInvalid)
 		return
 	}
 
@@ -1429,6 +1442,7 @@ func UpdateUserSetting(c *gin.Context) {
 	settings.QuotaWarningThreshold = req.QuotaWarningThreshold
 	settings.AcceptUnsetRatioModel = req.AcceptUnsetModelRatioModel
 	settings.RecordIpLog = req.RecordIpLog
+	settings.NotifyCooldownMinutes = req.NotifyCooldownMinutes
 	if req.QuotaWarningEnabled != nil {
 		settings.QuotaWarningEnabled = req.QuotaWarningEnabled
 	}
@@ -1446,6 +1460,9 @@ func UpdateUserSetting(c *gin.Context) {
 	settings.NotificationEmail = ""
 	settings.BarkUrl = ""
 	settings.GotifyUrl, settings.GotifyToken, settings.GotifyPriority = "", "", 0
+	settings.FeishuWebhookUrl, settings.FeishuWebhookSecret = "", ""
+	settings.QQBotAppID, settings.QQBotAppSecret = "", ""
+	settings.QQBotTargetType, settings.QQBotTargetId = "", ""
 	switch req.QuotaWarningType {
 	case dto.NotifyTypeWebhook:
 		settings.WebhookUrl = req.WebhookUrl
@@ -1463,6 +1480,14 @@ func UpdateUserSetting(c *gin.Context) {
 		} else {
 			settings.GotifyPriority = req.GotifyPriority
 		}
+	case dto.NotifyTypeFeishu:
+		settings.FeishuWebhookUrl = req.FeishuWebhookUrl
+		settings.FeishuWebhookSecret = req.FeishuWebhookSecret
+	case dto.NotifyTypeQQBot:
+		settings.QQBotAppID = req.QQBotAppID
+		settings.QQBotAppSecret = req.QQBotAppSecret
+		settings.QQBotTargetType = req.QQBotTargetType
+		settings.QQBotTargetId = req.QQBotTargetId
 	}
 
 	// 更新用户设置

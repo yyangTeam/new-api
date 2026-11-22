@@ -1,0 +1,1219 @@
+// Fork-added coverage tests for the controller package. Appended here per
+// the fork-aware convention (one coverage_test.go per package).
+package controller
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"runtime"
+	"strings"
+	"testing"
+
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
+	taskdto "github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/i18n"
+	"github.com/QuantumNous/new-api/middleware"
+	"github.com/QuantumNous/new-api/model"
+	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/relaykit/dto"
+	"github.com/QuantumNous/new-api/service"
+	"github.com/gin-gonic/gin"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// ---------------------------------------------------------------------------
+// channel.go pure helpers
+// ---------------------------------------------------------------------------
+
+func TestParseStatusFilter(t *testing.T) {
+	cases := []struct {
+		in   string
+		want int
+	}{
+		{"enabled", common.ChannelStatusEnabled},
+		{"ENABLED", common.ChannelStatusEnabled},
+		{"1", common.ChannelStatusEnabled},
+		{"disabled", 0},
+		{"0", 0},
+		{"DISABLED", 0},
+		{"", -1},
+		{"garbage", -1},
+		{"2", -1},
+	}
+	for _, tc := range cases {
+		t.Run(tc.in, func(t *testing.T) {
+			assert.Equal(t, tc.want, parseStatusFilter(tc.in))
+		})
+	}
+}
+
+func TestEqualStringPtr(t *testing.T) {
+	s1, s2 := "a", "a"
+	cases := []struct {
+		name string
+		a, b *string
+		want bool
+	}{
+		{"both nil", nil, nil, true},
+		{"a nil", nil, &s1, false},
+		{"b nil", &s1, nil, false},
+		{"equal", &s1, &s2, true},
+		{"unequal", &s1, lo.ToPtr("b"), false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, equalStringPtr(tc.a, tc.b))
+		})
+	}
+}
+
+func TestMultiKeyActionRequiresSensitiveWrite(t *testing.T) {
+	assert.True(t, multiKeyActionRequiresSensitiveWrite("delete_key"))
+	assert.True(t, multiKeyActionRequiresSensitiveWrite("delete_disabled_keys"))
+	assert.False(t, multiKeyActionRequiresSensitiveWrite("disable_key"))
+	assert.False(t, multiKeyActionRequiresSensitiveWrite("enable_key"))
+	assert.False(t, multiKeyActionRequiresSensitiveWrite("enable_all_keys"))
+	assert.False(t, multiKeyActionRequiresSensitiveWrite("disable_all_keys"))
+	assert.False(t, multiKeyActionRequiresSensitiveWrite("get_key_status"))
+	assert.False(t, multiKeyActionRequiresSensitiveWrite(""))
+}
+
+func TestClearChannelInfo(t *testing.T) {
+	t.Run("multi_key channel clears disabled metadata", func(t *testing.T) {
+		reason := "boom"
+		ts := int64(123)
+		ch := &model.Channel{}
+		ch.ChannelInfo.IsMultiKey = true
+		ch.ChannelInfo.MultiKeyDisabledReason = map[int]string{0: reason}
+		ch.ChannelInfo.MultiKeyDisabledTime = map[int]int64{0: ts}
+
+		clearChannelInfo(ch)
+
+		assert.Nil(t, ch.ChannelInfo.MultiKeyDisabledReason)
+		assert.Nil(t, ch.ChannelInfo.MultiKeyDisabledTime)
+	})
+
+	t.Run("non multi_key channel is a no-op", func(t *testing.T) {
+		reason := "boom"
+		ch := &model.Channel{}
+		ch.ChannelInfo.IsMultiKey = false
+		ch.ChannelInfo.MultiKeyDisabledReason = map[int]string{0: reason}
+
+		clearChannelInfo(ch)
+
+		// unchanged because the guard short-circuits when IsMultiKey is false
+		assert.Equal(t, reason, ch.ChannelInfo.MultiKeyDisabledReason[0])
+	})
+}
+
+func TestGetVertexArrayKeys(t *testing.T) {
+	t.Run("empty input returns nil keys and indices", func(t *testing.T) {
+		keys, indices, err := getVertexArrayKeys("")
+		require.NoError(t, err)
+		assert.Nil(t, keys)
+		assert.Nil(t, indices)
+	})
+
+	t.Run("string array is trimmed and empties dropped", func(t *testing.T) {
+		keys, indices, err := getVertexArrayKeys(`["  k1  ", "", "k2"]`)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"k1", "k2"}, keys)
+		assert.Equal(t, []int{0, 2}, indices)
+	})
+
+	t.Run("object array is JSON-encoded back to a string", func(t *testing.T) {
+		keys, indices, err := getVertexArrayKeys(`[{"k":"v"}, {"k":"v2"}]`)
+		require.NoError(t, err)
+		require.Len(t, keys, 2)
+		assert.Equal(t, []int{0, 1}, indices)
+		assert.Contains(t, keys[0], `"k":"v"`)
+		assert.Contains(t, keys[1], `"k":"v2"`)
+	})
+
+	t.Run("invalid JSON returns error", func(t *testing.T) {
+		_, _, err := getVertexArrayKeys(`[not json`)
+		assert.Error(t, err)
+	})
+
+	t.Run("all-empty array returns error", func(t *testing.T) {
+		_, _, err := getVertexArrayKeys(`["", "  "]`)
+		assert.Error(t, err)
+	})
+}
+
+// TestValidateChannel locks in the contract of the unified channel validator:
+// every provider-specific branch must reject invalid input and accept valid
+// input without depending on an HTTP context.
+func TestValidateChannel(t *testing.T) {
+	t.Run("nil channel errors", func(t *testing.T) {
+		require.Error(t, validateChannel(nil, true))
+	})
+
+	t.Run("NewAPI channel requires base URL", func(t *testing.T) {
+		ch := &model.Channel{Type: constant.ChannelTypeNewAPI}
+		err := validateChannel(ch, false)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "base URL")
+	})
+
+	t.Run("add without key errors", func(t *testing.T) {
+		ch := &model.Channel{Type: 1}
+		err := validateChannel(ch, true)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "channel cannot be empty")
+	})
+
+	t.Run("add with oversized model name errors", func(t *testing.T) {
+		huge := strings.Repeat("a", 256)
+		ch := &model.Channel{
+			Type:   1,
+			Key:    "sk-key",
+			Models: "gpt-4," + huge,
+		}
+		err := validateChannel(ch, true)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Model name is too long")
+	})
+
+	t.Run("VertexAI requires Other region JSON with default", func(t *testing.T) {
+		ch := &model.Channel{Type: constant.ChannelTypeVertexAi, Key: "k"}
+		err := validateChannel(ch, false)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Deployment region cannot be empty")
+
+		// missing default field
+		ch.Other = `{"region2": "us-east1"}`
+		err = validateChannel(ch, false)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "default")
+
+		// malformed JSON
+		ch.Other = `not json`
+		err = validateChannel(ch, false)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "valid JSON")
+
+		// valid
+		ch.Other = `{"default": "us-central1"}`
+		assert.NoError(t, validateChannel(ch, false))
+	})
+
+	t.Run("Codex key must be JSON object with access_token and account_id", func(t *testing.T) {
+		ch := &model.Channel{Type: constant.ChannelTypeCodex}
+
+		// add path: empty key is rejected by the generic "key required" guard
+		// before the Codex-specific JSON check, so use a non-JSON key here.
+		err := validateChannel(ch, true)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "channel cannot be empty")
+
+		// add path: non-JSON non-empty key is rejected by the Codex JSON check
+		ch.Key = "raw-key"
+		err = validateChannel(ch, true)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "JSON object")
+
+		// add path: JSON missing access_token
+		ch.Key = `{"account_id":"abc"}`
+		err = validateChannel(ch, true)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "access_token")
+
+		// add path: JSON missing account_id
+		ch.Key = `{"access_token":"tok"}`
+		err = validateChannel(ch, true)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "account_id")
+
+		// add path: valid
+		ch.Key = `{"access_token":"tok","account_id":"abc"}`
+		assert.NoError(t, validateChannel(ch, true))
+
+		// update path: empty key is allowed (skipped)
+		ch.Key = ""
+		assert.NoError(t, validateChannel(ch, false))
+
+		// update path: whitespace-only key is allowed
+		ch.Key = "   "
+		assert.NoError(t, validateChannel(ch, false))
+
+		// update path: non-JSON non-empty key is rejected
+		ch.Key = "raw-key"
+		err = validateChannel(ch, false)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "JSON object")
+	})
+
+	t.Run("plain OpenAI channel add with key and short models passes", func(t *testing.T) {
+		ch := &model.Channel{Type: 1, Key: "sk-key", Models: "gpt-4,gpt-3.5-turbo"}
+		assert.NoError(t, validateChannel(ch, true))
+	})
+}
+
+// ---------------------------------------------------------------------------
+// channel-test.go pure helpers
+// ---------------------------------------------------------------------------
+
+func TestNormalizeChannelTestEndpoint(t *testing.T) {
+	t.Run("explicit endpoint is trimmed but otherwise preserved", func(t *testing.T) {
+		assert.Equal(t, "openai", normalizeChannelTestEndpoint(&model.Channel{}, "openai"))
+		// leading/trailing whitespace is trimmed by normalizeChannelTestEndpoint
+		assert.Equal(t, "anthropic", normalizeChannelTestEndpoint(&model.Channel{}, "  anthropic "))
+	})
+
+	t.Run("Codex channel yields responses endpoint", func(t *testing.T) {
+		ch := &model.Channel{Type: constant.ChannelTypeCodex}
+		got := normalizeChannelTestEndpoint(ch, "")
+		assert.Equal(t, string(constant.EndpointTypeOpenAIResponse), got)
+	})
+
+	t.Run("non-Codex channel with no suffix yields empty", func(t *testing.T) {
+		ch := &model.Channel{Type: 1}
+		assert.Equal(t, "", normalizeChannelTestEndpoint(ch, ""))
+	})
+
+	t.Run("nil channel with plain model yields empty", func(t *testing.T) {
+		assert.Equal(t, "", normalizeChannelTestEndpoint(nil, ""))
+	})
+}
+
+func TestShouldUseStreamForAutomaticChannelTest(t *testing.T) {
+	assert.True(t, shouldUseStreamForAutomaticChannelTest(&model.Channel{Type: constant.ChannelTypeCodex}))
+	assert.False(t, shouldUseStreamForAutomaticChannelTest(&model.Channel{Type: 1}))
+	assert.False(t, shouldUseStreamForAutomaticChannelTest(nil))
+}
+
+func TestDetectErrorMessageFromJSONBytes(t *testing.T) {
+	cases := []struct {
+		name string
+		in   []byte
+		want string
+	}{
+		{"empty", nil, ""},
+		{"not json", []byte("plain text"), ""},
+		{"no error field", []byte(`{"foo":"bar"}`), ""},
+		{"error.message", []byte(`{"error":{"message":"boom"}}`), "boom"},
+		{"error.error.message nested", []byte(`{"error":{"error":{"message":"deep"}}}`), "deep"},
+		{"error string value", []byte(`{"error":"str-msg"}`), "str-msg"},
+		{"error null", []byte(`{"error":null}`), ""},
+		{"error object without message falls back to raw", []byte(`{"error":{"x":1}}`), `{"x":1}`},
+		{"error empty object yields generic", []byte(`{}`), ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, detectErrorMessageFromJSONBytes(tc.in))
+		})
+	}
+}
+
+func TestDetectErrorFromTestResponseBody(t *testing.T) {
+	t.Run("empty body no error", func(t *testing.T) {
+		assert.NoError(t, detectErrorFromTestResponseBody(nil))
+	})
+
+	t.Run("json error surfaced", func(t *testing.T) {
+		err := detectErrorFromTestResponseBody([]byte(`{"error":{"message":"bad"}}`))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "bad")
+	})
+
+	t.Run("stream data line error surfaced", func(t *testing.T) {
+		body := []byte("data: {\"error\":{\"message\":\"stream-fail\"}}\n\ndata: [DONE]\n\n")
+		err := detectErrorFromTestResponseBody(body)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "stream-fail")
+	})
+
+	t.Run("non-error json body no error", func(t *testing.T) {
+		assert.NoError(t, detectErrorFromTestResponseBody([]byte(`{"choices":[]}`)))
+	})
+}
+
+func TestValidateStreamTestResponseBody(t *testing.T) {
+	t.Run("empty errors", func(t *testing.T) {
+		err := validateStreamTestResponseBody(nil)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "empty")
+	})
+
+	t.Run("valid first event passes", func(t *testing.T) {
+		body := []byte("data: {\"id\":\"x\"}\n\ndata: [DONE]\n\n")
+		assert.NoError(t, validateStreamTestResponseBody(body))
+	})
+
+	t.Run("only done marker errors", func(t *testing.T) {
+		err := validateStreamTestResponseBody([]byte("data: [DONE]\n\n"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "does not contain")
+	})
+
+	t.Run("non-data lines errors", func(t *testing.T) {
+		err := validateStreamTestResponseBody([]byte(": comment\n\nsome text"))
+		require.Error(t, err)
+	})
+}
+
+func TestValidateTestResponseBody(t *testing.T) {
+	t.Run("non-stream with error returns error", func(t *testing.T) {
+		err := validateTestResponseBody([]byte(`{"error":{"message":"x"}}`), false)
+		require.Error(t, err)
+	})
+
+	t.Run("non-stream clean body passes", func(t *testing.T) {
+		assert.NoError(t, validateTestResponseBody([]byte(`{"ok":true}`), false))
+	})
+
+	t.Run("stream delegates to stream validator", func(t *testing.T) {
+		err := validateTestResponseBody(nil, true)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "empty")
+	})
+}
+
+func TestCoerceTestUsage(t *testing.T) {
+	t.Run("nil non-stream errors", func(t *testing.T) {
+		_, err := coerceTestUsage(nil, false, 0)
+		assert.Error(t, err)
+	})
+
+	t.Run("nil stream falls back to estimate", func(t *testing.T) {
+		u, err := coerceTestUsage(nil, true, 42)
+		require.NoError(t, err)
+		require.NotNil(t, u)
+		assert.Equal(t, 42, u.PromptTokens)
+		assert.Equal(t, 42, u.TotalTokens)
+	})
+
+	t.Run("default type stream falls back to estimate", func(t *testing.T) {
+		u, err := coerceTestUsage("not a usage", true, 7)
+		require.NoError(t, err)
+		require.NotNil(t, u)
+		assert.Equal(t, 7, u.PromptTokens)
+	})
+
+	t.Run("default type non-stream errors", func(t *testing.T) {
+		_, err := coerceTestUsage("not a usage", false, 0)
+		assert.Error(t, err)
+	})
+
+	t.Run("pointer usage returned directly", func(t *testing.T) {
+		in := &dto.Usage{PromptTokens: 5}
+		u, err := coerceTestUsage(in, false, 0)
+		require.NoError(t, err)
+		assert.Same(t, in, u)
+	})
+
+	t.Run("value usage returns copy pointer", func(t *testing.T) {
+		in := dto.Usage{PromptTokens: 9, CompletionTokens: 3}
+		u, err := coerceTestUsage(in, false, 0)
+		require.NoError(t, err)
+		require.NotNil(t, u)
+		assert.Equal(t, 9, u.PromptTokens)
+		assert.Equal(t, 3, u.CompletionTokens)
+	})
+}
+
+func TestReadTestResponseBody(t *testing.T) {
+	t.Run("non-stream reads everything", func(t *testing.T) {
+		body := io.NopCloser(bytes.NewReader([]byte("hello world")))
+		out, err := readTestResponseBody(body, false)
+		require.NoError(t, err)
+		assert.Equal(t, "hello world", string(out))
+	})
+
+	t.Run("stream is capped at 8KiB", func(t *testing.T) {
+		big := bytes.Repeat([]byte("a"), 10*1024)
+		body := io.NopCloser(bytes.NewReader(big))
+		out, err := readTestResponseBody(body, true)
+		require.NoError(t, err)
+		assert.Equal(t, 8<<10, len(out))
+	})
+}
+
+func TestBuildTestRequest(t *testing.T) {
+	t.Run("rerank auto-detected from model name", func(t *testing.T) {
+		req, ok := buildTestRequest("bge-rerank-v2", "", &model.Channel{Type: 1}, false).(*dto.RerankRequest)
+		require.True(t, ok)
+		assert.Equal(t, "bge-rerank-v2", req.Model)
+	})
+
+	t.Run("embedding auto-detected from model name", func(t *testing.T) {
+		req, ok := buildTestRequest("text-embedding-3", "", &model.Channel{Type: 1}, false).(*dto.EmbeddingRequest)
+		require.True(t, ok)
+		assert.Equal(t, "text-embedding-3", req.Model)
+	})
+
+	t.Run("m3e prefix triggers embedding", func(t *testing.T) {
+		_, ok := buildTestRequest("m3e-base", "", &model.Channel{Type: 1}, false).(*dto.EmbeddingRequest)
+		assert.True(t, ok)
+	})
+
+	t.Run("bge substring triggers embedding", func(t *testing.T) {
+		_, ok := buildTestRequest("my-bge-model", "", &model.Channel{Type: 1}, false).(*dto.EmbeddingRequest)
+		assert.True(t, ok)
+	})
+
+	t.Run("codex in name triggers responses request", func(t *testing.T) {
+		req, ok := buildTestRequest("codex-1", "", &model.Channel{Type: 1}, false).(*dto.OpenAIResponsesRequest)
+		require.True(t, ok)
+		assert.Equal(t, "codex-1", req.Model)
+	})
+
+	t.Run("explicit embeddings endpoint type", func(t *testing.T) {
+		req, ok := buildTestRequest("m", string(constant.EndpointTypeEmbeddings), &model.Channel{Type: 1}, false).(*dto.EmbeddingRequest)
+		require.True(t, ok)
+		assert.Equal(t, "m", req.Model)
+	})
+
+	t.Run("explicit image generation endpoint type", func(t *testing.T) {
+		req, ok := buildTestRequest("dall-e-3", string(constant.EndpointTypeImageGeneration), &model.Channel{Type: 1}, false).(*dto.ImageRequest)
+		require.True(t, ok)
+		assert.Equal(t, "dall-e-3", req.Model)
+		assert.Equal(t, "1024x1024", req.Size)
+	})
+
+	t.Run("explicit rerank endpoint type", func(t *testing.T) {
+		_, ok := buildTestRequest("r", string(constant.EndpointTypeJinaRerank), &model.Channel{Type: 1}, false).(*dto.RerankRequest)
+		assert.True(t, ok)
+	})
+
+	t.Run("explicit openai-response endpoint type", func(t *testing.T) {
+		req, ok := buildTestRequest("resp", string(constant.EndpointTypeOpenAIResponse), &model.Channel{Type: 1}, true).(*dto.OpenAIResponsesRequest)
+		require.True(t, ok)
+		require.True(t, *req.Stream)
+	})
+
+	t.Run("explicit compact endpoint type", func(t *testing.T) {
+		_, ok := buildTestRequest("resp", string(constant.EndpointTypeOpenAIResponseCompact), &model.Channel{Type: 1}, false).(*dto.OpenAIResponsesCompactionRequest)
+		assert.True(t, ok)
+	})
+
+	t.Run("explicit anthropic endpoint type", func(t *testing.T) {
+		req, ok := buildTestRequest("claude-3", string(constant.EndpointTypeAnthropic), &model.Channel{Type: 1}, false).(*dto.ClaudeRequest)
+		require.True(t, ok)
+		assert.Equal(t, "claude-3", req.Model)
+	})
+
+	t.Run("explicit gemini endpoint type", func(t *testing.T) {
+		req, ok := buildTestRequest("gemini-1.5", string(constant.EndpointTypeGemini), &model.Channel{Type: 1}, false).(*dto.GeminiChatRequest)
+		require.True(t, ok)
+		require.Len(t, req.Contents, 1)
+	})
+
+	t.Run("explicit openai endpoint type non-stream omits stream options", func(t *testing.T) {
+		req, ok := buildTestRequest("gpt-4", string(constant.EndpointTypeOpenAI), &model.Channel{Type: 1}, false).(*dto.GeneralOpenAIRequest)
+		require.True(t, ok)
+		require.False(t, *req.Stream)
+		assert.Nil(t, req.StreamOptions)
+	})
+
+	t.Run("explicit openai endpoint type stream sets include usage", func(t *testing.T) {
+		req, ok := buildTestRequest("gpt-4", string(constant.EndpointTypeOpenAI), &model.Channel{Type: 1}, true).(*dto.GeneralOpenAIRequest)
+		require.True(t, ok)
+		require.True(t, *req.Stream)
+		require.NotNil(t, req.StreamOptions)
+		assert.True(t, req.StreamOptions.IncludeUsage)
+	})
+
+	t.Run("default chat request for reasoning-o model uses max_completion_tokens", func(t *testing.T) {
+		req, ok := buildTestRequest("o1-preview", "", &model.Channel{Type: 1}, false).(*dto.GeneralOpenAIRequest)
+		require.True(t, ok)
+		require.NotNil(t, req.MaxCompletionTokens)
+		assert.Nil(t, req.MaxTokens)
+	})
+
+	t.Run("default chat request for thinking non-claude model caps max_tokens", func(t *testing.T) {
+		req, ok := buildTestRequest("deepseek-thinking", "", &model.Channel{Type: 1}, false).(*dto.GeneralOpenAIRequest)
+		require.True(t, ok)
+		require.NotNil(t, req.MaxTokens)
+		assert.Equal(t, uint(50), *req.MaxTokens)
+	})
+
+	t.Run("default chat request for gemini model caps max_tokens at 3000", func(t *testing.T) {
+		req, ok := buildTestRequest("gemini-1.5-pro", "", &model.Channel{Type: 1}, false).(*dto.GeneralOpenAIRequest)
+		require.True(t, ok)
+		require.NotNil(t, req.MaxTokens)
+		assert.Equal(t, uint(3000), *req.MaxTokens)
+	})
+
+	t.Run("default chat request for plain model caps max_tokens at 16", func(t *testing.T) {
+		req, ok := buildTestRequest("gpt-4o", "", &model.Channel{Type: 1}, true).(*dto.GeneralOpenAIRequest)
+		require.True(t, ok)
+		require.NotNil(t, req.MaxTokens)
+		assert.Equal(t, uint(16), *req.MaxTokens)
+		require.True(t, *req.Stream)
+		require.NotNil(t, req.StreamOptions)
+	})
+
+	t.Run("thinking claude model leaves max_tokens nil", func(t *testing.T) {
+		req, ok := buildTestRequest("claude-thinking-1", "", &model.Channel{Type: 1}, false).(*dto.GeneralOpenAIRequest)
+		require.True(t, ok)
+		assert.Nil(t, req.MaxTokens)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// system_update.go pure helpers
+// ---------------------------------------------------------------------------
+
+func TestFindAssetURL(t *testing.T) {
+	assets := []releaseAsset{
+		{Name: "wrong", BrowserDownloadURL: "https://example.com/wrong"},
+		{Name: "new-api-v1.2.3", BrowserDownloadURL: "https://example.com/right"},
+	}
+	assert.Equal(t, "https://example.com/right", findAssetURL(assets, "new-api-v1.2.3"))
+	assert.Equal(t, "", findAssetURL(assets, "missing"))
+	assert.Equal(t, "", findAssetURL(nil, "anything"))
+}
+
+func TestBuildReleasesURL(t *testing.T) {
+	oldBase := common.UpdateCheckApiBase
+	oldRepo := common.UpdateCheckRepo
+	t.Cleanup(func() {
+		common.UpdateCheckApiBase = oldBase
+		common.UpdateCheckRepo = oldRepo
+	})
+
+	common.UpdateCheckApiBase = "https://api.github.com"
+	common.UpdateCheckRepo = "org/repo"
+	assert.Equal(t, "https://api.github.com/repos/org/repo/releases/latest", buildReleasesURL("/releases/latest"))
+
+	// trailing slash on base is trimmed
+	common.UpdateCheckApiBase = "https://api.github.com/"
+	assert.Equal(t, "https://api.github.com/repos/org/repo/releases/tags/v1", buildReleasesURL("/releases/tags/v1"))
+}
+
+func TestPickAssetName(t *testing.T) {
+	// The asset name embeds the running platform and tag; assert the observable
+	// contract for each supported platform so the release-workflow naming stays
+	// stable. The tag is always present.
+	name := pickAssetName("v0.0.1")
+	assert.Contains(t, name, "v0.0.1")
+
+	// Names must match the assets published by .github/workflows/release.yml.
+	switch {
+	case runtime.GOOS == "linux" && runtime.GOARCH == "amd64":
+		assert.Equal(t, "new-api-v0.0.1", name)
+	case runtime.GOOS == "linux" && runtime.GOARCH == "arm64":
+		assert.Equal(t, "new-api-arm64-v0.0.1", name)
+	case runtime.GOOS == "darwin":
+		// The release publishes a single macOS binary; both arches map to it.
+		assert.Equal(t, "new-api-macos-v0.0.1", name)
+	case runtime.GOOS == "windows" && runtime.GOARCH == "amd64":
+		assert.Equal(t, "new-api-v0.0.1.exe", name)
+	default:
+		assert.Equal(t, "new-api-"+runtime.GOOS+"-"+runtime.GOARCH+"-v0.0.1", name)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// oauth.go pure helpers
+// ---------------------------------------------------------------------------
+
+func TestProviderParams(t *testing.T) {
+	p := providerParams("GitHub")
+	assert.Equal(t, "GitHub", p["provider"])
+	assert.Len(t, p, 1)
+}
+
+func TestOAuthErrorTypesMessages(t *testing.T) {
+	assert.Equal(t, "user has been deleted", (&OAuthUserDeletedError{}).Error())
+	assert.Equal(t, "registration is disabled", (&OAuthRegistrationDisabledError{}).Error())
+	assert.Equal(t, "email is already in use", (&OAuthEmailAlreadyTakenError{}).Error())
+}
+
+// ---------------------------------------------------------------------------
+// relay.go pure helpers
+// ---------------------------------------------------------------------------
+
+func TestAddUsedChannelAppendsAndStores(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Set("use_channel", []string{"1"})
+
+	service.AppendUsedChannel(c, 7)
+
+	got, ok := c.Get("use_channel")
+	require.True(t, ok)
+	sl, ok := got.([]string)
+	require.True(t, ok)
+	assert.Equal(t, []string{"1", "7"}, sl)
+}
+
+func TestRespondTaskError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	t.Run("non-429 error passed through as-is", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		orig := &taskdto.TaskError{StatusCode: http.StatusBadGateway, Message: "boom", Code: "x"}
+		respondTaskError(c, orig)
+		assert.Equal(t, http.StatusBadGateway, w.Code)
+		// message unchanged
+		assert.Contains(t, w.Body.String(), "boom")
+	})
+
+	t.Run("429 message rewritten to saturation hint", func(t *testing.T) {
+		require.NoError(t, i18n.Init())
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/relay", nil)
+		c.Request.Header.Set("Accept-Language", "en")
+		orig := &taskdto.TaskError{StatusCode: http.StatusTooManyRequests, Message: "orig", Code: "x"}
+		respondTaskError(c, orig)
+		assert.Equal(t, http.StatusTooManyRequests, w.Code)
+		assert.Contains(t, orig.Message, "at capacity")
+	})
+}
+
+// ---------------------------------------------------------------------------
+// user.go pure helpers (DB-free where possible)
+// ---------------------------------------------------------------------------
+
+func TestCanManageTargetRole(t *testing.T) {
+	cases := []struct {
+		name           string
+		myRole, target int
+		want           bool
+	}{
+		{"root manages anyone", common.RoleRootUser, common.RoleCommonUser, true},
+		{"root manages admin", common.RoleRootUser, common.RoleAdminUser, true},
+		{"admin manages common", common.RoleAdminUser, common.RoleCommonUser, true},
+		{"admin cannot manage equal admin", common.RoleAdminUser, common.RoleAdminUser, false},
+		{"admin cannot manage root", common.RoleAdminUser, common.RoleRootUser, false},
+		{"common cannot manage admin", common.RoleCommonUser, common.RoleAdminUser, false},
+		{"common cannot manage equal", common.RoleCommonUser, common.RoleCommonUser, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, canManageTargetRole(tc.myRole, tc.target))
+		})
+	}
+}
+
+func TestCalculateUserPermissions(t *testing.T) {
+	t.Run("root has no sidebar_settings and empty modules", func(t *testing.T) {
+		p := calculateUserPermissions(common.RoleRootUser)
+		assert.False(t, p["sidebar_settings"].(bool))
+		mod, ok := p["sidebar_modules"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Empty(t, mod)
+	})
+
+	t.Run("admin has sidebar_settings and admin.setting=false", func(t *testing.T) {
+		p := calculateUserPermissions(common.RoleAdminUser)
+		assert.True(t, p["sidebar_settings"].(bool))
+		mod := p["sidebar_modules"].(map[string]interface{})
+		admin := mod["admin"].(map[string]interface{})
+		assert.False(t, admin["setting"].(bool))
+	})
+
+	t.Run("common user has sidebar_settings and admin=false", func(t *testing.T) {
+		p := calculateUserPermissions(common.RoleCommonUser)
+		assert.True(t, p["sidebar_settings"].(bool))
+		mod := p["sidebar_modules"].(map[string]interface{})
+		// admin entry is a bool false, not a map
+		assert.Equal(t, false, mod["admin"])
+	})
+}
+
+func TestGenerateDefaultSidebarConfig(t *testing.T) {
+	t.Run("root config includes admin.setting=true", func(t *testing.T) {
+		cfg := generateDefaultSidebarConfig(common.RoleRootUser)
+		require.NotEmpty(t, cfg)
+		assert.Contains(t, cfg, `"chat"`)
+		assert.Contains(t, cfg, `"console"`)
+		assert.Contains(t, cfg, `"personal"`)
+		assert.Contains(t, cfg, `"admin"`)
+		assert.Contains(t, cfg, `"setting":true`)
+	})
+
+	t.Run("admin config includes admin.setting=false", func(t *testing.T) {
+		cfg := generateDefaultSidebarConfig(common.RoleAdminUser)
+		require.NotEmpty(t, cfg)
+		assert.Contains(t, cfg, `"admin"`)
+		// admin block present with setting:false
+		assert.Contains(t, cfg, `"setting":false`)
+	})
+
+	t.Run("common user config has no admin block", func(t *testing.T) {
+		cfg := generateDefaultSidebarConfig(common.RoleCommonUser)
+		require.NotEmpty(t, cfg)
+		assert.NotContains(t, cfg, `"admin"`)
+		assert.Contains(t, cfg, `"chat"`)
+		assert.Contains(t, cfg, `"console"`)
+		assert.Contains(t, cfg, `"personal"`)
+	})
+}
+
+func TestLoginMethodFromContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	// Each case pairs a request URL with the route template it should match.
+	// gin's test context does not populate FullPath, so we replay the request
+	// through a throwaway engine that has the template registered; the matched
+	// route sets FullPath and params on the context.
+	cases := []struct {
+		name     string
+		template string
+		url      string
+		want     string
+	}{
+		{"password login", "/api/user/login", "/api/user/login", "password"},
+		{"2fa login", "/api/user/login/2fa", "/api/user/login/2fa", "2fa"},
+		{"passkey finish", "/api/user/passkey/login/finish", "/api/user/passkey/login/finish", "passkey"},
+		{"wechat oauth", "/api/oauth/wechat", "/api/oauth/wechat", "wechat"},
+		{"telegram login", "/api/oauth/telegram/login", "/api/oauth/telegram/login", "telegram"},
+		{"generic oauth provider", "/api/oauth/:provider", "/api/oauth/discord", "oauth:discord"},
+		{"unknown path", "/api/unknown", "/api/unknown", "unknown"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := gin.New()
+			var got string
+			r.Handle(http.MethodPost, tc.template, func(c *gin.Context) {
+				// Read FullPath synchronously inside the handler; gin sets it
+				// before dispatching, and reading it here avoids Copy() which
+				// drops the unexported fullPath field.
+				got = loginMethodFromContext(c)
+			})
+			req := httptest.NewRequest(http.MethodPost, tc.url, nil)
+			r.ServeHTTP(httptest.NewRecorder(), req)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// channel.go DB-backed helpers (status filter applied to a real query)
+// ---------------------------------------------------------------------------
+
+// TestApplyChannelStatusFilterAndBuildChannelListQuery exercises the GORM
+// query shaping helpers against the SQLite fixture, locking in that the
+// enabled/disabled/all filter branches produce distinct WHERE clauses.
+func TestApplyChannelStatusFilterAndBuildChannelListQuery(t *testing.T) {
+	db := setupIntegrationDB(t)
+
+	seed := []*model.Channel{
+		{Name: "enabled-a", Type: 1, Status: common.ChannelStatusEnabled, Group: "default", CreatedTime: common.GetTimestamp()},
+		{Name: "enabled-b", Type: 2, Status: common.ChannelStatusEnabled, Group: "default", CreatedTime: common.GetTimestamp()},
+		{Name: "disabled-a", Type: 1, Status: common.ChannelStatusManuallyDisabled, Group: "default", CreatedTime: common.GetTimestamp()},
+	}
+	for _, ch := range seed {
+		require.NoError(t, db.Create(ch).Error)
+	}
+
+	t.Run("enabled filter returns only enabled channels", func(t *testing.T) {
+		var got []*model.Channel
+		err := applyChannelStatusFilter(db.Model(&model.Channel{}), common.ChannelStatusEnabled).Find(&got).Error
+		require.NoError(t, err)
+		assert.Len(t, got, 2)
+		for _, ch := range got {
+			assert.Equal(t, common.ChannelStatusEnabled, ch.Status)
+		}
+	})
+
+	t.Run("disabled filter returns only non-enabled channels", func(t *testing.T) {
+		var got []*model.Channel
+		err := applyChannelStatusFilter(db.Model(&model.Channel{}), 0).Find(&got).Error
+		require.NoError(t, err)
+		assert.Len(t, got, 1)
+		assert.Equal(t, "disabled-a", got[0].Name)
+	})
+
+	t.Run("all filter returns every channel", func(t *testing.T) {
+		var got []*model.Channel
+		err := applyChannelStatusFilter(db.Model(&model.Channel{}), -1).Find(&got).Error
+		require.NoError(t, err)
+		assert.Len(t, got, 3)
+	})
+
+	t.Run("buildChannelListQuery composes status and type filter", func(t *testing.T) {
+		// empty group short-circuits ApplyChannelGroupFilter (commonGroupCol is
+		// not initialized in the test fixture), so we exercise the status + type
+		// composition path which is the load-bearing logic of buildChannelListQuery.
+		// enabled + type 1 -> only enabled-a
+		var got []*model.Channel
+		err := buildChannelListQuery("", common.ChannelStatusEnabled, 1).Find(&got).Error
+		require.NoError(t, err)
+		require.Len(t, got, 1)
+		assert.Equal(t, "enabled-a", got[0].Name)
+	})
+
+	t.Run("buildChannelListQuery negative type filter ignores type", func(t *testing.T) {
+		var got []*model.Channel
+		err := buildChannelListQuery("", common.ChannelStatusEnabled, -1).Find(&got).Error
+		require.NoError(t, err)
+		assert.Len(t, got, 2)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// relay.go getChannel: nil ChannelMeta short-circuit (no external service)
+// ---------------------------------------------------------------------------
+
+// TestGetChannelNilChannelMetaBuildsStubFromContext exercises the early-return
+// branch of getChannel: when ChannelMeta is nil (e.g. a websocket/realtime
+// request whose channel was already resolved by middleware), the function
+// must synthesize a *model.Channel from context keys and return it without
+// calling the channel cache.
+func TestGetChannelNilChannelMetaBuildsStubFromContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Set("channel_id", 5)
+	c.Set("channel_type", 1)
+	c.Set("channel_name", "stub")
+	c.Set("auto_ban", false)
+
+	// Real RelayInfo with ChannelMeta left nil takes the early-return path.
+	info := &relaycommon.RelayInfo{}
+
+	ch, apiErr := getChannel(c, info, nil)
+	require.Nil(t, apiErr)
+	require.NotNil(t, ch)
+	assert.Equal(t, 5, ch.Id)
+	assert.Equal(t, 1, ch.Type)
+	assert.Equal(t, "stub", ch.Name)
+	require.NotNil(t, ch.AutoBan)
+	// auto_ban=false maps to AutoBan=0
+	assert.Equal(t, 0, *ch.AutoBan)
+}
+
+// TestGetChannelNilChannelMetaAutoBanTrue flips the auto_ban flag so the
+// AutoBan pointer is set to 1, covering the other side of the ternary.
+func TestGetChannelNilChannelMetaAutoBanTrue(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Set("channel_id", 8)
+	c.Set("channel_type", 2)
+	c.Set("channel_name", "stub2")
+	c.Set("auto_ban", true)
+
+	info := &relaycommon.RelayInfo{}
+	ch, apiErr := getChannel(c, info, nil)
+	require.Nil(t, apiErr)
+	require.NotNil(t, ch)
+	assert.Equal(t, 1, *ch.AutoBan)
+}
+
+func TestAccountSecurityEmailResendUsesLocalizedTemplate(t *testing.T) {
+	require.NoError(t, i18n.Init())
+	previousSystemName := common.SystemName
+	common.SystemName = "New API"
+	t.Cleanup(func() { common.SystemName = previousSystemName })
+
+	for _, tc := range []struct {
+		name        string
+		lang        string
+		defaultLang string
+		htmlLang    string
+		footer      string
+	}{
+		{"English", "en", "", "en", "This email was sent automatically by New API. Please do not reply."},
+		{"Simplified Chinese", "zhCN", "", "zh-CN", "此邮件由 New API 系统自动发送，请勿直接回复"},
+		{"Traditional Chinese", "zhTW", "", "zh-TW", "此郵件由 New API 系統自動發送，請勿直接回覆"},
+		{"Unspecified language", "", "zh-CN", "zh-CN", "此邮件由 New API 系统自动发送，请勿直接回复"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.defaultLang != "" {
+				previousDefaultLang := common.DefaultLanguage
+				common.DefaultLanguage = tc.defaultLang
+				t.Cleanup(func() { common.DefaultLanguage = previousDefaultLang })
+			}
+			configureEmailDelivery(t, map[string]string{
+				"EmailProvider": "resend",
+				"ResendApiKey":  "test-key",
+				"ResendFrom":    "sender@example.com",
+			})
+			var sentHTML string
+			http.DefaultTransport = emailHTTPTransport(func(request *http.Request) (*http.Response, error) {
+				var payload struct {
+					HTML string `json:"html"`
+				}
+				require.NoError(t, common.DecodeJson(request.Body, &payload))
+				sentHTML = payload.HTML
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader(`{"id":"email-test-id"}`)),
+					Header:     make(http.Header),
+				}, nil
+			})
+
+			require.NoError(t, service.NotifyAccountSecurityChange(tc.lang, "one@example.com", i18n.MsgSecurityEventPasswordUpdated))
+			assert.Contains(t, sentHTML, `<!DOCTYPE html>`)
+			assert.Contains(t, sentHTML, `<html lang="`+tc.htmlLang+`">`)
+			assert.Contains(t, sentHTML, tc.footer)
+			assert.Contains(t, sentHTML, i18n.Translate(tc.lang, i18n.MsgEmailSecurityNoticeAdvice))
+			assert.Equal(t, 1, strings.Count(sentHTML, `<!DOCTYPE html>`))
+		})
+	}
+}
+
+func TestAccountSecurityEmailSMTPUsesLocalizedTemplate(t *testing.T) {
+	require.NoError(t, i18n.Init())
+	previousSystemName := common.SystemName
+	common.SystemName = "New API"
+	t.Cleanup(func() { common.SystemName = previousSystemName })
+	configureEmailDelivery(t, map[string]string{"EmailProvider": "smtp"})
+	mailbox := newSecurityMailbox(t)
+
+	require.NoError(t, service.NotifyAccountSecurityChange("en", "one@example.com", i18n.MsgSecurityEventPasswordUpdated))
+	mailbox.mutex.Lock()
+	messages := append([]string(nil), mailbox.mail["one@example.com"]...)
+	mailbox.mutex.Unlock()
+	require.Len(t, messages, 1)
+	assert.Contains(t, messages[0], `<html lang="en">`)
+	assert.Contains(t, messages[0], "This email was sent automatically by New API. Please do not reply.")
+	assert.Contains(t, messages[0], i18n.Translate("en", i18n.MsgEmailSecurityNoticeAdvice))
+	assert.Equal(t, 1, strings.Count(messages[0], `<!DOCTYPE html>`))
+}
+
+// ---------------------------------------------------------------------------
+// token.go batch create/update — preserve the per-token quota-query switch
+// and the security audit that single-token routes already had.
+// ---------------------------------------------------------------------------
+
+// stubTokenUserAuth seeds the operator identity that TokenOperationAudit and the
+// batch handlers read, without spinning up the full session/JWT auth chain.
+func stubTokenUserAuth(userID int) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set("id", userID)
+		c.Set("username", "batch-audit-owner")
+		c.Set("role", common.RoleCommonUser)
+		c.Next()
+	}
+}
+
+// TestBatchCreateDefaultsAllowUserQuotaQuery locks in the merge requirement that
+// batch-created tokens inherit the same quota-query default as single-token
+// creation: on unless the caller explicitly turns it off.
+func TestBatchCreateDefaultsAllowUserQuotaQuery(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		field any // nil omits allow_user_quota_query from the request
+		want  bool
+	}{
+		{name: "omitting the field defaults on like single-token create", want: true},
+		{name: "explicit false keeps it off", field: false},
+		{name: "explicit true turns it on", field: true, want: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := setupTokenControllerTestDB(t)
+			body := map[string]any{
+				"names":           []string{"batch-quota"},
+				"expired_time":    -1,
+				"unlimited_quota": true,
+				"group":           "default",
+			}
+			if tc.field != nil {
+				body["allow_user_quota_query"] = tc.field
+			}
+			ctx, recorder := newAuthenticatedContext(t, http.MethodPost, "/api/token/batch/create", body, 1)
+			CreateTokenBatch(ctx)
+
+			response := decodeAPIResponse(t, recorder)
+			require.True(t, response.Success, response.Message)
+
+			var saved model.Token
+			require.NoError(t, db.Where("name = ?", "batch-quota").First(&saved).Error)
+			assert.Equal(t, tc.want, saved.AllowUserQuotaQuery)
+		})
+	}
+}
+
+// TestBatchUpdateAllowUserQuotaQuerySelective locks in that batch update only
+// touches the quota-query switch when the caller sends it; an omitted field
+// preserves each token's existing value, matching single-token update.
+func TestBatchUpdateAllowUserQuotaQuerySelective(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		seeding bool // initial AllowUserQuotaQuery on the seeded token
+		field   any  // nil omits allow_user_quota_query from the batch update
+		want    bool
+	}{
+		{name: "turning it on changes an off token", seeding: false, field: true, want: true},
+		{name: "turning it off changes an on token", seeding: true, field: false},
+		{name: "omitting it leaves an on token unchanged", seeding: true, want: true},
+		{name: "omitting it leaves an off token unchanged", seeding: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := setupTokenControllerTestDB(t)
+			token := seedToken(t, db, 1, "batch-update", "batch-update-key")
+			require.NoError(t, db.Model(token).Update("allow_user_quota_query", tc.seeding).Error)
+
+			body := map[string]any{"ids": []int{token.Id}}
+			if tc.field != nil {
+				body["allow_user_quota_query"] = tc.field
+			} else {
+				// The batch endpoint rejects an empty update, so send an unchanged
+				// group alongside the omitted quota field to exercise the selective path.
+				body["group"] = "default"
+			}
+			ctx, recorder := newAuthenticatedContext(t, http.MethodPut, "/api/token/batch", body, 1)
+			UpdateTokenBatch(ctx)
+
+			response := decodeAPIResponse(t, recorder)
+			require.True(t, response.Success, response.Message)
+
+			var saved model.Token
+			require.NoError(t, db.Where("id = ?", token.Id).First(&saved).Error)
+			assert.Equal(t, tc.want, saved.AllowUserQuotaQuery)
+		})
+	}
+}
+
+// setupBatchTokenAuditRouter wires the batch token routes through the
+// TokenOperationAudit middleware with a stub operator identity, so the audit
+// behavior of POST /api/token/batch/create and PUT /api/token/batch can be
+// observed without the full session/JWT auth chain.
+func setupBatchTokenAuditRouter(t *testing.T, userID int) *gin.Engine {
+	t.Helper()
+	db := setupTokenControllerTestDB(t)
+	require.NoError(t, db.AutoMigrate(&model.AuditLog{}))
+	router := gin.New()
+	tokenRoutes := router.Group("/api/token", stubTokenUserAuth(userID), middleware.TokenOperationAudit())
+	tokenRoutes.POST("/batch/create", CreateTokenBatch)
+	tokenRoutes.PUT("/batch", UpdateTokenBatch)
+	return router
+}
+
+// TestBatchTokenRoutesAreAuditedKeyless locks in that the batch create and
+// update routes record a security audit entry (closing the merge gap where they
+// fell through the audit middleware's default branch) and that the recorded
+// params never contain the generated token key.
+func TestBatchTokenRoutesAreAuditedKeyless(t *testing.T) {
+	t.Run("batch create records a keyless audit entry", func(t *testing.T) {
+		const userID = 1
+		router := setupBatchTokenAuditRouter(t, userID)
+		body, err := common.Marshal(map[string]any{
+			"names":           []string{"audit-batch"},
+			"expired_time":    -1,
+			"unlimited_quota": true,
+			"group":           "default",
+		})
+		require.NoError(t, err)
+		request := httptest.NewRequest(http.MethodPost, "/api/token/batch/create", bytes.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := decodeAPIResponse(t, recorder)
+		require.True(t, response.Success, recorder.Body.String())
+
+		var events []model.AuditLog
+		require.NoError(t, model.DB.Where("user_id = ? AND action = ?", userID, "token.create_batch").Find(&events).Error)
+		require.Len(t, events, 1, "POST /api/token/batch/create must record exactly one audit entry")
+		entry := events[0]
+		assert.True(t, entry.Success)
+		assert.Equal(t, "token.create_batch", entry.Action)
+
+		var created model.Token
+		require.NoError(t, model.DB.Where("name = ?", "audit-batch").First(&created).Error)
+		require.NotNil(t, entry.Other.Op)
+		paramsJSON, err := common.Marshal(entry.Other.Op.Params)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"total":1,"created":1,"failed":0}`, string(paramsJSON))
+		assert.NotContains(t, string(paramsJSON), created.Key)
+		assert.NotContains(t, entry.Content, created.Key)
+	})
+
+	t.Run("batch update records a keyless audit entry", func(t *testing.T) {
+		const userID = 1
+		router := setupBatchTokenAuditRouter(t, userID)
+		owned := seedToken(t, model.DB, userID, "audit-owned", "audit-owned-key-secret")
+		body, err := common.Marshal(map[string]any{"ids": []int{owned.Id}, "group": "default"})
+		require.NoError(t, err)
+		request := httptest.NewRequest(http.MethodPut, "/api/token/batch", bytes.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		response := decodeAPIResponse(t, recorder)
+		require.True(t, response.Success, recorder.Body.String())
+
+		var events []model.AuditLog
+		require.NoError(t, model.DB.Where("user_id = ? AND action = ?", userID, "token.update_batch").Find(&events).Error)
+		require.Len(t, events, 1, "PUT /api/token/batch must record exactly one audit entry")
+		entry := events[0]
+		assert.True(t, entry.Success)
+		assert.Equal(t, "token.update_batch", entry.Action)
+
+		require.NotNil(t, entry.Other.Op)
+		paramsJSON, err := common.Marshal(entry.Other.Op.Params)
+		require.NoError(t, err)
+		assert.JSONEq(t, fmt.Sprintf(`{"total":1,"requested_ids":[%d],"count":1}`, owned.Id), string(paramsJSON))
+		assert.NotContains(t, string(paramsJSON), owned.Key)
+		assert.NotContains(t, entry.Content, owned.Key)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// update_check.go — restore upstream RC/Beta detection through the dev proxy.
+// The proxy must return the published releases LIST (including pre-releases),
+// not GitHub's /releases/latest which excludes them, so the dashboard can
+// surface a newer RC/Beta than the latest stable release.
+// ---------------------------------------------------------------------------
+
+func TestGetLatestReleaseProxiesReleaseListWithPrereleases(t *testing.T) {
+	previousBase, previousRepo := common.UpdateCheckApiBase, common.UpdateCheckRepo
+	previousTransport := http.DefaultTransport
+	common.UpdateCheckApiBase = "https://update-check-test.example"
+	common.UpdateCheckRepo = "test/repo"
+	t.Cleanup(func() {
+		common.UpdateCheckApiBase, common.UpdateCheckRepo = previousBase, previousRepo
+		http.DefaultTransport = previousTransport
+	})
+
+	var capturedURL string
+	http.DefaultTransport = emailHTTPTransport(func(req *http.Request) (*http.Response, error) {
+		capturedURL = req.URL.String()
+		// GitHub /releases list shape: a stable release plus a newer pre-release.
+		body := `[` +
+			`{"tag_name":"v1.0.0","name":"v1.0.0","body":"stable","html_url":"https://example/v1.0.0","published_at":"2026-01-01T00:00:00Z","prerelease":false,"draft":false},` +
+			`{"tag_name":"v1.1.0-rc.1","name":"v1.1.0-rc.1","body":"rc","html_url":"https://example/rc","published_at":"2026-02-01T00:00:00Z","prerelease":true,"draft":false}` +
+			`]`
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(body)),
+			Header:     make(http.Header),
+		}, nil
+	})
+
+	ctx, recorder := newAuthenticatedContext(t, http.MethodGet, "/api/latest-release", nil, 1)
+	GetLatestRelease(ctx)
+
+	var resp struct {
+		Success bool `json:"success"`
+		Data    any  `json:"data"`
+	}
+	require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &resp))
+	require.True(t, resp.Success, recorder.Body.String())
+
+	// The proxy must request the releases LIST (per_page=100), not
+	// /releases/latest, so pre-release versions reach the dashboard.
+	assert.Contains(t, capturedURL, "/repos/test/repo/releases")
+	assert.Contains(t, capturedURL, "per_page=100")
+	assert.NotContains(t, capturedURL, "/releases/latest")
+
+	// data must be a list (not a single release) carrying prerelease/draft.
+	releases, ok := resp.Data.([]any)
+	require.True(t, ok, "data must be a release list, got %v", resp.Data)
+	require.Len(t, releases, 2)
+
+	var rc map[string]any
+	for _, r := range releases {
+		if m, ok := r.(map[string]any); ok && m["tag_name"] == "v1.1.0-rc.1" {
+			rc = m
+		}
+	}
+	require.NotNil(t, rc, "the pre-release must be present in the proxied list")
+	assert.Equal(t, true, rc["prerelease"])
+	assert.Equal(t, false, rc["draft"])
+}

@@ -362,6 +362,23 @@ function currentValidAuthBundle(): AuthBundle | null {
   }
 }
 
+export async function bootstrapAuthentication(): Promise<RefreshOutcome> {
+  const e2e = (window as any).__E2E_AUTH_BUNDLE__
+  if (e2e && isAuthBundle(e2e)) {
+    ;(window as any).__E2E_AUTH_BUNDLE__ = undefined
+    applyAuthBundle(e2e, false)
+    return { kind: 'authenticated', bundle: e2e }
+  }
+
+  if (!currentValidAuthBundle() && !hasSessionHint()) {
+    const auth = useAuthStore.getState().auth
+    if (!auth.user && !auth.session) {
+      return { kind: 'anonymous' }
+    }
+  }
+  return resolveAuthentication()
+}
+
 /**
  * Resolve authentication from memory, or from the server when memory is empty.
  *
@@ -385,26 +402,6 @@ export async function resolveAuthentication(): Promise<RefreshOutcome> {
 
   auth.setBootstrapState('checking')
   return refreshAuthentication()
-}
-
-/**
- * Resolve authentication on the public boot path, skipping a refresh that the
- * server's session hint says would fail.
- *
- * The skip leaves `bootstrapState` at `idle` rather than `complete`: a missing
- * hint is not a server verdict, so it must not be recorded as a finished
- * anonymous check. `resolveAuthentication` therefore still reaches the network
- * later, which is what lets a hintless visitor holding a valid Refresh Cookie
- * recover the moment authentication actually matters.
- */
-export async function bootstrapAuthentication(): Promise<RefreshOutcome> {
-  if (!currentValidAuthBundle() && !hasSessionHint()) {
-    const auth = useAuthStore.getState().auth
-    if (!auth.user && !auth.session) {
-      return { kind: 'anonymous' }
-    }
-  }
-  return resolveAuthentication()
 }
 
 export function getCommonHeaders(): Record<string, string> {

@@ -27,9 +27,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'node:test': path.resolve(__dirname, './src/test/node-test-shim.ts'),
+      'bun:test': path.resolve(__dirname, './src/test/node-test-shim.ts'),
     },
   },
   test: {
+    globals: true,
     environment: 'jsdom',
     server: {
       deps: { inline: [/@lobehub\//, /antd-style/] },
@@ -43,9 +46,34 @@ export default defineConfig({
     testTimeout: 20000,
     clearMocks: true,
     restoreMocks: true,
+    css: false,
     include: [
       'src/**/*.{test,spec}.{ts,tsx}',
       'scripts/oxlint/__tests__/*.test.ts',
     ],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/test/**',
+        'src/routeTree.gen.ts',
+        'src/env.d.ts',
+        'src/tanstack-table.d.ts',
+        'src/main.tsx',
+        'src/routes/**',
+        'src/i18n/locales/**',
+        'src/i18n/static-keys.ts',
+        'src/styles/**',
+        'src/assets/**',
+      ],
+      reporter: ['text', 'lcov', 'html'],
+      reportsDirectory: './coverage',
+      thresholds: {
+        lines: 35,
+        functions: 30,
+        branches: 30,
+        statements: 35,
+      },
+    },
   },
 })

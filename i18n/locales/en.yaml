@@ -14,6 +14,66 @@ auth.token_group_deprecated: "Group {{.Group}} has been deprecated"
 auth.channel_select_forbidden: "Regular users cannot specify a channel"
 rate_limit.reached: "You have reached the request limit: maximum {{.Max}} requests in {{.Minutes}} minutes"
 rate_limit.total_reached: "You have reached the total request limit: maximum {{.Max}} requests in {{.Minutes}} minutes, including failed attempts. Please check that your requests are correct"
+
+# Setting messages
+setting.invalid_type: "Invalid warning type"
+setting.webhook_empty: "Webhook URL cannot be empty"
+setting.webhook_invalid: "Invalid Webhook URL"
+setting.email_invalid: "Invalid email address"
+setting.bark_url_empty: "Bark push URL cannot be empty"
+setting.bark_url_invalid: "Invalid Bark push URL"
+setting.gotify_url_empty: "Gotify server URL cannot be empty"
+setting.gotify_token_empty: "Gotify token cannot be empty"
+setting.gotify_url_invalid: "Invalid Gotify server URL"
+setting.url_must_http: "URL must start with http:// or https://"
+setting.cooldown_invalid: "Notification cooldown must be between 0 and 43200 minutes"
+setting.saved: "Settings updated"
+
+# Deployment messages (io.net)
+deployment.not_enabled: "io.net model deployment is not enabled or API key is missing"
+deployment.id_required: "Deployment ID is required"
+deployment.container_id_required: "Container ID is required"
+deployment.name_empty: "Deployment name cannot be empty"
+deployment.name_taken: "Deployment name is not available, please choose a different name"
+deployment.hardware_id_required: "hardware_id parameter is required"
+deployment.hardware_invalid_id: "Invalid hardware_id parameter"
+deployment.api_key_required: "api_key is required"
+deployment.invalid_payload: "Invalid request payload"
+deployment.not_found: "Container details not found"
+
+# Performance messages
+performance.disk_cache_cleared: "Inactive disk cache has been cleared"
+performance.stats_reset: "Statistics have been reset"
+performance.gc_executed: "GC has been executed"
+
+# Ability messages
+ability.db_corrupted: "Database consistency has been compromised"
+ability.repair_running: "A repair task is already running, please try again later"
+
+# OAuth messages
+oauth.invalid_code: "Invalid authorization code"
+oauth.get_user_error: "Failed to get user information"
+oauth.account_used: "This account has been bound to another user"
+oauth.unknown_provider: "Unknown OAuth provider"
+oauth.state_invalid: "State parameter is empty or mismatched"
+oauth.not_enabled: "{{.Provider}} login and registration has not been enabled by administrator"
+oauth.user_deleted: "User has been deleted"
+oauth.user_banned: "User has been banned"
+oauth.bind_success: "Binding successful"
+oauth.already_bound: "This {{.Provider}} account has already been bound"
+oauth.not_auto_linked: "This {{.Provider}} account cannot be linked to an existing account automatically, please sign in or register another way and then link {{.Provider}} in account settings"
+oauth.connect_failed: "Unable to connect to {{.Provider}} server, please try again later"
+oauth.token_failed: "Failed to get token from {{.Provider}}, please check settings"
+oauth.user_info_empty: "{{.Provider}} returned empty user info, please check settings"
+oauth.trust_level_low: "Linux DO trust level does not meet the minimum required by administrator"
+
+# Model layer error messages
+redeem.failed: "Redemption failed, please try again later"
+user.create_default_token_error: "Failed to create default token"
+common.uuid_duplicate: "Please retry, the system generated a duplicate UUID!"
+common.invalid_input: "Invalid input"
+
+# Distributor messages
 distributor.invalid_request: "Invalid request: {{.Error}}"
 distributor.invalid_channel_id: "Invalid channel ID"
 distributor.channel_disabled: "This channel has been disabled"
@@ -46,6 +106,7 @@ relay.response_rejected: "Response stopped by policy"
 
 # Emails and the name of the token created at registration
 user.default_token_name: "{{.Username}}'s initial token"
+email.footer: "This email was sent automatically by {{.SystemName}}. Please do not reply."
 email.verification.subject: "{{.SystemName}} email verification"
 email.verification.greeting: "Hello, you are verifying your email address for {{.SystemName}}."
 email.verification.code: "Your verification code is: <strong>{{.Code}}</strong>"
@@ -87,6 +148,11 @@ channel.notify_enabled_content: "Channel \"{{.Name}}\" (#{{.Id}}) has been enabl
 channel.test_completed_subject: "Channel test completed"
 channel.test_completed_content: "All channel tests have completed"
 channel.response_time_exceeded: "response time {{.Seconds}}s exceeds the threshold of {{.Threshold}}s"
+channel.consecutive_error_subject: "Channel \"{{.Name}}\" (#{{.Id}}) failed {{.Count}} consecutive requests"
+channel.consecutive_error_content: "Channel \"{{.Name}}\" (#{{.Id}}) has failed {{.Count}} consecutive requests."
+channel.latest_error: "Latest error: {{.Error}}"
+channel.error_rate_subject: "Channel \"{{.Name}}\" (#{{.Id}}) error rate: {{.Rate}}%"
+channel.error_rate_content: "Channel \"{{.Name}}\" (#{{.Id}}) had a {{.Rate}}% error rate over the last {{.Window}} minutes ({{.Errors}}/{{.Total}} requests failed)."
 channel.upstream_update_notify_subject: "Upstream model check notice"
 channel.upstream_update_summary: "Upstream model check summary: {{.Checked}} channels checked, {{.Changed}} changed, {{.Added}} models added, {{.Removed}} models removed, {{.AutoAdded}} added automatically, {{.Failed}} failed."
 channel.upstream_update_changed_channels: "Changed channels (showing {{.Shown}}/{{.Total}}):"

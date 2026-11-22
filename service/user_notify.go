@@ -72,7 +72,7 @@ func NotifyUser(userId int, userEmail string, userSetting dto.UserSetting, data 
 	}
 
 	// Check notification limit
-	canSend, err := CheckNotificationLimit(userId, data.Type)
+	canSend, err := CheckNotificationLimit(userId, data.Type, userSetting.NotifyCooldownMinutes)
 	if err != nil {
 		common.SysLog(common.LogText("failed to check notification limit: %s", err.Error()))
 		return err
@@ -92,7 +92,7 @@ func NotifyUser(userId int, userEmail string, userSetting dto.UserSetting, data 
 			common.SysLog(common.LogText("user %d has no email, skip sending email", userId))
 			return nil
 		}
-		return sendEmailNotify(emailToUse, data)
+		return sendEmailNotify(userSetting.Language, emailToUse, data)
 	case dto.NotifyTypeWebhook:
 		webhookURLStr := userSetting.WebhookUrl
 		if webhookURLStr == "" {
@@ -118,18 +118,30 @@ func NotifyUser(userId int, userEmail string, userSetting dto.UserSetting, data 
 			return nil
 		}
 		return sendGotifyNotify(gotifyUrl, gotifyToken, userSetting.GotifyPriority, data)
+	case dto.NotifyTypeFeishu:
+		if userSetting.FeishuWebhookUrl == "" {
+			common.SysLog(fmt.Sprintf("user %d has no feishu webhook url, skip sending feishu", userId))
+			return nil
+		}
+		return sendFeishuNotify(userSetting.FeishuWebhookUrl, userSetting.FeishuWebhookSecret, data)
+	case dto.NotifyTypeQQBot:
+		if userSetting.QQBotAppID == "" {
+			common.SysLog(fmt.Sprintf("user %d has no qqbot app id, skip sending qqbot", userId))
+			return nil
+		}
+		return sendQQBotNotify(userSetting.QQBotAppID, userSetting.QQBotAppSecret, userSetting.QQBotTargetType, userSetting.QQBotTargetId, data)
 	}
 	return nil
 }
 
-func sendEmailNotify(userEmail string, data dto.Notify) error {
+func sendEmailNotify(lang, userEmail string, data dto.Notify) error {
 	// make email content
 	content := data.Content
 	// 处理占位符
 	for _, value := range data.Values {
 		content = strings.Replace(content, dto.ContentValueParam, fmt.Sprintf("%v", value), 1)
 	}
-	return common.SendEmail(data.Title, userEmail, content)
+	return SendEmail(lang, data.Title, userEmail, content)
 }
 
 func sendBarkNotify(barkURL string, data dto.Notify) error {

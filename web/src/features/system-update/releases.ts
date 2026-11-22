@@ -24,6 +24,7 @@ export const systemReleaseSchema = z.object({
   body: z.string().nullable().optional(),
   published_at: z.iso.datetime().nullable().optional(),
   prerelease: z.boolean(),
+  html_url: z.string().nullable().optional(),
 })
 
 export type SystemRelease = z.infer<typeof systemReleaseSchema>
@@ -111,5 +112,6 @@ export function selectLatestRelease(payload: unknown): SystemRelease | null {
 }
 
 export function getSystemReleaseUrl(release: SystemRelease): string {
+  if (release.html_url) return release.html_url
   return `https://github.com/QuantumNous/new-api/releases/tag/${encodeURIComponent(release.tag_name)}`
 }

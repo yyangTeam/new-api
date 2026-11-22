@@ -151,10 +151,13 @@ Tasks that touch none of these (for example unrelated frontend work, authenticat
 - Avoid hand-written assertion helpers unless they encode a reusable project-specific invariant.
 - When cleaning tests, preserve meaningful regression coverage. If a deleted test covered a real contract indirectly, replace it with a smaller test that asserts that contract directly.
 
-**Documentation files:**
+**Test file organization (fork-aware):** This repository is a fork. Tests authored in the upstream source repository MUST be left untouched — do not edit, rename, move, or delete source-repo `_test.go` / `*.test.{ts,tsx}` files. Keeping them pristine minimizes merge friction when syncing from upstream.
 
-- Do NOT add new files under `docs/` or any of its subdirectories unless the user explicitly requests it.
-- Do NOT create or generate documentation files in this repository's plugin directories under `plugins/`, including `plugins/tasks/<plugin>/` and their subdirectories. This includes README files, changelogs, usage guides, and other documentation files, regardless of format.
+- Writing or updating tests MUST NOT modify production code (any non-`_test.go` Go file, or any non-test frontend source file). If a test reveals a production bug, fix the production code in a separate change — never smuggle production edits into a test commit. Tests are read-only with respect to the code under test.
+- New backend Go tests are co-located with their package (Go requires `_test.go` to live in the package directory). To keep each package directory uncluttered and avoid colliding with upstream test filenames, all newly added tests for a package MUST live in a single file named `coverage_test.go` in that package directory. Append new test functions to that file; do not create additional scattered `_test.go` files. If `coverage_test.go` does not yet exist for the package, create it. Do not add tests to source-repo `_test.go` files.
+- New frontend tests MUST live under a single tree `web/src/coverage-tests/` (mirroring the source path of the code under test is optional). Do not add co-located `.test.{ts,tsx}` files next to source files; do not add to source-repo `__tests__/` directories. `vitest.config.ts` already includes `src/**/*.test.{ts,tsx}`, so tests under `coverage-tests/` are discovered with no config change.
+
+**Documentation files:** Do NOT add new files under `docs/` or any of its subdirectories unless the user explicitly requests it.
 
 ### Frontend Rules
 

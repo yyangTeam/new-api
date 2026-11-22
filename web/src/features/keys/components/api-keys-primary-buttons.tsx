@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { ChevronDown, Globe, Plus } from 'lucide-react'
+import { ChevronDown, Globe, ListPlus, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
@@ -62,6 +62,14 @@ export function ApiKeysPrimaryButtons() {
 
   return (
     <div className='flex flex-wrap gap-2'>
+      <Button
+        size='sm'
+        variant='outline'
+        onClick={() => setOpen('batch-create')}
+      >
+        <ListPlus className='h-4 w-4' />
+        {t('Batch Add Tokens')}
+      </Button>
       <Popover>
         <PopoverTrigger render={<Button variant='outline' size='sm' />}>
           <Globe aria-hidden='true' />

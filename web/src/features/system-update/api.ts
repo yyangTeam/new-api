@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { api } from '@/lib/api'
+
 import { selectLatestRelease, type SystemRelease } from './releases'
 
 export type UpdateCheckErrorCode =
@@ -31,42 +33,34 @@ export class UpdateCheckError extends Error {
   }
 }
 
+/**
+ * Fetch the latest release via the backend proxy at /api/latest-release.
+ *
+ * The proxy returns the repository's published releases (including
+ * pre-releases) so the dashboard can detect a newer RC/Beta than the latest
+ * stable release without calling api.github.com from the browser, and uses
+ * the fork's configured repository (UpdateCheckApiBase / UpdateCheckRepo)
+ * instead of hardcoding the upstream repo. Selection runs client-side via
+ * selectLatestRelease, matching upstream behavior.
+ */
 export async function fetchLatestSystemRelease(
   signal: AbortSignal
 ): Promise<SystemRelease | null> {
-  const controller = new AbortController()
-  const cancel = () => controller.abort()
-  signal.addEventListener('abort', cancel, { once: true })
-  if (signal.aborted) controller.abort()
-  const timeout = setTimeout(cancel, 10_000)
-
   try {
-    const response = await fetch(
-      'https://api.github.com/repos/QuantumNous/new-api/releases?per_page=100',
-      {
-        credentials: 'omit',
-        headers: { Accept: 'application/vnd.github+json' },
-        signal: controller.signal,
-      }
-    )
-    if (response.status === 403 || response.status === 429) {
-      throw new UpdateCheckError('rate-limit')
+    const response = await api.get('/api/latest-release', { signal })
+    const payload = response.data
+    if (!payload?.success) {
+      throw new UpdateCheckError('network')
     }
-    if (!response.ok) throw new UpdateCheckError('network')
-
     try {
-      return selectLatestRelease(await response.json())
+      return selectLatestRelease(payload.data)
     } catch (error) {
-      if (controller.signal.aborted) throw error
+      if (signal.aborted) throw error
       throw new UpdateCheckError('payload')
     }
   } catch (error) {
     if (signal.aborted) throw error
-    if (controller.signal.aborted) throw new UpdateCheckError('timeout')
     if (error instanceof UpdateCheckError) throw error
     throw new UpdateCheckError('network')
-  } finally {
-    clearTimeout(timeout)
-    signal.removeEventListener('abort', cancel)
   }
 }

@@ -90,7 +90,7 @@ export interface UserProfile {
 /**
  * Notification type
  */
-export type NotifyType = 'email' | 'webhook' | 'bark' | 'gotify'
+export type NotifyType = 'email' | 'webhook' | 'bark' | 'gotify' | 'feishu' | 'qqbot'
 
 /**
  * Parsed user settings
@@ -100,6 +100,8 @@ export interface UserSettings {
   notify_type?: NotifyType
   /** Quota warning threshold in quota units; 0 or absent uses the site default */
   quota_warning_threshold?: number
+  /** Notification cooldown in minutes (0 = use server default) */
+  notify_cooldown_minutes?: number
   /** Receive low balance reminders; absent means on */
   quota_warning_enabled?: boolean
   /** Webhook URL */
@@ -116,6 +118,18 @@ export interface UserSettings {
   gotify_token?: string
   /** Gotify message priority (0-10) */
   gotify_priority?: number
+  /** Feishu webhook URL */
+  feishu_webhook_url?: string
+  /** Feishu webhook secret */
+  feishu_webhook_secret?: string
+  /** QQ Bot AppID */
+  qqbot_app_id?: string
+  /** QQ Bot AppSecret */
+  qqbot_app_secret?: string
+  /** QQ Bot target type (private/group) */
+  qqbot_target_type?: string
+  /** QQ Bot target ID (group_openid or user_openid) */
+  qqbot_target_id?: string
   /** Accept unset model ratio model */
   accept_unset_model_ratio_model?: boolean
   /** Record IP log */
@@ -156,6 +170,7 @@ export interface EmailBindingFlow extends AccountSecurityResult {
 export interface UpdateUserSettingsRequest {
   notify_type?: string
   quota_warning_threshold?: number
+  notify_cooldown_minutes?: number
   quota_warning_enabled?: boolean
   webhook_url?: string
   webhook_secret?: string
@@ -164,6 +179,12 @@ export interface UpdateUserSettingsRequest {
   gotify_url?: string
   gotify_token?: string
   gotify_priority?: number
+  feishu_webhook_url?: string
+  feishu_webhook_secret?: string
+  qqbot_app_id?: string
+  qqbot_app_secret?: string
+  qqbot_target_type?: string
+  qqbot_target_id?: string
   accept_unset_model_ratio_model?: boolean
   record_ip_log?: boolean
   upstream_model_update_notify_enabled?: boolean

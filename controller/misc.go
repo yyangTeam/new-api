@@ -41,10 +41,10 @@ func TestStatus(c *gin.Context) {
 func GetStatus(c *gin.Context) {
 
 	cs := console_setting.GetConsoleSetting()
-	passkeySetting := system_setting.PasskeySettingsSnapshot()
 	common.OptionMapRWMutex.RLock()
 	defer common.OptionMapRWMutex.RUnlock()
 
+	passkeySetting := system_setting.GetPasskeySettings()
 	legalSetting := system_setting.GetLegalSettings()
 
 	data := gin.H{
@@ -81,8 +81,11 @@ func GetStatus(c *gin.Context) {
 		"enable_drawing":                common.DrawingEnabled,
 		"enable_task":                   common.TaskEnabled,
 		"enable_data_export":            common.DataExportEnabled,
+		"image_generation_url":          common.ImageGenerationUrl,
+		"image_generation_open_mode":    common.ImageGenerationOpenMode,
 		"data_export_default_time":      common.DataExportDefaultTime,
 		"default_collapse_sidebar":      common.DefaultCollapseSidebar,
+		"model_mapped_display_mode":     common.ModelMappedDisplayMode,
 		"mj_notify_enabled":             setting.MjNotifyEnabled,
 		"chats":                         setting.Chats,
 		"demo_site_enabled":             operation_setting.DemoSiteEnabled,
@@ -233,13 +236,16 @@ func SendEmailVerification(c *gin.Context) {
 	// request language.
 	systemName := map[string]any{"SystemName": common.SystemName}
 	subject := i18n.T(c, i18n.MsgEmailVerificationSubject, systemName)
-	content := fmt.Sprintf("<p>%s</p>"+
-		"<p>%s</p>"+
-		"<p>%s</p>",
+	content := fmt.Sprintf(
+		`<p style="margin:0 0 24px;font-size:16px;color:#1e293b;">%s</p>`+
+			`<table width="100%%" cellpadding="0" cellspacing="0" role="presentation"><tr><td align="center" style="padding:20px 0 28px;">`+
+			`<div style="display:inline-block;background:linear-gradient(135deg,#f0f0ff,#f5f3ff);border:2px solid #e0e7ff;border-radius:12px;padding:18px 40px;font-size:18px;font-weight:700;color:#4f46e5;">%s</div>`+
+			`</td></tr></table>`+
+			`<p style="margin:0;color:#94a3b8;font-size:13px;">%s</p>`,
 		i18n.T(c, i18n.MsgEmailVerificationGreeting, systemName),
 		i18n.T(c, i18n.MsgEmailVerificationCode, map[string]any{"Code": code}),
 		i18n.T(c, i18n.MsgEmailVerificationValidity, map[string]any{"Minutes": common.VerificationValidMinutes}))
-	err = common.SendEmail(subject, email, content)
+	err = service.SendEmail(i18n.StatedLang(c), subject, email, content)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -268,15 +274,16 @@ func SendPasswordResetEmail(c *gin.Context) {
 		systemName := map[string]any{"SystemName": common.SystemName}
 		linkParams := map[string]any{"Link": link}
 		subject := i18n.Translate(lang, i18n.MsgEmailPasswordResetSubject, systemName)
-		content := fmt.Sprintf("<p>%s</p>"+
-			"<p>%s</p>"+
-			"<p>%s </p>"+
-			"<p>%s</p>",
+		content := fmt.Sprintf(
+			`<p style="margin:0 0 28px;font-size:16px;color:#1e293b;">%s</p>`+
+				`<table width="100%%" cellpadding="0" cellspacing="0" role="presentation"><tr><td align="center" style="padding:4px 0 28px;background:linear-gradient(135deg,#f0f0ff,#f5f3ff);border-radius:8px;">%s</td></tr></table>`+
+				`<p style="margin:0 0 20px;word-break:break-all;color:#6366f1;font-size:13px;">%s</p>`+
+				`<p style="margin:0;color:#94a3b8;font-size:13px;">%s</p>`,
 			i18n.Translate(lang, i18n.MsgEmailPasswordResetGreeting, systemName),
 			i18n.Translate(lang, i18n.MsgEmailPasswordResetLink, linkParams),
 			i18n.Translate(lang, i18n.MsgEmailPasswordResetLinkFallback, linkParams),
 			i18n.Translate(lang, i18n.MsgEmailPasswordResetValidity, map[string]any{"Minutes": common.VerificationValidMinutes}))
-		err := common.SendEmail(subject, email, content)
+		err := service.SendEmail(lang, subject, email, content)
 		if err != nil {
 			logger.LogError(c.Request.Context(), common.LogText("failed to send password reset email to %s: %s", email, err.Error()))
 		}

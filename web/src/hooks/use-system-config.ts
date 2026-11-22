@@ -22,11 +22,89 @@ import { useEffect, useCallback } from 'react'
 import { DEFAULT_LOGO } from '@/lib/constants'
 import { applyFaviconToDom } from '@/lib/dom-utils'
 import { ensureStatus } from '@/lib/status-query'
-import { useSystemConfigStore } from '@/stores/system-config-store'
+import {
+  type CurrencyConfig,
+  type CurrencyDisplayType,
+  type SystemConfig,
+  DEFAULT_CURRENCY_CONFIG,
+  useSystemConfigStore,
+} from '@/stores/system-config-store'
+import { DEFAULT_SYSTEM_NAME } from '@/lib/constants'
 
 interface UseSystemConfigOptions {
   /** Automatically fetch config from backend (use only in root component) */
   autoLoad?: boolean
+}
+
+interface StatusApiResponse {
+  success: boolean
+  data: {
+    system_name?: string
+    logo?: string
+    footer_html?: string
+    demo_site_enabled?: boolean
+    display_token_stat_enabled?: boolean
+    display_in_currency?: boolean
+    quota_display_type?: CurrencyDisplayType
+    quota_per_unit?: number
+    usd_exchange_rate?: number
+    custom_currency_symbol?: string
+    custom_currency_exchange_rate?: number
+    model_mapped_display_mode?: number
+  }
+}
+
+function toNumber(value: unknown, fallback: number): number {
+  if (typeof value === 'number' && !Number.isNaN(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    if (!Number.isNaN(parsed)) return parsed
+  }
+  return fallback
+}
+
+/**
+ * Map `/api/status` response data to our persisted system config structure
+ */
+export function mapStatusDataToConfig(
+  data: StatusApiResponse['data'] | undefined
+): Partial<SystemConfig> {
+  if (!data) return {}
+
+  const quotaDisplayType =
+    (data.quota_display_type as CurrencyDisplayType | undefined) ??
+    DEFAULT_CURRENCY_CONFIG.quotaDisplayType
+
+  const currency: CurrencyConfig = {
+    displayInCurrency:
+      data.display_in_currency ?? DEFAULT_CURRENCY_CONFIG.displayInCurrency,
+    quotaDisplayType,
+    quotaPerUnit: toNumber(
+      data.quota_per_unit,
+      DEFAULT_CURRENCY_CONFIG.quotaPerUnit
+    ),
+    usdExchangeRate: toNumber(
+      data.usd_exchange_rate,
+      DEFAULT_CURRENCY_CONFIG.usdExchangeRate
+    ),
+    customCurrencySymbol:
+      data.custom_currency_symbol?.trim() ||
+      DEFAULT_CURRENCY_CONFIG.customCurrencySymbol,
+    customCurrencyExchangeRate: toNumber(
+      data.custom_currency_exchange_rate,
+      DEFAULT_CURRENCY_CONFIG.customCurrencyExchangeRate
+    ),
+  }
+
+  return {
+    systemName: data.system_name || DEFAULT_SYSTEM_NAME,
+    logo: data.logo || DEFAULT_LOGO,
+    footerHtml: data.footer_html,
+    demoSiteEnabled: data.demo_site_enabled,
+    displayTokenStatEnabled: data.display_token_stat_enabled,
+    modelMappedDisplayMode: data.model_mapped_display_mode ?? 0,
+    currency,
+  }
 }
 
 /** Preload an image, returning a cleanup that detaches the pending handlers. */

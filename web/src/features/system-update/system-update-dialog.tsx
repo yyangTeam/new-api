@@ -16,14 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { lazy, Suspense, type ReactElement } from 'react'
+import { lazy, Suspense, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { Dialog } from '@/components/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { api } from '@/lib/api'
 import { formatTimestampToDate } from '@/lib/format'
 
 import { getSystemReleaseUrl, parseSystemVersion } from './releases'
@@ -56,6 +58,56 @@ export function SystemUpdateDialog(props: SystemUpdateDialogProps) {
     (release.prerelease ||
       (parseSystemVersion(release.tag_name)?.stage ?? 3) < 3)
   const canIgnore = release && (update.hasUpdate || update.comparison === null)
+  const [updating, setUpdating] = useState(false)
+  const [staged, setStaged] = useState(false)
+  const [restarting, setRestarting] = useState(false)
+
+  // Step 1: download the new binary and swap it in. The backend does NOT
+  // restart here; it stages the swap and reports need_restart so the operator
+  // restarts as a deliberate second step (below).
+  const handleUpdate = async () => {
+    setUpdating(true)
+    try {
+      const response = await api.post('/api/system/update')
+      const payload = response.data
+      if (!payload?.success) {
+        throw new Error(payload?.message || t('Update failed'))
+      }
+      setStaged(true)
+      toast.success(
+        t('Update to {{version}} downloaded. Restart to apply it.', {
+          version: payload.data?.version ?? release?.tag_name,
+        })
+      )
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t('Update failed')
+      toast.error(message)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  // Step 2: restart so the staged binary takes effect. In Docker the restart
+  // policy relaunches the same container with the swapped binary intact.
+  const handleRestart = async () => {
+    setRestarting(true)
+    try {
+      const response = await api.post('/api/system/restart')
+      const payload = response.data
+      if (!payload?.success) {
+        throw new Error(payload?.message || t('Restart failed'))
+      }
+      toast.success(t('Service is restarting...'))
+      props.onOpenChange(false)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t('Restart failed')
+      toast.error(message)
+    } finally {
+      setRestarting(false)
+    }
+  }
   let statusText = t('Updates have not been checked yet.')
   if (update.checking) {
     statusText = t('Checking updates...')
@@ -109,6 +161,7 @@ export function SystemUpdateDialog(props: SystemUpdateDialogProps) {
             <Button
               nativeButton={false}
               role='link'
+              variant='outline'
               render={
                 <a
                   href={releaseUrl}
@@ -119,6 +172,22 @@ export function SystemUpdateDialog(props: SystemUpdateDialogProps) {
             >
               {t('Go to GitHub')}
             </Button>
+          )}
+          {staged ? (
+            <Button
+              type='button'
+              onClick={handleRestart}
+              disabled={restarting}
+            >
+              {restarting ? t('Restarting...') : t('Restart now')}
+            </Button>
+          ) : (
+            update.hasUpdate &&
+            release && (
+              <Button type='button' onClick={handleUpdate} disabled={updating}>
+                {updating ? t('Downloading update...') : t('Download update')}
+              </Button>
+            )
           )}
         </>
       }
@@ -155,6 +224,15 @@ export function SystemUpdateDialog(props: SystemUpdateDialogProps) {
         <p role='status' aria-live='polite' className='text-sm'>
           {statusText}
         </p>
+      )}
+      {staged && (
+        <Alert>
+          <AlertDescription>
+            {t(
+              'The new version has been downloaded. Click "Restart now" to apply it; the service will briefly go offline while it restarts.'
+            )}
+          </AlertDescription>
+        </Alert>
       )}
       {!update.online && (
         <Alert>

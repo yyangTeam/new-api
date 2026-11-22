@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { NOTIFICATION_METHODS } from '../constants'
+import { ADMIN_NOTIFICATION_METHODS, NOTIFICATION_METHODS } from '../constants'
 import type { NotifyType, UpdateUserSettingsRequest } from '../types'
 import { parseUserSettings } from './format'
 
@@ -38,11 +38,14 @@ export function normalizeUserSettings(
 ): NormalizedUserSettings {
   const parsed = parseUserSettings(setting)
   const notifyType =
-    NOTIFICATION_METHODS.find((method) => method.value === parsed.notify_type)
+    [...NOTIFICATION_METHODS, ...ADMIN_NOTIFICATION_METHODS].find(
+      (method) => method.value === parsed.notify_type
+    )
       ?.value ?? 'email'
   return {
     notify_type: notifyType,
     quota_warning_threshold: parsed.quota_warning_threshold ?? 0,
+    notify_cooldown_minutes: parsed.notify_cooldown_minutes ?? 0,
     quota_warning_enabled: parsed.quota_warning_enabled,
     notification_email: parsed.notification_email ?? '',
     webhook_url: parsed.webhook_url ?? '',
@@ -51,6 +54,12 @@ export function normalizeUserSettings(
     gotify_url: parsed.gotify_url ?? '',
     gotify_token: parsed.gotify_token ?? '',
     gotify_priority: parsed.gotify_priority ?? 5,
+    feishu_webhook_url: parsed.feishu_webhook_url ?? '',
+    feishu_webhook_secret: parsed.feishu_webhook_secret ?? '',
+    qqbot_app_id: parsed.qqbot_app_id ?? '',
+    qqbot_app_secret: parsed.qqbot_app_secret ?? '',
+    qqbot_target_type: parsed.qqbot_target_type ?? 'group',
+    qqbot_target_id: parsed.qqbot_target_id ?? '',
     accept_unset_model_ratio_model:
       parsed.accept_unset_model_ratio_model || false,
     record_ip_log: parsed.record_ip_log || false,

@@ -224,6 +224,8 @@ export type ContentSettings = {
   MjForwardUrlEnabled: boolean
   MjModeClearEnabled: boolean
   MjActionCheckSuccessEnabled: boolean
+  ImageGenerationUrl: string
+  ImageGenerationOpenMode: 'new_tab' | 'embed'
 }
 
 export type ModelSettings = {
@@ -391,6 +393,7 @@ export type OperationsSettings = {
   WorkerValidKey: string
   WorkerAllowHttpImageRequestEnabled: boolean
   LogConsumeEnabled: boolean
+  ModelMappedDisplayMode: number
   'log_setting.user_export_enabled': boolean
   'log_setting.max_range_days': number
   'system_task_setting.retention_days': number

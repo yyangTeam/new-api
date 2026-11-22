@@ -32,6 +32,14 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 
@@ -50,6 +58,7 @@ import { ServerLogFiles } from './server-log-files'
 
 const logSettingsSchema = z.object({
   LogConsumeEnabled: z.boolean(),
+  ModelMappedDisplayMode: z.number().min(0).max(2),
   log_setting: z.object({
     user_export_enabled: z.boolean(),
     max_range_days: z.number().int().min(1),
@@ -64,6 +73,7 @@ type LogSettingsFormValues = z.infer<typeof logSettingsSchema>
 type LogSettingsSectionProps = {
   defaultValues: {
     LogConsumeEnabled: boolean
+    ModelMappedDisplayMode?: number
     'log_setting.user_export_enabled': boolean
     'log_setting.max_range_days': number
     'system_task_setting.retention_days': number
@@ -79,6 +89,7 @@ export function LogSettingsSection(props: LogSettingsSectionProps) {
   const formDefaults = useMemo<LogSettingsFormValues>(
     () => ({
       LogConsumeEnabled: props.defaultValues.LogConsumeEnabled,
+      ModelMappedDisplayMode: props.defaultValues.ModelMappedDisplayMode ?? 0,
       log_setting: {
         user_export_enabled:
           props.defaultValues['log_setting.user_export_enabled'],
@@ -103,6 +114,7 @@ export function LogSettingsSection(props: LogSettingsSectionProps) {
   const onSubmit = async (values: LogSettingsFormValues) => {
     const changes = [
       ['LogConsumeEnabled', values.LogConsumeEnabled],
+      ['ModelMappedDisplayMode', values.ModelMappedDisplayMode],
       [
         'log_setting.user_export_enabled',
         values.log_setting.user_export_enabled,
@@ -155,6 +167,45 @@ export function LogSettingsSection(props: LogSettingsSectionProps) {
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
+                  <FormMessage />
+                </SettingsSwitchItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='ModelMappedDisplayMode'
+              render={({ field }) => (
+                <SettingsSwitchItem>
+                  <SettingsSwitchContent>
+                    <FormLabel>{t('Model Redirect Display')}</FormLabel>
+                    <FormDescription>
+                      {t('Control who can see model redirection details in usage logs.')}
+                    </FormDescription>
+                  </SettingsSwitchContent>
+                  <Select
+                    items={[
+                      { value: '0', label: t('Hidden') },
+                      { value: '1', label: t('Admin Only') },
+                      { value: '2', label: t('Everyone') },
+                    ]}
+                    value={String(field.value)}
+                    onValueChange={(value) =>
+                      value !== null && field.onChange(Number(value))
+                    }
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-[140px]'>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent alignItemWithTrigger={false}>
+                      <SelectGroup>
+                        <SelectItem value='0'>{t('Hidden')}</SelectItem>
+                        <SelectItem value='1'>{t('Admin Only')}</SelectItem>
+                        <SelectItem value='2'>{t('Everyone')}</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </SettingsSwitchItem>
               )}
