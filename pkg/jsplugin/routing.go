@@ -481,6 +481,7 @@ var reservedRouteNamespaces = []string{
 	"/chat",
 	"/dashboard",
 	"/errors",
+	"/inviter-rebate",
 	"/keys",
 	"/models",
 	"/playground",
