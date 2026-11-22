@@ -311,6 +311,9 @@ it.each([
     ).toBeVisible()
     expect(screen.getByText(`${current_percent}%`)).toBeVisible()
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    // next_min_invitees = 0 must not collide with the first tier whose
+    // min_invitees is also 0 and mislabel it as the next tier.
+    expect(screen.queryByText('Next tier')).not.toBeInTheDocument()
     expect(
       screen.queryByText(/highest tier|maximum tier|Invite .*more people/i)
     ).not.toBeInTheDocument()

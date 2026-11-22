@@ -213,7 +213,11 @@ export function InviterRebateSummary(props: { userId: number }) {
         <ol className='mt-3 flex flex-wrap gap-2'>
           {ladder.map((step, index) => {
             const isCurrent = step.percent === tier.current_percent
-            const isNext = step.min_invitees === tier.next_min_invitees
+            // next_min_invitees = 0 means no next tier (top tier or no
+            // ladder); it must not match the first tier whose own
+            // min_invitees is also 0.
+            const isNext =
+              hasNextTier && step.min_invitees === tier.next_min_invitees
             return (
               <li
                 key={`${step.min_invitees}-${step.percent}`}
