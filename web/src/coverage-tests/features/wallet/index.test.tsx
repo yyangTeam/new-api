@@ -1,7 +1,22 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { ReactNode } from 'react'
 
 import { Wallet } from '@/features/wallet/index'
+
+// Wallet 自 P4.2 起在挂载时调用 useQueryClient（成功操作后失效返利缓存），
+// 渲染必须包一层 QueryClientProvider。
+function renderWithQueryClient(ui: ReactNode) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  return render(ui, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
+  })
+}
 import type { UserWalletData } from '@/features/wallet/types'
 
 // Mock all child components to isolate the Wallet orchestration logic
@@ -289,12 +304,12 @@ describe('Wallet', () => {
   })
 
   it('renders the page title', () => {
-    render(<Wallet />)
+    renderWithQueryClient(<Wallet />)
     expect(screen.getByText('Wallet')).toBeInTheDocument()
   })
 
   it('renders all main sections', async () => {
-    render(<Wallet />)
+    renderWithQueryClient(<Wallet />)
     expect(screen.getByTestId('wallet-stats')).toBeInTheDocument()
     expect(screen.getByTestId('recharge-form')).toBeInTheDocument()
     expect(screen.getByTestId('subscription-plans')).toBeInTheDocument()
@@ -303,7 +318,7 @@ describe('Wallet', () => {
 
   it('passes loading state to wallet stats while fetching user', () => {
     mockGetSelf.mockReturnValue(new Promise(() => {})) // never resolves
-    render(<Wallet />)
+    renderWithQueryClient(<Wallet />)
     expect(screen.getByTestId('wallet-stats')).toHaveAttribute(
       'data-loading',
       'true'
@@ -311,26 +326,26 @@ describe('Wallet', () => {
   })
 
   it('passes user data to wallet stats once loaded', async () => {
-    render(<Wallet />)
+    renderWithQueryClient(<Wallet />)
     await waitFor(() => {
       expect(screen.getByTestId('wallet-stats')).toHaveTextContent('testuser')
     })
   })
 
   it('opens billing dialog when OpenBilling is clicked', () => {
-    render(<Wallet />)
+    renderWithQueryClient(<Wallet />)
     fireEvent.click(screen.getByTestId('open-billing'))
     expect(screen.getByTestId('billing-dialog')).toBeInTheDocument()
   })
 
   it('opens transfer dialog when Transfer is clicked', () => {
-    render(<Wallet />)
+    renderWithQueryClient(<Wallet />)
     fireEvent.click(screen.getByTestId('transfer-btn'))
     expect(screen.getByTestId('transfer-dialog')).toBeInTheDocument()
   })
 
   it('opens payment confirm dialog when payment method is selected', async () => {
-    render(<Wallet />)
+    renderWithQueryClient(<Wallet />)
     // Wait for topup initialization
     await waitFor(() => {
       expect(screen.getByTestId('recharge-form')).toBeInTheDocument()
@@ -342,20 +357,20 @@ describe('Wallet', () => {
   })
 
   it('opens creem dialog when creem product is selected', () => {
-    render(<Wallet />)
+    renderWithQueryClient(<Wallet />)
     fireEvent.click(screen.getByTestId('select-creem'))
     expect(screen.getByTestId('creem-dialog')).toBeInTheDocument()
     expect(screen.getByText('Pro')).toBeInTheDocument()
   })
 
   it('opens billing dialog when initialShowHistory is true', () => {
-    render(<Wallet initialShowHistory={true} />)
+    renderWithQueryClient(<Wallet initialShowHistory={true} />)
     expect(screen.getByTestId('billing-dialog')).toBeInTheDocument()
   })
 
   it('handles getSelf failure gracefully', async () => {
     mockGetSelf.mockRejectedValue(new Error('Network error'))
-    render(<Wallet />)
+    renderWithQueryClient(<Wallet />)
     await waitFor(() => {
       // Should still render without crashing
       expect(screen.getByTestId('wallet-stats')).toBeInTheDocument()
@@ -368,7 +383,7 @@ describe('Wallet', () => {
       presetAmounts: [],
       loading: true,
     })
-    render(<Wallet />)
+    renderWithQueryClient(<Wallet />)
     expect(screen.getByTestId('recharge-form')).toHaveAttribute(
       'data-loading',
       'true'
@@ -382,7 +397,7 @@ describe('Wallet', () => {
       transferQuota: vi.fn(),
       transferring: false,
     })
-    render(<Wallet />)
+    renderWithQueryClient(<Wallet />)
     expect(screen.getByTestId('affiliate-card')).toHaveAttribute(
       'data-loading',
       'true'

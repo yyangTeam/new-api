@@ -38,7 +38,13 @@ vi.mock('@/components/ui/skeleton', () => ({
 }))
 
 vi.mock('@/lib/format', () => ({
-  formatQuota: (quota: number) => `$${quota}`,
+  // 返利看板（P4.2 起）人数/笔数渲染走 formatNumber
+  formatNumber: (value: number) => `${value}`,
+}))
+
+vi.mock('@/lib/currency', () => ({
+  // 返利看板（P4.2 起）金额渲染走 formatQuotaWithCurrency
+  formatQuotaWithCurrency: (quota: number) => `$${quota}`,
 }))
 
 vi.mock('lucide-react', () => ({
