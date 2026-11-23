@@ -210,6 +210,26 @@ func SetApiRouter(router *gin.Engine) {
 			subscriptionAdminRoute.DELETE("/user_subscriptions/:id", controller.AdminDeleteUserSubscription)
 		}
 
+		// Inviter rebate rankings (admin)
+		inviterRebateAdminRoute := apiRouter.Group("/inviter_rebate")
+		inviterRebateAdminRoute.Use(middleware.AdminAuth())
+		{
+			inviterRebateAdminRoute.GET("/rankings", controller.GetInviterRebateRankings)
+			inviterRebateAdminRoute.GET("/ledger", controller.GetInviterRebateLedger)
+			inviterRebateAdminRoute.GET("/ledger/summary", controller.GetInviterRebateLedgerSummary)
+			inviterRebateAdminRoute.POST("/ledger/:id/void", controller.AdminVoidInviterRebate)
+			inviterRebateAdminRoute.POST("/ledger/:id/release", controller.AdminReleaseInviterRebate)
+			inviterRebateAdminRoute.POST("/ledger/:id/clawback", controller.AdminClawbackInviterRebate)
+		}
+
+		// Inviter rebate wallet (user self)
+		inviterRebateSelfRoute := apiRouter.Group("/inviter_rebate")
+		inviterRebateSelfRoute.Use(middleware.DisableCache(), middleware.UserAuth())
+		{
+			inviterRebateSelfRoute.GET("/my_summary", controller.GetMyInviterRebateSummary)
+			inviterRebateSelfRoute.GET("/my_invitees", controller.GetMyInviterRebateInvitees)
+		}
+
 		// Subscription payment callbacks (no auth)
 		apiRouter.POST("/subscription/epay/notify", anonymousRequestBodyLimit, controller.SubscriptionEpayNotify)
 		apiRouter.GET("/subscription/epay/notify", controller.SubscriptionEpayNotify)

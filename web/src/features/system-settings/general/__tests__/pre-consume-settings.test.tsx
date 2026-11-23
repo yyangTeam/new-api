@@ -44,6 +44,16 @@ function Fixture() {
             QuotaForNewUser: 0,
             QuotaForInviter: 0,
             QuotaForInvitee: 0,
+            InviterRebatePercent: 0,
+            InviterRebateFirstTopUpPercent: 0,
+            InviterRebateConsumeUnlockQuota: 0,
+            InviterRebateMaxPerTopup: 0,
+            InviterRebateMonthlyMax: 0,
+            InviterRebateSelfInviteCheck: true,
+            InviterRebateLockExpiryDays: 0,
+            inviter_rebate_setting: {
+              tiers: '[]',
+            },
             TopUpLink: '',
             quota_setting: {
               enable_free_model_pre_consume: true,

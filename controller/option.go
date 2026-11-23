@@ -202,10 +202,56 @@ func UpdateOption(c *gin.Context) {
 		option.Value = fmt.Sprintf("%v", option.Value)
 	}
 	switch option.Key {
-	case "QuotaForInviter", "QuotaForInvitee":
+	case "QuotaForInviter", "QuotaForInvitee", "InviterRebatePercent", "InviterRebateFirstTopUpPercent":
 		if isPositiveOptionValue(option.Value.(string)) && !operation_setting.IsPaymentComplianceConfirmed() {
 			common.ApiErrorT(c, "Payment, redemption, subscription, and invitation reward features are disabled. The administrator must confirm compliance terms before enabling them.")
 			return
+		}
+		if option.Key == "InviterRebatePercent" || option.Key == "InviterRebateFirstTopUpPercent" {
+			percent, err := strconv.Atoi(strings.TrimSpace(option.Value.(string)))
+			if err != nil || percent < 0 || percent > 100 {
+				common.ApiErrorT(c, "Inviter rebate percentage must be an integer between 0 and 100")
+				return
+			}
+		}
+	case "InviterRebateConsumeUnlockQuota":
+		quota, err := strconv.Atoi(strings.TrimSpace(option.Value.(string)))
+		if err != nil || quota < 0 {
+			common.ApiErrorT(c, "Inviter rebate consume-unlock threshold must be a non-negative integer")
+			return
+		}
+	case "InviterRebateMaxPerTopup":
+		quota, err := strconv.Atoi(strings.TrimSpace(option.Value.(string)))
+		if err != nil || quota < 0 {
+			common.ApiErrorT(c, "Inviter rebate per-top-up cap must be a non-negative integer")
+			return
+		}
+	case "InviterRebateMonthlyMax":
+		quota, err := strconv.Atoi(strings.TrimSpace(option.Value.(string)))
+		if err != nil || quota < 0 {
+			common.ApiErrorT(c, "Inviter rebate monthly cap must be a non-negative integer")
+			return
+		}
+	case "InviterRebateLockExpiryDays":
+		days, err := strconv.Atoi(strings.TrimSpace(option.Value.(string)))
+		if err != nil || days < 0 {
+			common.ApiErrorT(c, "Inviter rebate lock expiry days must be a non-negative integer")
+			return
+		}
+	case "inviter_rebate_setting.tiers":
+		// 阶梯 JSON 校验（空 / null / [] 合法 = 关闭阶梯回退扁平比例）；
+		// 存在正值档且支付合规未确认时拒绝保存，与扁平/首充比例同门控
+		trimmedTiers := strings.TrimSpace(option.Value.(string))
+		if trimmedTiers != "" && trimmedTiers != "null" && trimmedTiers != "[]" {
+			tiers, err := operation_setting.ValidateInviterRebateTiersJSON(trimmedTiers)
+			if err != nil {
+				common.ApiError(c, err)
+				return
+			}
+			if slices.ContainsFunc(tiers, func(tier operation_setting.InviterRebateTier) bool { return tier.Percent > 0 }) && !operation_setting.IsPaymentComplianceConfirmed() {
+				common.ApiErrorT(c, "Payment, redemption, subscription, and invitation reward features are disabled. The administrator must confirm compliance terms before enabling them.")
+				return
+			}
 		}
 	default:
 		if isPaymentComplianceOptionKey(option.Key) {

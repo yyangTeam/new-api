@@ -151,6 +151,13 @@ func InitOptionMap() {
 	common.OptionMap["QuotaForNewUser"] = strconv.Itoa(common.QuotaForNewUser)
 	common.OptionMap["QuotaForInviter"] = strconv.Itoa(common.QuotaForInviter)
 	common.OptionMap["QuotaForInvitee"] = strconv.Itoa(common.QuotaForInvitee)
+	common.OptionMap["InviterRebatePercent"] = strconv.Itoa(common.InviterRebatePercent)
+	common.OptionMap["InviterRebateFirstTopUpPercent"] = strconv.Itoa(common.InviterRebateFirstTopUpPercent)
+	common.OptionMap["InviterRebateConsumeUnlockQuota"] = strconv.Itoa(common.InviterRebateConsumeUnlockQuota)
+	common.OptionMap["InviterRebateMaxPerTopup"] = strconv.Itoa(common.InviterRebateMaxPerTopup)
+	common.OptionMap["InviterRebateMonthlyMax"] = strconv.Itoa(common.InviterRebateMonthlyMax)
+	common.OptionMap["InviterRebateSelfInviteCheck"] = strconv.FormatBool(common.InviterRebateSelfInviteCheck)
+	common.OptionMap["InviterRebateLockExpiryDays"] = strconv.Itoa(common.InviterRebateLockExpiryDays)
 	common.OptionMap["QuotaRemindEnabled"] = strconv.FormatBool(common.QuotaRemindEnabled)
 	common.OptionMap["QuotaRemindThreshold"] = strconv.Itoa(common.QuotaRemindThreshold)
 	common.OptionMap["PreConsumedQuota"] = strconv.Itoa(common.PreConsumedQuota)
@@ -425,7 +432,7 @@ func updateOptionMap(key string, value string) (err error) {
 			common.ModelMappedDisplayMode = intValue
 		}
 	}
-	if strings.HasSuffix(key, "Enabled") || key == "DefaultCollapseSidebar" || key == "DefaultUseAutoGroup" || key == "SMTPForceAuthLogin" || key == "SMTPInsecureSkipVerify" {
+	if strings.HasSuffix(key, "Enabled") || key == "DefaultCollapseSidebar" || key == "DefaultUseAutoGroup" || key == "SMTPForceAuthLogin" || key == "SMTPInsecureSkipVerify" || key == "InviterRebateSelfInviteCheck" {
 		boolValue := value == "true"
 		switch key {
 		case "PasswordRegisterEnabled":
@@ -456,6 +463,8 @@ func updateOptionMap(key string, value string) (err error) {
 			common.AutomaticEnableChannelEnabled = boolValue
 		case "QuotaRemindEnabled":
 			common.QuotaRemindEnabled = boolValue
+		case "InviterRebateSelfInviteCheck":
+			common.InviterRebateSelfInviteCheck = boolValue
 		case "LogConsumeEnabled":
 			common.LogConsumeEnabled = boolValue
 		case "DisplayInCurrencyEnabled":
@@ -682,6 +691,18 @@ func updateOptionMap(key string, value string) (err error) {
 		err = setting.UpdateModelRequestRateLimitGroupByJSONString(value)
 	case "RetryTimes":
 		common.RetryTimes, _ = strconv.Atoi(value)
+	case "InviterRebatePercent":
+		common.InviterRebatePercent, _ = strconv.Atoi(value)
+	case "InviterRebateFirstTopUpPercent":
+		common.InviterRebateFirstTopUpPercent, _ = strconv.Atoi(value)
+	case "InviterRebateConsumeUnlockQuota":
+		common.InviterRebateConsumeUnlockQuota, _ = strconv.Atoi(value)
+	case "InviterRebateMaxPerTopup":
+		common.InviterRebateMaxPerTopup, _ = strconv.Atoi(value)
+	case "InviterRebateMonthlyMax":
+		common.InviterRebateMonthlyMax, _ = strconv.Atoi(value)
+	case "InviterRebateLockExpiryDays":
+		common.InviterRebateLockExpiryDays, _ = strconv.Atoi(value)
 	case "DataExportInterval":
 		common.DataExportInterval, _ = strconv.Atoi(value)
 	case "DataExportDefaultTime":

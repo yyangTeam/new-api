@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -23,6 +24,7 @@ import { SectionPageLayout } from '@/components/layout'
 import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { getSelf } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth-store'
 
 import { AffiliateRewardsCard } from './components/affiliate-rewards-card'
 import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
@@ -42,6 +44,7 @@ import {
   useWaffoPayment,
   useWaffoPancakePayment,
 } from './hooks'
+import { inviterRebateWalletKeys } from './hooks/use-inviter-rebate'
 import {
   getDefaultPaymentType,
   getMinTopupAmount,
@@ -61,6 +64,8 @@ interface WalletProps {
 
 export function Wallet(props: WalletProps) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const userId = useAuthStore((state) => state.auth.user?.id)
   const [user, setUser] = useState<UserWalletData | null>(null)
   const [userLoading, setUserLoading] = useState(true)
   const [topupAmount, setTopupAmount] = useState(0)
@@ -124,6 +129,15 @@ export function Wallet(props: WalletProps) {
       setUserLoading(false)
     }
   }, [])
+
+  const refreshWallet = useCallback(async () => {
+    if (userId) {
+      void queryClient.invalidateQueries({
+        queryKey: inviterRebateWalletKeys.user(userId),
+      })
+    }
+    await fetchUser()
+  }, [fetchUser, queryClient, userId])
 
   useEffect(() => {
     fetchUser()
@@ -207,7 +221,7 @@ export function Wallet(props: WalletProps) {
 
     if (success) {
       setConfirmDialogOpen(false)
-      await fetchUser()
+      await refreshWallet()
     }
   }
 
@@ -218,7 +232,7 @@ export function Wallet(props: WalletProps) {
     const success = await redeemCode(redemptionCode)
     if (success) {
       setRedemptionCode('')
-      await fetchUser()
+      await refreshWallet()
     }
   }
 
@@ -226,7 +240,7 @@ export function Wallet(props: WalletProps) {
   const handleTransfer = async (amount: number) => {
     const success = await transferQuota(amount)
     if (success) {
-      await fetchUser()
+      await refreshWallet()
     }
     return success
   }
@@ -245,7 +259,7 @@ export function Wallet(props: WalletProps) {
     if (success) {
       setCreemDialogOpen(false)
       setSelectedCreemProduct(null)
-      await fetchUser()
+      await refreshWallet()
     }
   }
 
@@ -335,12 +349,14 @@ export function Wallet(props: WalletProps) {
                 topupInfo={topupInfo}
                 onAvailabilityChange={handleSubscriptionAvailabilityChange}
                 userQuota={user?.quota}
-                onPurchaseSuccess={fetchUser}
+                onPurchaseSuccess={refreshWallet}
               />
             </div>
 
             <AffiliateRewardsCard
               user={user}
+              userId={userId}
+              userLoading={userLoading}
               affiliateLink={affiliateLink}
               onTransfer={() => setTransferDialogOpen(true)}
               complianceConfirmed={

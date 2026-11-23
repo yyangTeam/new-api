@@ -149,6 +149,16 @@ var accessTokenRouteRules = map[string]accessTokenRouteRule{
 	"POST /api/subscription/admin/user_subscriptions/:id/invalidate": accessTokenScopeRule("billing:write"),
 	"DELETE /api/subscription/admin/user_subscriptions/:id":          accessTokenScopeRule("billing:write"),
 
+	// router/api-router.go: /api/inviter_rebate (admin + user self)
+	"GET /api/inviter_rebate/rankings":           accessTokenScopeRule("billing:read"),
+	"GET /api/inviter_rebate/ledger":             accessTokenScopeRule("billing:read"),
+	"GET /api/inviter_rebate/ledger/summary":     accessTokenScopeRule("billing:read"),
+	"POST /api/inviter_rebate/ledger/:id/void":     accessTokenScopeRule("billing:write"),
+	"POST /api/inviter_rebate/ledger/:id/release":  accessTokenScopeRule("billing:write"),
+	"POST /api/inviter_rebate/ledger/:id/clawback": accessTokenScopeRule("billing:write"),
+	"GET /api/inviter_rebate/my_summary":          accessTokenScopeRule("wallet:read"),
+	"GET /api/inviter_rebate/my_invitees":         accessTokenScopeRule("wallet:read"),
+
 	// router/api-router.go: /api/option
 	"GET /api/option/":                                           accessTokenScopeRule("option:read"),
 	"GET /api/option/request_policy":                             accessTokenScopeRule("option:read"),

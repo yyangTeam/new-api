@@ -34,6 +34,7 @@ import {
   Settings,
   ShieldCheck,
   Ticket,
+  Trophy,
   User,
   Users,
   Wallet,
@@ -178,6 +179,16 @@ export function useSidebarData(badges: SidebarBadges = {}): SidebarData {
             title: t('Subscriptions'),
             url: '/subscriptions',
             icon: CreditCard,
+          },
+          {
+            title: t('Inviter Rebate Rankings'),
+            url: '/inviter-rebate',
+            icon: Trophy,
+          },
+          {
+            title: t('Inviter Rebate Ledger'),
+            url: '/inviter-rebate/ledger',
+            icon: ClipboardList,
           },
           {
             title: t('System Info'),

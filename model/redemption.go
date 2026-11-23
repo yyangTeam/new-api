@@ -141,6 +141,7 @@ func Redeem(key string, userId int) (quota int, err error) {
 		return 0, errors.New("invalid user id")
 	}
 	redemption := &Redemption{}
+	var rebate, inviterId, failedRebate, cappedRebate, suspectRebate int
 
 	keyCol := "`key`"
 	if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
@@ -174,7 +175,11 @@ func Redeem(key string, userId int) (quota int, err error) {
 		if result.RowsAffected == 0 {
 			return errors.New("redemption code already used")
 		}
-		return creditTopUpQuota(tx, userId, redemption.Quota, nil)
+		if err := creditTopUpQuota(tx, userId, redemption.Quota, nil); err != nil {
+			return err
+		}
+		rebate, inviterId, failedRebate, cappedRebate, suspectRebate = creditInviterRebateTx(tx, userId, redemption.Quota, InviterRebateSourceRedemption, redemption.Id)
+		return nil
 	})
 	if err != nil {
 		common.SysError(common.LogText("redemption failed: %s", err.Error()))
@@ -182,6 +187,19 @@ func Redeem(key string, userId int) (quota int, err error) {
 	}
 	syncCreditUserQuotaCache(userId, redemption.Quota, common.LogText("redemption"))
 	RecordLog(userId, LogTypeTopup, common.NewMessage("Topped up {{quota}} with a redemption code, code ID {{id}}", map[string]any{"quota": logger.FormatQuota(redemption.Quota), "id": redemption.Id}))
+	if rebate > 0 {
+		recordInviterRebateLog(inviterId, rebate)
+	} else if failedRebate > 0 {
+		recordInviterRebateFailureLog(userId, inviterId, failedRebate)
+	}
+	// 月度封顶部分截断时 rebate > 0 与 cappedRebate > 0 同时成立，两条日志都要写
+	if cappedRebate > 0 {
+		recordInviterRebateMonthlyCapLog(userId, inviterId, cappedRebate)
+	}
+	// 自邀嫌疑冻结：写管理员告警，人工查证后放行或作废
+	if suspectRebate > 0 {
+		recordInviterRebateSelfInviteSuspectLog(userId, inviterId, suspectRebate)
+	}
 	return redemption.Quota, nil
 }
 

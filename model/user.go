@@ -100,8 +100,9 @@ type User struct {
 	Group                string                     `json:"group" gorm:"type:varchar(64);default:'default'"`
 	AffCode              string                     `json:"aff_code" gorm:"type:varchar(32);column:aff_code;uniqueIndex"`
 	AffCount             int                        `json:"aff_count" gorm:"type:int;default:0;column:aff_count"`
-	AffQuota             int                        `json:"aff_quota" gorm:"type:int;default:0;column:aff_quota"`           // 邀请剩余额度
-	AffHistoryQuota      int                        `json:"aff_history_quota" gorm:"type:int;default:0;column:aff_history"` // 邀请历史额度
+	AffQuota             int                        `json:"aff_quota" gorm:"type:int;default:0;column:aff_quota"`               // 邀请剩余额度
+	AffHistoryQuota      int                        `json:"aff_history_quota" gorm:"type:int;default:0;column:aff_history"`     // 邀请历史额度
+	AffQuotaLocked       int                        `json:"aff_quota_locked" gorm:"type:int;default:0;column:aff_quota_locked"` // 邀请返利冻结池（台账 locked 部分的冗余计数，2.0 风控启用，Phase 0 恒为 0）
 	InviterId            int                        `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
 	DeletedAt            gorm.DeletedAt             `gorm:"index"`
 	LinuxDOId            string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
@@ -1448,6 +1449,10 @@ func UpdateUserUsedQuota(id int, quota int) {
 	}
 	if err := DB.Model(&User{}).Where("id = ?", id).Update("used_quota", gorm.Expr("used_quota + ?", quota)).Error; err != nil {
 		common.SysLog(common.LogText("failed to update user used quota: %s", err.Error()))
+		return
+	}
+	if quota > 0 {
+		releaseInviterRebatesOnConsume(id)
 	}
 }
 
@@ -1461,6 +1466,9 @@ func updateUserUsedQuotaAndRequestCount(id int, quota int, count int) {
 	if err != nil {
 		common.SysLog(common.LogText("failed to update user used quota and request count: %s", err.Error()))
 		return
+	}
+	if quota > 0 {
+		releaseInviterRebatesOnConsume(id)
 	}
 
 	//// 更新缓存
@@ -1483,6 +1491,10 @@ func updateUserQuotaUsedQuotaAndRequestCount(id int, quota int, usedQuota int, r
 	).Error
 	if err != nil {
 		common.SysLog(common.LogText("failed to batch update user quota, used quota and request count: %s", err.Error()))
+		return
+	}
+	if usedQuota > 0 {
+		releaseInviterRebatesOnConsume(id)
 	}
 }
 

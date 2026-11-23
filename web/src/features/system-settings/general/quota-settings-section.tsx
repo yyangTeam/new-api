@@ -50,11 +50,51 @@ import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useSettingsForm } from '../hooks/use-settings-form'
 import { useUpdateOption } from '../hooks/use-update-option'
+import { validateInviterRebateTiers } from '../utils/inviter-rebate-tiers'
+import { InviterRebateTiersEditor } from './inviter-rebate-tiers-editor'
 
 const quotaSchema = z.object({
   QuotaForNewUser: z.coerce.number().min(0),
   QuotaForInviter: z.coerce.number().min(0),
   QuotaForInvitee: z.coerce.number().min(0),
+  InviterRebatePercent: z.coerce
+    .number({ error: () => i18next.t('Please enter a valid number') })
+    .int({ error: () => i18next.t('Must be an integer') })
+    .min(0, { error: () => i18next.t('Must be greater than or equal to 0') })
+    .max(100, { error: () => i18next.t('Must be less than or equal to 100') }),
+  InviterRebateFirstTopUpPercent: z.coerce
+    .number({ error: () => i18next.t('Please enter a valid number') })
+    .int({ error: () => i18next.t('Must be an integer') })
+    .min(0, { error: () => i18next.t('Must be greater than or equal to 0') })
+    .max(100, { error: () => i18next.t('Must be less than or equal to 100') }),
+  InviterRebateConsumeUnlockQuota: z.coerce
+    .number({ error: () => i18next.t('Please enter a valid number') })
+    .int({ error: () => i18next.t('Must be an integer') })
+    .min(0, { error: () => i18next.t('Must be greater than or equal to 0') }),
+  InviterRebateMaxPerTopup: z.coerce
+    .number({ error: () => i18next.t('Please enter a valid number') })
+    .int({ error: () => i18next.t('Must be an integer') })
+    .min(0, { error: () => i18next.t('Must be greater than or equal to 0') }),
+  InviterRebateMonthlyMax: z.coerce
+    .number({ error: () => i18next.t('Please enter a valid number') })
+    .int({ error: () => i18next.t('Must be an integer') })
+    .min(0, { error: () => i18next.t('Must be greater than or equal to 0') }),
+  InviterRebateSelfInviteCheck: z.boolean(),
+  InviterRebateLockExpiryDays: z.coerce
+    .number({ error: () => i18next.t('Please enter a valid number') })
+    .int({ error: () => i18next.t('Must be an integer') })
+    .min(0, { error: () => i18next.t('Must be greater than or equal to 0') }),
+  inviter_rebate_setting: z.object({
+    tiers: z.string().superRefine((value, ctx) => {
+      const result = validateInviterRebateTiers(value)
+      if (!result.valid) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: i18next.t(result.messageKey, result.params),
+        })
+      }
+    }),
+  }),
   TopUpLink: z.string(),
   quota_setting: z.object({
     enable_free_model_pre_consume: z.boolean(),
@@ -273,6 +313,242 @@ export function QuotaSettingsSection({
                     {t('Quota given to invited users ({{formattedQuota}})', {
                       formattedQuota: formatQuotaInputValue(field.value),
                     })}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='InviterRebatePercent'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Inviter Rebate Percentage')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={field.value ?? ''}
+                      onChange={handleNumberChange(field.onChange)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      "Percentage of an invitee's credited top-up quota (online payments and redemption codes) credited to the inviter's invitation quota. 0 disables the flat rebate. Ignored when rebate tiers are configured."
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <SettingsFormGridItem span='full'>
+              <FormField
+                control={form.control}
+                name='inviter_rebate_setting.tiers'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Inviter Rebate Tiers')}</FormLabel>
+                    <FormControl>
+                      <InviterRebateTiersEditor
+                        value={field.value ?? '[]'}
+                        onChange={field.onChange}
+                        disabled={updateOption.isPending}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        "Tiered rebate percents keyed by the inviter's invitee count. When tiers are configured they fully replace the flat rebate percent, and inviters below the lowest tier earn no rebate — add a base tier with 0 minimum invitees so every inviter qualifies. Empty disables tiers and uses the flat percent. At most 20 tiers, ordered by strictly increasing minimum invitees."
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SettingsFormGridItem>
+
+            <FormField
+              control={form.control}
+              name='InviterRebateFirstTopUpPercent'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {t('Inviter Rebate First Top-Up Percentage')}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={field.value ?? ''}
+                      onChange={handleNumberChange(field.onChange)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      "Rebate percent applied to an invitee's first successful top-up only; later top-ups use the regular percent. Not applied to redemption codes. 0 disables the first-top-up bonus."
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='InviterRebateConsumeUnlockQuota'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {t('Inviter Rebate Consume-Unlock Threshold')}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      step={1}
+                      value={field.value ?? ''}
+                      onChange={handleNumberChange(field.onChange)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Cumulative invitee consumption required before the inviter rebate is released ({{formattedQuota}}). The registration gift counts toward consumption, so set this above the new-user gift. 0 disables consume-unlock and releases rebates immediately.',
+                      {
+                        formattedQuota: formatQuotaInputValue(field.value),
+                      }
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='InviterRebateMaxPerTopup'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Inviter Rebate Max Per Top-Up')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      step={1}
+                      value={field.value ?? ''}
+                      onChange={handleNumberChange(field.onChange)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Maximum rebate credited for a single invitee top-up ({{formattedQuota}}). The portion above the cap is not recorded in the ledger. 0 means unlimited.',
+                      {
+                        formattedQuota: formatQuotaInputValue(field.value),
+                      }
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='InviterRebateMonthlyMax'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Inviter Rebate Monthly Max')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      step={1}
+                      value={field.value ?? ''}
+                      onChange={handleNumberChange(field.onChange)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Maximum total rebate credited to one inviter per calendar month, counting both released and frozen rebates ({{formattedQuota}}). Once the cap is reached, further rebates that month are voided. 0 means unlimited.',
+                      {
+                        formattedQuota: formatQuotaInputValue(field.value),
+                      }
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <SettingsFormGridItem span='full'>
+              <FormField
+                control={form.control}
+                name='InviterRebateSelfInviteCheck'
+                render={({ field }) => (
+                  <SettingsSwitchItem>
+                    <SettingsSwitchContent>
+                      <FormLabel>
+                        {t('Inviter Rebate Self-Invite Check')}
+                      </FormLabel>
+                      <FormDescription>
+                        {t(
+                          "Freeze the rebate for manual review when the invitee looks like the inviter's own second account (shared login IP or Stripe account, or two weaker signals combined). The frozen rebate never auto-releases; check the admin log to approve or void it. Enabled by default."
+                        )}
+                      </FormDescription>
+                    </SettingsSwitchContent>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={updateOption.isPending}
+                      />
+                    </FormControl>
+                  </SettingsSwitchItem>
+                )}
+              />
+            </SettingsFormGridItem>
+
+            <FormField
+              control={form.control}
+              name='InviterRebateLockExpiryDays'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('Inviter Rebate Lock Expiry Days')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      step={1}
+                      value={field.value ?? ''}
+                      onChange={handleNumberChange(field.onChange)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Void frozen rebates that the invitee has not unlocked by consumption after this many days, checked hourly on the master node. Does not apply to rebates frozen for self-invite suspicion, which always require manual review. 0 means frozen rebates never expire.'
+                    )}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

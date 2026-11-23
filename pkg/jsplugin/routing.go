@@ -482,6 +482,7 @@ var reservedRouteNamespaces = []string{
 	"/dashboard",
 	"/errors",
 	"/image-gen",
+	"/inviter-rebate",
 	"/keys",
 	"/models",
 	"/playground",

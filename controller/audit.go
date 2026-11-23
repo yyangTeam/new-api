@@ -73,6 +73,10 @@ var auditContentTemplates = map[string]string{
 	"subscription.plan_reset":       "Reset active subscriptions for plan ${plan_id}",
 	"subscription.user_plan_reset":  "Reset active plan ${plan_id} subscriptions for user ${target_user_id}",
 	"subscription.user_quota_reset": "Administrator reset the quota of subscription plan ${plan_title} (ID: ${plan_id})",
+
+	"inviter_rebate.admin_void":     "Voided locked inviter rebate (ID: ${ledger_id}) of ${quota}",
+	"inviter_rebate.admin_release":  "Released locked inviter rebate (ID: ${ledger_id}) of ${quota} to inviter ${inviter_id}",
+	"inviter_rebate.admin_clawback": "Clawed back inviter rebate (ID: ${ledger_id}) of ${quota}, debt ${debt}",
 }
 
 func recordPasskeyDomainAudit(c *gin.Context, change *model.PasskeyDomainChange, confirmed bool, err error) {

@@ -139,6 +139,50 @@ var TelegramBotName = ""
 var QuotaForNewUser = 0
 var QuotaForInviter = 0
 var QuotaForInvitee = 0
+
+// InviterRebatePercent is the percentage of an invitee's credited top-up
+// quota awarded to the inviter's invitation quota (0 disables the rebate).
+var InviterRebatePercent = 0
+
+// InviterRebateFirstTopUpPercent overrides InviterRebatePercent for an
+// invitee's first successful top-up (P2.1 first-top-up bonus, 0 = no bonus:
+// every top-up is rebated at InviterRebatePercent). Only top-up sources
+// qualify — redemption rebates always use the regular percent. The effective
+// percent is snapshotted on the ledger row at credit time.
+var InviterRebateFirstTopUpPercent = 0
+
+// InviterRebateConsumeUnlockQuota is the cumulative invitee consumption
+// (users.used_quota, registration gift included) required before a locked
+// rebate is released to the inviter (0 disables consume-unlock: rebates
+// release immediately). Set it above the registration gift quota, otherwise
+// invitees can unlock rebates by burning free quota.
+var InviterRebateConsumeUnlockQuota = 0
+
+// InviterRebateMaxPerTopup caps the rebate credited for a single invitee
+// top-up (raw quota; 0 means unlimited). The portion above the cap is not
+// recorded in the ledger.
+var InviterRebateMaxPerTopup = 0
+
+// InviterRebateMonthlyMax caps the total rebate credited to one inviter per
+// calendar month, counting both released and locked ledger rows (raw quota;
+// 0 means unlimited). Once the cap is reached, further rebates that month are
+// voided with a monthly_cap ledger record and an admin-side log.
+var InviterRebateMonthlyMax = 0
+
+// InviterRebateSelfInviteCheck enables the self-invite suspicion check on
+// each rebate (enabled by default). When the invitee looks like the
+// inviter's own second account, the rebate is locked with
+// locked_reason=self_invite_suspect and never auto-released; an
+// administrator reviews the admin-side alert log and decides.
+var InviterRebateSelfInviteCheck = true
+
+// InviterRebateLockExpiryDays voids locked(awaiting_consume) rebate rows
+// that stayed unreleased longer than this many days (0 = locked rebates
+// never expire). A periodic task on the master node sweeps the overdue rows
+// to voided(lock_expired) and lowers the inviter's frozen pool
+// accordingly. self_invite_suspect rows are never auto-voided.
+var InviterRebateLockExpiryDays = 0
+
 var ChannelDisableThreshold = 5.0
 var AutomaticDisableChannelEnabled = false
 var AutomaticEnableChannelEnabled = false
