@@ -8209,6 +8209,14 @@
     "SMTP Email": "SMTP Email",
     "This model has different image request multipliers across channels. Use separate billing model names to convert them.": "This model has different image request multipliers across channels. Use separate billing model names to convert them.",
     "This will immediately invalidate your existing access token. Any applications or scripts using it will stop working.": "This will immediately invalidate your existing access token. Any applications or scripts using it will stop working.",
-    "Your system access token for API authentication. Keep it secure and don't share it with others.": "Your system access token for API authentication. Keep it secure and don't share it with others."
+    "Your system access token for API authentication. Keep it secure and don't share it with others.": "Your system access token for API authentication. Keep it secure and don't share it with others.",
+    "Share your referral link and track your invitation rewards.": "Share your referral link and track your invitation rewards.",
+    "Copy invitation link": "Copy invitation link",
+    "Loading referral link": "Loading referral link",
+    "Referral link is not available yet.": "Referral link is not available yet.",
+    "No recharge rebate rate is currently configured.": "No recharge rebate rate is currently configured.",
+    "No recharge rebates yet": "No recharge rebates yet",
+    "Share your referral link. Recorded recharge rebates will appear here.": "Share your referral link. Recorded recharge rebates will appear here.",
+    "Invitees appear here after their first recorded recharge rebate. This list does not include every registered invitee.": "Invitees appear here after their first recorded recharge rebate. This list does not include every registered invitee."
   }
 }

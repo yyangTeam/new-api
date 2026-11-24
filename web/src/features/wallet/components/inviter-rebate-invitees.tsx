@@ -20,6 +20,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { CopyButton } from '@/components/copy-button'
 import { DataTablePage, useDataTable } from '@/components/data-table'
 import { ErrorState } from '@/components/error-state'
 import { toIntlLocale } from '@/i18n/languages'
@@ -29,7 +30,10 @@ import { formatNumber } from '@/lib/format'
 import { useInviterRebateInvitees } from '../hooks/use-inviter-rebate'
 import type { InviterRebateInvitee } from '../types'
 
-export function InviterRebateInvitees(props: { userId: number }) {
+export function InviterRebateInvitees(props: {
+  userId: number
+  affiliateLink?: string
+}) {
   const { t, i18n } = useTranslation()
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
@@ -114,7 +118,7 @@ export function InviterRebateInvitees(props: { userId: number }) {
     <section
       aria-label={t('Invitee contributions')}
       aria-busy={query.isFetching}
-      className='min-w-0 space-y-3'
+      className='flex min-w-0 flex-col gap-3'
     >
       <div>
         <h4 className='text-sm font-semibold'>{t('Invitee contributions')}</h4>
@@ -142,8 +146,22 @@ export function InviterRebateInvitees(props: { userId: number }) {
           toolbarProps={null}
           emptyTitle={t('No invitee contributions yet')}
           emptyDescription={t(
-            'Invitees appear here after their first recorded rebate.'
+            'Invitees appear here after their first recorded recharge rebate. This list does not include every registered invitee.'
           )}
+          emptyAction={
+            props.affiliateLink ? (
+              <CopyButton
+                value={props.affiliateLink}
+                variant='outline'
+                size='default'
+                className='min-h-11'
+                iconClassName='size-4'
+                aria-label={t('Copy invitation link')}
+              >
+                {t('Copy invitation link')}
+              </CopyButton>
+            ) : null
+          }
         />
       )}
     </section>

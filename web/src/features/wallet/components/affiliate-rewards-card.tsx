@@ -50,11 +50,6 @@ export function AffiliateRewardsCard(props: AffiliateRewardsCardProps) {
   const hasRewards = (props.user?.aff_quota ?? 0) > 0
   const accountStats = [
     {
-      key: 'available',
-      label: t('Transferable rewards'),
-      value: formatQuotaWithCurrency(props.user?.aff_quota ?? 0, { locale }),
-    },
-    {
       key: 'history',
       label: t('Total Earned'),
       value: formatQuotaWithCurrency(props.user?.aff_history_quota ?? 0, {
@@ -69,108 +64,148 @@ export function AffiliateRewardsCard(props: AffiliateRewardsCardProps) {
   ]
 
   return (
-    <Card data-card-hover='false' className='bg-muted/20 min-w-0 gap-0 py-0'>
-      <CardContent className='grid gap-3 p-3 sm:gap-4 sm:p-4 lg:grid-cols-[minmax(200px,1fr)_minmax(180px,0.65fr)_minmax(280px,1fr)] lg:items-center'>
-        <div className='flex min-w-0 items-center gap-2.5'>
-          <IconBadge tone='chart-3'>
+    <Card
+      data-card-hover='false'
+      className='from-overview-accent-1/10 via-overview-accent-3/5 to-overview-accent-2/10 min-w-0 gap-0 bg-linear-to-br py-0'
+    >
+      <CardContent className='flex min-w-0 flex-col gap-5 p-4 sm:gap-6 sm:p-6'>
+        <div className='flex min-w-0 items-start gap-3'>
+          <IconBadge tone='primary'>
             <Share2 aria-hidden='true' />
           </IconBadge>
           <div className='min-w-0'>
-            <h3 className='text-sm font-semibold'>{t('Referral Program')}</h3>
-            <p className='text-muted-foreground text-xs'>
-              {t(
-                'Earn rewards when users join through your referral link. Transfer accumulated rewards to your balance anytime.'
-              )}
+            <h3 className='text-base font-semibold sm:text-lg'>
+              {t('Referral Program')}
+            </h3>
+            <p className='text-muted-foreground mt-1 text-sm'>
+              {t('Share your referral link and track your invitation rewards.')}
             </p>
           </div>
         </div>
 
-        <dl
-          className='grid grid-cols-3 gap-2 text-center'
-          aria-busy={props.userLoading}
-        >
-          {accountStats.map((stat) => (
-            <div key={stat.key} className='min-w-0'>
-              <dt className='text-muted-foreground text-[10px] font-medium'>
-                {stat.label}
-              </dt>
-              <dd className='mt-0.5 text-sm font-semibold break-all'>
-                {props.userLoading ? (
-                  <Skeleton className='mx-auto h-5 w-16' />
-                ) : (
-                  stat.value
-                )}
-              </dd>
+        <div className='grid min-w-0 gap-6 lg:grid-cols-2 lg:items-start lg:gap-8'>
+          <div className='flex min-w-0 flex-col gap-4'>
+            <div className='flex min-w-0 flex-wrap items-end gap-3 sm:gap-4'>
+              <dl className='min-w-0 flex-1' aria-busy={props.userLoading}>
+                <dt className='text-muted-foreground text-sm font-medium'>
+                  {t('Transferable rewards')}
+                </dt>
+                <dd className='text-foreground mt-2 text-4xl font-semibold tracking-tight break-all sm:text-5xl'>
+                  {props.userLoading ? (
+                    <Skeleton className='h-12 w-36' />
+                  ) : (
+                    formatQuotaWithCurrency(props.user?.aff_quota ?? 0, {
+                      locale,
+                    })
+                  )}
+                </dd>
+              </dl>
+              {hasRewards && (
+                <Button
+                  onClick={props.onTransfer}
+                  disabled={
+                    props.complianceConfirmed === false || props.userLoading
+                  }
+                  variant='outline'
+                  className='min-h-11'
+                >
+                  {t('Transfer to Balance')}
+                </Button>
+              )}
             </div>
-          ))}
-        </dl>
-
-        <div className='flex min-w-0 items-center gap-2'>
-          {props.loading ? (
-            <Skeleton className='h-9 min-w-0 flex-1' />
-          ) : (
-            <>
-              <Input
-                value={props.affiliateLink}
-                readOnly
-                aria-label={t('Referral link')}
-                className='border-muted bg-background/70 h-9 min-w-0 flex-1 font-mono text-xs'
-              />
-              <CopyButton
-                value={props.affiliateLink}
-                disabled={!props.affiliateLink}
-                variant='outline'
-                className='bg-background size-9 shrink-0'
-                iconClassName='size-4'
-                tooltip={t('Copy referral link')}
-                aria-label={t('Copy referral link')}
-              />
-            </>
-          )}
-          {hasRewards && (
-            <Button
-              onClick={props.onTransfer}
-              disabled={
-                props.complianceConfirmed === false || props.userLoading
-              }
-              className='h-9 shrink-0 px-3'
-              size='sm'
-            >
-              {t('Transfer to Balance')}
-            </Button>
-          )}
-        </div>
-        {props.complianceConfirmed === false && (
-          <p className='text-muted-foreground text-xs lg:col-span-3'>
-            {t(
-              'Referral reward transfer is disabled until the administrator confirms compliance terms.'
+            {props.complianceConfirmed === false && (
+              <p className='text-muted-foreground text-sm'>
+                {t(
+                  'Referral reward transfer is disabled until the administrator confirms compliance terms.'
+                )}
+              </p>
             )}
-          </p>
-        )}
+            <dl
+              className='grid grid-cols-2 gap-4'
+              aria-busy={props.userLoading}
+            >
+              {accountStats.map((stat) => (
+                <div key={stat.key} className='min-w-0'>
+                  <dt className='text-muted-foreground text-xs font-medium'>
+                    {stat.label}
+                  </dt>
+                  <dd className='mt-1 text-lg font-medium break-all'>
+                    {props.userLoading ? (
+                      <Skeleton className='h-6 w-20' />
+                    ) : (
+                      stat.value
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          <div className='flex min-w-0 flex-col gap-3'>
+            <span className='text-muted-foreground text-sm font-medium'>
+              {t('Referral link')}
+            </span>
+            {props.loading ? (
+              <div role='status' aria-label={t('Loading referral link')}>
+                <Skeleton className='h-11 w-full' />
+                <Skeleton className='mt-3 h-11 w-full' />
+              </div>
+            ) : (
+              <>
+                <Input
+                  value={props.affiliateLink}
+                  readOnly
+                  aria-label={t('Referral link')}
+                  className='min-h-11 min-w-0 font-mono text-xs'
+                />
+                <CopyButton
+                  value={props.affiliateLink}
+                  disabled={!props.affiliateLink}
+                  variant='secondary'
+                  size='default'
+                  className='min-h-11 w-full sm:w-fit'
+                  iconClassName='size-4'
+                  tooltip={t('Copy invitation link')}
+                  aria-label={t('Copy invitation link')}
+                >
+                  {t('Copy invitation link')}
+                </CopyButton>
+                {!props.affiliateLink && (
+                  <p className='text-muted-foreground text-xs'>
+                    {t('Referral link is not available yet.')}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       </CardContent>
       {props.userId && props.userId > 0 ? (
         <CardContent
           key={props.userId}
-          className='min-w-0 space-y-4 p-3 pt-0 sm:p-4 sm:pt-0'
+          className='flex min-w-0 flex-col gap-5 p-4 pt-0 sm:gap-6 sm:p-6 sm:pt-0'
         >
           <Separator />
-          {/* 返利区域整块做主色渐变面板，让它在钱包页里第一眼可辨 */}
           <section
             aria-label={t('Recharge rebate overview')}
-            className='from-primary/5 space-y-3 rounded-xl border bg-gradient-to-b to-transparent p-3 sm:p-4'
+            className='flex min-w-0 flex-col gap-4'
           >
-            <div className='flex min-w-0 items-center gap-2.5'>
-              <IconBadge tone='primary' size='title'>
-                <Sparkles aria-hidden='true' />
-              </IconBadge>
-              <h4 className='text-base font-bold tracking-tight sm:text-lg'>
+            <div className='flex min-w-0 items-center gap-2'>
+              <Sparkles
+                className='text-muted-foreground size-4'
+                aria-hidden='true'
+              />
+              <h4 className='text-base font-semibold'>
                 {t('Recharge rebate overview')}
               </h4>
             </div>
             <InviterRebateSummary userId={props.userId} />
           </section>
           <Separator />
-          <InviterRebateInvitees userId={props.userId} />
+          <InviterRebateInvitees
+            userId={props.userId}
+            affiliateLink={props.loading ? '' : props.affiliateLink}
+          />
         </CardContent>
       ) : null}
     </Card>

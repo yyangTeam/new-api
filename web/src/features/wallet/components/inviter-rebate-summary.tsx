@@ -16,11 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Ban, CircleCheck, Lock, Sparkles, Zap, type LucideIcon } from 'lucide-react'
+import { Ban, CircleCheck, Info, Lock, Sparkles, Zap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { EmptyState } from '@/components/empty-state'
 import { ErrorState } from '@/components/error-state'
-import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { IconBadge } from '@/components/ui/icon-badge'
 import { Progress, ProgressLabel } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toIntlLocale } from '@/i18n/languages'
@@ -35,16 +38,13 @@ import {
 import { useInviterRebateSummary } from '../hooks/use-inviter-rebate'
 import type { InviterRebateSummary, InviterRebateTier } from '../types'
 
-// A concrete "friends recharge → you earn" illustration is shown at a
-// 10-display-unit top-up so both amounts stay truthful in every quota
-// display mode (currency and raw tokens both scale linearly).
+// Keep the example in display units so currency and token modes stay consistent.
 const EXAMPLE_TOPUP_UNITS = 10
 
 function buildLadder(summary: InviterRebateSummary): InviterRebateTier[] {
   if (summary.tiers.length > 0) {
     return summary.tiers
   }
-  // Flat rate: a single implicit tier at the current base percent.
   return [{ min_invitees: 0, percent: summary.tier.current_percent }]
 }
 
@@ -59,13 +59,13 @@ export function InviterRebateSummary(props: { userId: number }) {
       <div
         role='status'
         aria-label={t('Loading rebate summary')}
-        className='space-y-4'
+        className='flex flex-col gap-4'
       >
-        <div className='grid gap-3 sm:grid-cols-3'>
-          {['locked', 'released', 'total'].map((key) => (
-            <div key={key} className='rounded-lg border p-3'>
-              <Skeleton className='h-4 w-24' />
-              <Skeleton className='mt-2 h-7 w-32' />
+        <div className='grid grid-cols-2 gap-4 lg:grid-cols-4'>
+          {['total', 'released', 'locked', 'voided'].map((key) => (
+            <div key={key} className='min-w-0'>
+              <Skeleton className='h-4 w-24 max-w-full' />
+              <Skeleton className='mt-2 h-7 w-28 max-w-full' />
             </div>
           ))}
         </div>
@@ -98,159 +98,173 @@ export function InviterRebateSummary(props: { userId: number }) {
   const exampleRebateQuota = Math.floor(
     (exampleTopUpQuota * tier.current_percent) / 100
   )
-  // The first top-up bonus only reads as a benefit when it beats the
-  // inviter's current effective rate (credit logic applies the max).
+  // First top-up uses the higher rate, not the sum of both rates.
   const firstTopUpBonus = Math.max(
     0,
     summary.first_topup_percent - tier.current_percent
   )
   const stats = [
     {
+      key: 'total',
+      label: t('Rebate Total'),
+      quota: summary.granted_quota,
+      icon: Sparkles,
+      tone: 'neutral',
+    },
+    {
       key: 'released',
       label: t('Released rebates'),
       quota: summary.released_quota,
+      icon: CircleCheck,
+      tone: 'success',
     },
-    { key: 'locked', label: t('Locked rebates'), quota: summary.locked_quota },
-    { key: 'voided', label: t('Voided'), quota: summary.voided_quota },
+    {
+      key: 'locked',
+      label: t('Locked rebates'),
+      quota: summary.locked_quota,
+      icon: Lock,
+      tone: 'warning',
+    },
+    {
+      key: 'voided',
+      label: t('Voided'),
+      quota: summary.voided_quota,
+      icon: Ban,
+      tone: 'neutral',
+    },
   ] as const
   const ladder = buildLadder(summary)
+  const hasConfiguredRate =
+    tier.current_percent > 0 ||
+    tier.next_percent > 0 ||
+    summary.first_topup_percent > 0 ||
+    summary.tiers.some((step) => step.percent > 0)
+  const hasRecordedRewards =
+    summary.rebate_count > 0 || stats.some((stat) => stat.quota !== 0)
 
   return (
-    <div className='space-y-4' aria-busy={query.isFetching}>
-      {/* 收益 hero：返利总额 + 「好友每充多少你得多少」的具体示例 */}
-      <div className='from-primary/15 via-primary/10 rounded-xl border bg-gradient-to-br to-transparent p-4 sm:p-5'>
-        <div className='flex flex-wrap items-end justify-between gap-x-8 gap-y-4'>
-          <div className='min-w-0'>
-            <p className='text-muted-foreground flex items-center gap-1.5 text-xs font-medium tracking-wider uppercase'>
-              <Sparkles className='size-3.5' aria-hidden='true' />
-              {t('Rebate Total')}
-            </p>
-            <p className='text-foreground mt-1.5 font-mono text-3xl font-bold tracking-tight break-all tabular-nums sm:text-4xl'>
-              {formatQuotaWithCurrency(summary.granted_quota, { locale })}
-            </p>
-            <p className='text-muted-foreground mt-1 text-xs'>
-              {t('Friends recharge, you earn')}
-            </p>
-          </div>
-          {tier.current_percent > 0 && (
-            <div className='border-success/30 bg-success/5 min-w-0 rounded-lg border px-3.5 py-2.5'>
-              <p className='text-muted-foreground text-[11px]'>
-                {t('For every {{topup}} your friends recharge', {
-                  topup: formatQuotaWithCurrency(exampleTopUpQuota, {
-                    locale,
-                  }),
-                })}
-              </p>
-              <p className='text-success mt-0.5 font-mono text-xl font-bold tabular-nums sm:text-2xl'>
-                {t('you earn {{rebate}}', {
-                  rebate: formatQuotaWithCurrency(exampleRebateQuota, {
-                    locale,
-                  }),
-                })}
-              </p>
-              <p className='text-muted-foreground mt-0.5 text-[11px]'>
-                {t('at your current {{percent}}% rebate rate', {
-                  percent: formatNumber(tier.current_percent, locale),
-                })}
-              </p>
-            </div>
+    <div className='flex min-w-0 flex-col gap-5' aria-busy={query.isFetching}>
+      <div className='flex min-w-0 flex-col gap-3'>
+        <dl className='grid grid-cols-2 gap-x-4 gap-y-5 lg:grid-cols-4'>
+          {stats.map((stat) => {
+            const TileIcon = stat.icon
+            return (
+              <div key={stat.key} className='min-w-0'>
+                <dt className='text-muted-foreground flex items-start gap-1.5 text-xs font-medium'>
+                  <IconBadge tone={stat.tone} size='xs'>
+                    <TileIcon aria-hidden='true' />
+                  </IconBadge>
+                  <span className='min-w-0 break-words'>{stat.label}</span>
+                </dt>
+                <dd className='text-foreground mt-2 text-xl font-semibold break-all sm:text-2xl'>
+                  {formatQuotaWithCurrency(stat.quota, { locale })}
+                </dd>
+              </div>
+            )
+          })}
+        </dl>
+        <p className='text-muted-foreground text-xs leading-relaxed'>
+          {t(
+            'Ledger totals include released and locked rebates, exclude voided rebates, and do not include legacy or registration rewards. Released totals are not your transferable balance.'
           )}
+        </p>
+        <div className='text-muted-foreground flex flex-wrap gap-x-5 gap-y-1 text-xs'>
+          <span>
+            {t('Rebated Invitees')}:{' '}
+            {formatNumber(summary.invitee_count, locale)}
+          </span>
+          <span>
+            {t('Rebate Records')}: {formatNumber(summary.rebate_count, locale)}
+          </span>
         </div>
-        {firstTopUpBonus > 0 && (
-          <p className='text-success mt-3 flex items-center gap-1.5 text-xs font-medium'>
-            <Zap className='size-3.5' aria-hidden='true' />
-            {t('Friends first top-ups earn {{percent}}% rebates', {
-              percent: formatNumber(summary.first_topup_percent, locale),
-            })}
-          </p>
-        )}
       </div>
 
-      {/* 状态分桶：已到手的（成功）、在途的（警告）、作废的（中性） */}
-      <dl className='grid grid-cols-3 gap-2.5 sm:gap-3'>
-        {stats.map((stat) => {
-          const TileIcon = rebateTileIcon(stat.key)
-          return (
-            <div
-              key={stat.key}
-              className='bg-background min-w-0 rounded-lg border p-3 sm:p-4'
-            >
-              <dt className='text-muted-foreground flex items-center gap-1.5 text-[11px] font-medium tracking-wider uppercase sm:text-xs'>
-                <IconBadge tone={rebatetileTone(stat.key)} size='xs'>
-                  <TileIcon aria-hidden='true' />
-                </IconBadge>
-                <span className='truncate'>{stat.label}</span>
-              </dt>
-              <dd className='text-foreground mt-1.5 font-mono text-lg font-semibold break-all tabular-nums sm:text-xl'>
-                {formatQuotaWithCurrency(stat.quota, { locale })}
-              </dd>
-            </div>
-          )
-        })}
-      </dl>
-      <p className='text-muted-foreground text-xs'>
-        {t(
-          'Ledger totals include released and locked rebates, exclude voided rebates, and do not include legacy or registration rewards. Released totals are not your transferable balance.'
-        )}
-      </p>
-      <div className='text-muted-foreground flex flex-wrap gap-x-6 gap-y-1 text-sm'>
-        <span>
-          {t('Rebated Invitees')}: {formatNumber(summary.invitee_count, locale)}
-        </span>
-        <span>
-          {t('Rebate Records')}: {formatNumber(summary.rebate_count, locale)}
-        </span>
-      </div>
+      {!hasConfiguredRate && (
+        <Alert role='status'>
+          <Info aria-hidden='true' />
+          <AlertDescription>
+            {t('No recharge rebate rate is currently configured.')}
+          </AlertDescription>
+        </Alert>
+      )}
+      {hasConfiguredRate && !hasRecordedRewards && (
+        <EmptyState
+          icon={Sparkles}
+          title={t('No recharge rebates yet')}
+          description={t(
+            'Share your referral link. Recorded recharge rebates will appear here.'
+          )}
+          className='min-h-0 py-4'
+        />
+      )}
 
-      {/* 阶梯可视化：当前档高亮，向下一档的进度条 */}
-      <div className='bg-background rounded-lg border p-3 sm:p-4'>
+      <div className='flex min-w-0 flex-col gap-3'>
         <div className='flex flex-wrap items-center justify-between gap-2 text-sm'>
           <span className='font-medium'>{t('Rebate tiers')}</span>
           <span className='text-muted-foreground text-xs'>
             {t('Bound Invitees')}: {formatNumber(tier.aff_count, locale)}
           </span>
         </div>
-        <ol className='mt-3 flex flex-wrap gap-2'>
-          {ladder.map((step, index) => {
+        {tier.current_percent > 0 && (
+          <div className='flex flex-col gap-1 text-sm'>
+            <p className='text-muted-foreground flex flex-wrap gap-x-1'>
+              <span>
+                {t('For every {{topup}} your friends recharge', {
+                  topup: formatQuotaWithCurrency(exampleTopUpQuota, { locale }),
+                })}
+              </span>
+              <span className='text-foreground font-medium'>
+                {t('you earn {{rebate}}', {
+                  rebate: formatQuotaWithCurrency(exampleRebateQuota, {
+                    locale,
+                  }),
+                })}
+              </span>
+            </p>
+            <p className='text-muted-foreground text-xs'>
+              {t('at your current {{percent}}% rebate rate', {
+                percent: formatNumber(tier.current_percent, locale),
+              })}
+            </p>
+          </div>
+        )}
+        {firstTopUpBonus > 0 && (
+          <p className='flex items-start gap-1.5 text-sm'>
+            <Zap
+              className='text-muted-foreground mt-0.5 size-4 shrink-0'
+              aria-hidden='true'
+            />
+            {t('Friends first top-ups earn {{percent}}% rebates', {
+              percent: formatNumber(summary.first_topup_percent, locale),
+            })}
+          </p>
+        )}
+        <ol className='flex flex-wrap gap-2'>
+          {ladder.map((step) => {
             const isCurrent = step.percent === tier.current_percent
-            // next_min_invitees = 0 means no next tier (top tier or no
-            // ladder); it must not match the first tier whose own
-            // min_invitees is also 0.
+            // Zero is the no-next-tier sentinel, not the first tier's threshold.
             const isNext =
               hasNextTier && step.min_invitees === tier.next_min_invitees
             return (
               <li
                 key={`${step.min_invitees}-${step.percent}`}
                 className={cn(
-                  'flex min-w-[6.5rem] flex-1 flex-col items-center gap-0.5 rounded-lg border px-3 py-2 text-center sm:flex-none sm:px-4',
-                  isCurrent && 'border-success/60 bg-success/15',
-                  isNext && 'border-warning/40 bg-warning/5',
-                  index === 0 && ladder.length === 1 && 'border-primary/30'
+                  'flex min-w-[6.5rem] flex-1 flex-col items-center gap-1 rounded-lg border px-3 py-3 text-center sm:flex-none sm:px-4',
+                  isCurrent && 'border-primary/40 bg-primary/5'
                 )}
               >
-                <span
-                  className={cn(
-                    'font-mono text-base font-bold tabular-nums',
-                    isCurrent ? 'text-success' : 'text-foreground'
-                  )}
-                >
+                <span className='text-foreground text-lg font-semibold'>
                   {formatNumber(step.percent, locale)}%
                 </span>
-                <span className='text-muted-foreground text-[11px]'>
+                <span className='text-muted-foreground text-xs'>
                   {t('{{count}}+ friends', {
                     count: formatNumber(step.min_invitees, locale),
                   })}
                 </span>
                 {isCurrent && (
-                  <span className='text-success text-[10px] font-semibold tracking-wide uppercase'>
-                    {t('Current tier')}
-                  </span>
+                  <Badge variant='secondary'>{t('Current tier')}</Badge>
                 )}
-                {isNext && (
-                  <span className='text-warning text-[10px] font-semibold tracking-wide uppercase'>
-                    {t('Next tier')}
-                  </span>
-                )}
+                {isNext && <Badge variant='outline'>{t('Next tier')}</Badge>}
               </li>
             )
           })}
@@ -259,7 +273,6 @@ export function InviterRebateSummary(props: { userId: number }) {
           <Progress
             value={Math.min(tier.aff_count, tier.next_min_invitees)}
             max={tier.next_min_invitees}
-            className='mt-3'
             aria-valuetext={t('{{current}} of {{target}} bound invitees', {
               current: formatNumber(tier.aff_count, locale),
               target: formatNumber(tier.next_min_invitees, locale),
@@ -276,7 +289,7 @@ export function InviterRebateSummary(props: { userId: number }) {
             </ProgressLabel>
           </Progress>
         ) : (
-          <p className='text-muted-foreground mt-3 text-xs'>
+          <p className='text-muted-foreground text-xs'>
             {t(
               'No next rebate tier is available under the current configuration.'
             )}
@@ -285,21 +298,4 @@ export function InviterRebateSummary(props: { userId: number }) {
       </div>
     </div>
   )
-}
-
-// rebatetileTone maps a summary bucket to its status tone: money already
-// in the inviter's pocket reads as success, pending money as warning,
-// voided money as neutral.
-function rebatetileTone(key: string): IconBadgeTone {
-  if (key === 'released') return 'success'
-  if (key === 'locked') return 'warning'
-  return 'neutral'
-}
-
-// rebateTileIcon pairs each bucket with the lucide icon that matches its
-// meaning: settled (check), pending (lock), cancelled (ban).
-function rebateTileIcon(key: string): LucideIcon {
-  if (key === 'released') return CircleCheck
-  if (key === 'locked') return Lock
-  return Ban
 }

@@ -8209,6 +8209,14 @@
     "SMTP Email": "E-mail SMTP",
     "This model has different image request multipliers across channels. Use separate billing model names to convert them.": "Les multiplicateurs des requêtes image diffèrent selon les canaux. Utilisez des noms de facturation distincts pour les convertir.",
     "This will immediately invalidate your existing access token. Any applications or scripts using it will stop working.": "Cela invalidera immédiatement votre jeton d'accès actuel. Les applications ou scripts qui l'utilisent cesseront de fonctionner.",
-    "Your system access token for API authentication. Keep it secure and don't share it with others.": "Votre jeton d'accès système pour l'authentification API. Gardez-le en sécurité et ne le partagez pas avec d'autres."
+    "Your system access token for API authentication. Keep it secure and don't share it with others.": "Votre jeton d'accès système pour l'authentification API. Gardez-le en sécurité et ne le partagez pas avec d'autres.",
+    "Share your referral link and track your invitation rewards.": "Partagez votre lien de parrainage et suivez vos récompenses de parrainage.",
+    "Copy invitation link": "Copier le lien d’invitation",
+    "Loading referral link": "Chargement du lien de parrainage",
+    "Referral link is not available yet.": "Le lien de parrainage n’est pas encore disponible.",
+    "No recharge rebate rate is currently configured.": "Aucun taux de commission sur les recharges n’est actuellement configuré.",
+    "No recharge rebates yet": "Aucune commission sur les recharges pour le moment",
+    "Share your referral link. Recorded recharge rebates will appear here.": "Partagez votre lien de parrainage. Les commissions sur les recharges enregistrées apparaîtront ici.",
+    "Invitees appear here after their first recorded recharge rebate. This list does not include every registered invitee.": "Les personnes invitées apparaissent ici après l’enregistrement de leur première commission sur recharge. Cette liste ne comprend pas toutes les personnes invitées inscrites."
   }
 }

@@ -8209,6 +8209,14 @@
     "SMTP Email": "Email SMTP",
     "This model has different image request multipliers across channels. Use separate billing model names to convert them.": "Hệ số yêu cầu ảnh của mô hình này khác nhau giữa các kênh. Hãy dùng tên mô hình tính phí riêng để chuyển đổi.",
     "This will immediately invalidate your existing access token. Any applications or scripts using it will stop working.": "Thao tác này sẽ vô hiệu hóa ngay token truy cập hiện có. Mọi ứng dụng hoặc tập lệnh đang sử dụng token đó sẽ ngừng hoạt động.",
-    "Your system access token for API authentication. Keep it secure and don't share it with others.": "Mã truy cập hệ thống của bạn để xác thực API. Hãy giữ nó an toàn và đừng chia sẻ nó với người khác."
+    "Your system access token for API authentication. Keep it secure and don't share it with others.": "Mã truy cập hệ thống của bạn để xác thực API. Hãy giữ nó an toàn và đừng chia sẻ nó với người khác.",
+    "Share your referral link and track your invitation rewards.": "Chia sẻ liên kết giới thiệu và theo dõi phần thưởng mời bạn.",
+    "Copy invitation link": "Sao chép liên kết mời",
+    "Loading referral link": "Đang tải liên kết giới thiệu",
+    "Referral link is not available yet.": "Liên kết giới thiệu hiện chưa khả dụng.",
+    "No recharge rebate rate is currently configured.": "Hiện chưa cấu hình tỷ lệ hoàn thưởng nạp tiền.",
+    "No recharge rebates yet": "Chưa có hoàn thưởng nạp tiền",
+    "Share your referral link. Recorded recharge rebates will appear here.": "Chia sẻ liên kết giới thiệu của bạn. Các khoản hoàn thưởng nạp tiền đã được ghi nhận sẽ xuất hiện ở đây.",
+    "Invitees appear here after their first recorded recharge rebate. This list does not include every registered invitee.": "Người được mời sẽ xuất hiện ở đây sau khi khoản hoàn thưởng nạp tiền đầu tiên của họ được ghi nhận. Danh sách này không bao gồm tất cả người được mời đã đăng ký."
   }
 }

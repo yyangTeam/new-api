@@ -8209,6 +8209,14 @@
     "SMTP Email": "Электронная почта SMTP",
     "This model has different image request multipliers across channels. Use separate billing model names to convert them.": "У этой модели разные множители запросов изображений в разных каналах. Для преобразования используйте отдельные имена расчётных моделей.",
     "This will immediately invalidate your existing access token. Any applications or scripts using it will stop working.": "Это немедленно сделает текущий токен доступа недействительным. Использующие его приложения и скрипты перестанут работать.",
-    "Your system access token for API authentication. Keep it secure and don't share it with others.": "Ваш системный токен доступа для аутентификации API. Храните его в безопасности и не делитесь им с другими."
+    "Your system access token for API authentication. Keep it secure and don't share it with others.": "Ваш системный токен доступа для аутентификации API. Храните его в безопасности и не делитесь им с другими.",
+    "Share your referral link and track your invitation rewards.": "Поделитесь реферальной ссылкой и отслеживайте вознаграждения за приглашения.",
+    "Copy invitation link": "Скопировать ссылку-приглашение",
+    "Loading referral link": "Загрузка реферальной ссылки",
+    "Referral link is not available yet.": "Реферальная ссылка пока недоступна.",
+    "No recharge rebate rate is currently configured.": "Ставка вознаграждения за пополнение пока не настроена.",
+    "No recharge rebates yet": "Вознаграждений за пополнение пока нет",
+    "Share your referral link. Recorded recharge rebates will appear here.": "Поделитесь реферальной ссылкой. Здесь появятся зарегистрированные вознаграждения за пополнение.",
+    "Invitees appear here after their first recorded recharge rebate. This list does not include every registered invitee.": "Приглашённые пользователи появляются здесь после первой записи о вознаграждении за их пополнение. В этом списке представлены не все зарегистрированные приглашённые пользователи."
   }
 }

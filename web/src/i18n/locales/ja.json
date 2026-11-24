@@ -8209,6 +8209,14 @@
     "SMTP Email": "SMTPメール",
     "This model has different image request multipliers across channels. Use separate billing model names to convert them.": "このモデルはチャネルごとに画像リクエストの倍率が異なります。別々の課金モデル名を使用して変換してください。",
     "This will immediately invalidate your existing access token. Any applications or scripts using it will stop working.": "既存のアクセストークンは直ちに無効になります。使用中のアプリケーションやスクリプトは動作しなくなります。",
-    "Your system access token for API authentication. Keep it secure and don't share it with others.": "API認証用のシステムアクセストークンです。安全に保管し、他者と共有しないでください。"
+    "Your system access token for API authentication. Keep it secure and don't share it with others.": "API認証用のシステムアクセストークンです。安全に保管し、他者と共有しないでください。",
+    "Share your referral link and track your invitation rewards.": "紹介リンクを共有して、招待報酬を確認しましょう。",
+    "Copy invitation link": "招待リンクをコピー",
+    "Loading referral link": "紹介リンクを読み込み中",
+    "Referral link is not available yet.": "紹介リンクはまだ利用できません。",
+    "No recharge rebate rate is currently configured.": "現在、チャージ還元率は設定されていません。",
+    "No recharge rebates yet": "チャージ還元はまだありません",
+    "Share your referral link. Recorded recharge rebates will appear here.": "紹介リンクを共有しましょう。記録されたチャージ還元はここに表示されます。",
+    "Invitees appear here after their first recorded recharge rebate. This list does not include every registered invitee.": "招待ユーザーは、最初のチャージ還元が記録されるとここに表示されます。この一覧には、登録済みの招待ユーザー全員が含まれるわけではありません。"
   }
 }

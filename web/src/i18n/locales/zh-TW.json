@@ -8209,6 +8209,14 @@
     "SMTP Email": "SMTP 電郵",
     "This model has different image request multipliers across channels. Use separate billing model names to convert them.": "此模型在不同通道上的圖片請求倍率不同，請使用獨立的計費模型名稱分別轉換。",
     "This will immediately invalidate your existing access token. Any applications or scripts using it will stop working.": "這會立即使現有存取令牌失效。任何正在使用它的應用程式或指令碼都將停止運作。",
-    "Your system access token for API authentication. Keep it secure and don't share it with others.": "您的系統存取令牌，用於 API 認證。請妥善保管，不要與他人分享。"
+    "Your system access token for API authentication. Keep it secure and don't share it with others.": "您的系統存取令牌，用於 API 認證。請妥善保管，不要與他人分享。",
+    "Share your referral link and track your invitation rewards.": "分享您的邀請連結，查看邀請獎勵。",
+    "Copy invitation link": "複製邀請連結",
+    "Loading referral link": "邀請連結載入中",
+    "Referral link is not available yet.": "邀請連結目前尚不可用。",
+    "No recharge rebate rate is currently configured.": "目前尚未設定儲值回饋比例。",
+    "No recharge rebates yet": "尚無儲值回饋",
+    "Share your referral link. Recorded recharge rebates will appear here.": "分享您的邀請連結。已記錄的儲值回饋將顯示於此。",
+    "Invitees appear here after their first recorded recharge rebate. This list does not include every registered invitee.": "受邀使用者的首筆儲值回饋紀錄產生後，將顯示於此。此清單不包含所有已註冊的受邀使用者。"
   }
 }

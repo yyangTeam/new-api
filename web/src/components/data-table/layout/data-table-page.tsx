@@ -480,6 +480,7 @@ function renderMobile<TData>(
           isLoading={props.isLoading}
           emptyTitle={props.emptyTitle}
           emptyDescription={props.emptyDescription}
+          emptyAction={props.emptyAction}
           getRowKey={props.mobileProps?.getRowKey}
           getRowClassName={mobileGetRowClassName}
         />
